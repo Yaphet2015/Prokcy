@@ -11,6 +11,7 @@
   --color-tahoe-surface: rgba(255,255,255,0.8);
   --color-tahoe-hover: rgba(0,0,0,0.03);
   --color-tahoe-subtle: #86868b;
+  --color-tahoe-glow: rgba(0, 122, 255, 0.3); /* #007aff with opacity */
 }
 
 .dark {
@@ -22,12 +23,12 @@
   --color-tahoe-surface: rgba(30,30,30,0.8);
   --color-tahoe-hover: rgba(255,255,255,0.05);
   --color-tahoe-subtle: #86868b;
+  --color-tahoe-glow: rgba(10, 132, 255, 0.3); /* #0a84ff with opacity */
 }
 
 body {
-  @apply bg-tahoe-bg text-tahoe-fg;
+  @apply bg-tahoe-bg text-tahoe-fg font-sans;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
 }
 
 /* Custom scrollbar */
@@ -41,7 +42,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-tahoe-border rounded-tahoe;
+  @apply bg-tahoe-border rounded-lg;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -50,9 +51,7 @@ body {
 
 /* Glass effect utility */
 .glass-tahoe {
-  @apply bg-white/10 backdrop-blur-tahoe border border-white/20;
-}
-
-.dark .glass-tahoe {
-  @apply bg-black/40 border border-white/10;
+  background: var(--color-tahoe-surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--color-tahoe-border);
 }
