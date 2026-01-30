@@ -10,7 +10,12 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     // Get initial theme
     if (window.electron?.getTheme) {
-      window.electron.getTheme().then(setIsDark);
+      window.electron.getTheme()
+        .then(setIsDark)
+        .catch(err => {
+          console.error('Failed to get initial theme:', err);
+          setIsDark(false); // Fallback to light mode
+        });
     }
 
     // Listen for theme changes (Electron will provide this)
