@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const NetworkContext = createContext({
   requests: [],
@@ -24,18 +24,18 @@ export function NetworkProvider({ children }) {
     setFiltersState((prev) => ({ ...prev, ...newFilters }));
   }, []);
 
+  const value = useMemo(() => ({
+    requests,
+    selectedRequest,
+    filters,
+    searchQuery,
+    selectRequest,
+    setFilters,
+    setSearchQuery,
+  }), [requests, selectedRequest, filters, searchQuery, selectRequest, setFilters, setSearchQuery]);
+
   return (
-    <NetworkContext.Provider
-      value={{
-        requests,
-        selectedRequest,
-        filters,
-        searchQuery,
-        selectRequest,
-        setFilters,
-        setSearchQuery,
-      }}
-    >
+    <NetworkContext.Provider value={value}>
       {children}
     </NetworkContext.Provider>
   );
@@ -44,3 +44,5 @@ export function NetworkProvider({ children }) {
 export function useNetwork() {
   return useContext(NetworkContext);
 }
+
+NetworkContext.displayName = 'NetworkContext';

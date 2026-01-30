@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const RulesContext = createContext({
   rules: '',
@@ -16,9 +16,11 @@ export function RulesProvider({ children }) {
   const [isEnabled, setIsEnabled] = useState(true);
 
   const setRules = useCallback((newRules) => {
-    setRulesState(newRules);
-    setIsDirty(newRules !== rules);
-  }, [rules]);
+    setRulesState((prev) => {
+      setIsDirty(newRules !== prev);
+      return newRules;
+    });
+  }, []);
 
   const saveRules = useCallback(async () => {
     // Will be implemented with API
@@ -34,18 +36,18 @@ export function RulesProvider({ children }) {
     setIsEnabled((prev) => !prev);
   }, []);
 
+  const value = useMemo(() => ({
+    rules,
+    isDirty,
+    isEnabled,
+    setRules,
+    saveRules,
+    revertRules,
+    toggleEnabled,
+  }), [rules, isDirty, isEnabled, setRules, saveRules, revertRules, toggleEnabled]);
+
   return (
-    <RulesContext.Provider
-      value={{
-        rules,
-        isDirty,
-        isEnabled,
-        setRules,
-        saveRules,
-        revertRules,
-        toggleEnabled,
-      }}
-    >
+    <RulesContext.Provider value={value}>
       {children}
     </RulesContext.Provider>
   );
@@ -54,3 +56,5 @@ export function RulesProvider({ children }) {
 export function useRules() {
   return useContext(RulesContext);
 }
+
+RulesContext.displayName = 'RulesContext';

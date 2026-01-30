@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const ValuesContext = createContext({
   values: {},
@@ -31,16 +31,16 @@ export function ValuesProvider({ children }) {
     }
   }, [selectedKey]);
 
+  const value = useMemo(() => ({
+    values,
+    selectedKey,
+    selectKey,
+    setValue,
+    deleteValue,
+  }), [values, selectedKey, selectKey, setValue, deleteValue]);
+
   return (
-    <ValuesContext.Provider
-      value={{
-        values,
-        selectedKey,
-        selectKey,
-        setValue,
-        deleteValue,
-      }}
-    >
+    <ValuesContext.Provider value={value}>
       {children}
     </ValuesContext.Provider>
   );
@@ -49,3 +49,5 @@ export function ValuesProvider({ children }) {
 export function useValues() {
   return useContext(ValuesContext);
 }
+
+ValuesContext.displayName = 'ValuesContext';
