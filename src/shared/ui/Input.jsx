@@ -6,9 +6,16 @@ const Input = forwardRef(({
   value = '',
   onChange,
   disabled = false,
+  size = 'md',
   className = '',
   ...props
 }, ref) => {
+  const sizes = {
+    sm: 'h-7 px-2 text-xs rounded-md',
+    md: 'h-9 px-3 text-sm rounded-lg',
+    lg: 'h-11 px-4 text-base rounded-lg',
+  };
+
   return (
     <input
       ref={ref}
@@ -18,7 +25,7 @@ const Input = forwardRef(({
       onChange={onChange}
       disabled={disabled}
       className={`
-        h-9 px-3 rounded-lg
+        ${sizes[size]}
         bg-tahoe-bg/50 border border-tahoe-border
         text-tahoe-fg placeholder:text-tahoe-subtle
         focus:border-tahoe-accent focus:ring-2 focus:ring-tahoe-accent/20
