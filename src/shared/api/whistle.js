@@ -16,6 +16,11 @@ async function request(endpoint, options = {}) {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
+    // Handle 204 No Content (DELETE operations)
+    if (response.status === 204) {
+      return null;
+    }
+
     return await response.json();
   } catch (error) {
     console.error('Whistle API request failed:', error);
@@ -80,15 +85,3 @@ export async function checkHealth() {
     return false;
   }
 }
-
-export default {
-  getNetworkRequests,
-  getRequestDetails,
-  getRules,
-  setRules,
-  getValues,
-  setValue,
-  deleteValue,
-  installPlugin,
-  checkHealth,
-};
