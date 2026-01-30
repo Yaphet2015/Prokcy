@@ -15,7 +15,7 @@ export function ThemeProvider({ children }) {
 
     // Listen for theme changes (Electron will provide this)
     const handleThemeChange = (event) => {
-      setIsDark(event.detail.isDark);
+      setIsDark(event.isDark);
     };
 
     window.addEventListener('theme-changed', handleThemeChange);
