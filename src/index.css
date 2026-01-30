@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light mode (default) */
+  --color-tahoe-bg: #ffffff;
+  --color-tahoe-fg: #1d1d1f;
+  --color-tahoe-accent: #007aff;
+  --color-tahoe-border: rgba(0,0,0,0.08);
+  --color-tahoe-surface: rgba(255,255,255,0.8);
+  --color-tahoe-hover: rgba(0,0,0,0.03);
+  --color-tahoe-subtle: #86868b;
+}
+
+.dark {
+  /* Dark mode */
+  --color-tahoe-bg: #1e1e1e;
+  --color-tahoe-fg: #ffffff;
+  --color-tahoe-accent: #0a84ff;
+  --color-tahoe-border: rgba(255,255,255,0.1);
+  --color-tahoe-surface: rgba(30,30,30,0.8);
+  --color-tahoe-hover: rgba(255,255,255,0.05);
+  --color-tahoe-subtle: #86868b;
+}
+
+body {
+  @apply bg-tahoe-bg text-tahoe-fg;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-tahoe-border rounded-tahoe;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-tahoe-subtle;
+}
+
+/* Glass effect utility */
+.glass-tahoe {
+  @apply bg-white/10 backdrop-blur-tahoe border border-white/20;
+}
+
+.dark .glass-tahoe {
+  @apply bg-black/40 border border-white/10;
+}
