@@ -3,11 +3,20 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ThemeProvider } from './shared/context/ThemeContext';
+import { NetworkProvider } from './shared/context/NetworkContext';
+import { RulesProvider } from './shared/context/RulesContext';
+import { ValuesProvider } from './shared/context/ValuesContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
-      <App />
+      <NetworkProvider>
+        <RulesProvider>
+          <ValuesProvider>
+            <App />
+          </ValuesProvider>
+        </RulesProvider>
+      </NetworkProvider>
     </ThemeProvider>
   </React.StrictMode>,
 );
