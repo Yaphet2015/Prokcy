@@ -23,7 +23,6 @@ export default {
         'md': '8px',
         'lg': '12px',
         'xl': '16px',
-        'tahoe': '12px',
         'pill': '9999px',
       },
       backdropBlur: {
@@ -33,7 +32,7 @@ export default {
         'tahoe-sm': '0 1px 3px rgba(0,0,0,0.05)',
         'tahoe-md': '0 4px 12px rgba(0,0,0,0.08)',
         'tahoe-lg': '0 8px 24px rgba(0,0,0,0.12)',
-        'tahoe-glow': '0 0 20px rgba(10,132,255,0.3)',
+        'tahoe-glow': '0 0 20px var(--color-tahoe-glow)',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'sans-serif'],
