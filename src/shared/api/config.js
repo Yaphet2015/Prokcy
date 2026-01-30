@@ -24,7 +24,7 @@ export function getAuthHeaders() {
   const { username, password } = currentConfig;
   if (username && password) {
     const credentials = btoa(`${username}:${password}`);
-  return { Authorization: `Basic ${credentials}` };
+    return { Authorization: `Basic ${credentials}` };
   }
   return {};
 }
