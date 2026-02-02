@@ -1,13 +1,9 @@
 import { useEffect, useRef } from 'react';
-import Editor from '@monaco-editor/react';
+import Editor, { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 
-// Monaco will be loaded from CDN (unpkg) automatically
-const monacoOptions = {
-  // Use CDN for Monaco files
-  paths: {
-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs',
-  },
-};
+// Force local Monaco instance to avoid CDN/Node path resolution issues in desktop runtimes.
+loader.config({ monaco });
 
 /**
  * Monaco Editor wrapper with Tahoe theme support
