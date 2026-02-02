@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ServiceToggle from './ServiceToggle';
 
 const navigationItems = [
   { id: 'network', label: 'Network', icon: '🌊' },
@@ -29,6 +30,27 @@ export default function Sidebar({ activeView, onViewChange }) {
         >
           {isCollapsed ? '▶' : '◀'}
         </button>
+      </div>
+
+      {/* Service Control Section */}
+      <div className="p-3 border-b border-tahoe-border/50">
+        <div className={`
+          flex items-center gap-3
+          transition-all duration-200
+          ${isCollapsed ? 'justify-center' : 'justify-between'}
+        `}>
+          {!isCollapsed && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-tahoe-fg uppercase tracking-wider">
+                Service
+              </span>
+              <span className="text-[10px] text-tahoe-subtle">
+                Whistle Proxy
+              </span>
+            </div>
+          )}
+          <ServiceToggle />
+        </div>
       </div>
 
       {/* Navigation */}
