@@ -5,7 +5,7 @@ import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
 
 // Lazy load Monaco to avoid large bundle
-const MonacoEditor = lazy(() => import('../../shared/ui/MonacoEditor'));
+const MonacoEditor = lazy(() => import('../../shared/ui/MonacoEditor').then(module => ({ default: module.default })));
 
 export default function Rules() {
   const {
