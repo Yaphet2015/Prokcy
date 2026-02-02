@@ -1,4 +1,4 @@
-import { useNetwork } from '../../shared/context';
+import { useNetwork } from '../../shared/context/NetworkContext';
 import WaterfallTimeline from './WaterfallTimeline';
 import RequestInspector from './RequestInspector';
 

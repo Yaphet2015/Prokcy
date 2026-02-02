@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNetwork } from '../../shared/context';
+import { useNetwork } from '../../shared/context/NetworkContext';
 import Input from '../../shared/ui/Input';
 
 // Timing phase colors according to design spec
