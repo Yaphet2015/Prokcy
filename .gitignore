@@ -131,3 +131,4 @@ dist-react
 .pnp.*
 
 .DS_Store
+.worktrees/
