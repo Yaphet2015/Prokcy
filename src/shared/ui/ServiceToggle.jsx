@@ -1,4 +1,4 @@
-import { useService } from '../../shared/context';
+import { useService } from '../context/ServiceContext';
 
 /**
  * Industrial Power Switch - Service Toggle Control

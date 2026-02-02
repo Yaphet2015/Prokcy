@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
-import { useRules } from '../../shared/context';
+import { useRules } from '../../shared/context/RulesContext';
 import { useTheme } from '../../shared/context/ThemeContext';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';

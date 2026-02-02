@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNetwork } from '../../shared/context';
+import { useNetwork } from '../../shared/context/NetworkContext';
 
 // Format bytes to human-readable size
 function formatBytes(bytes) {
