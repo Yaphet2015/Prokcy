@@ -7,8 +7,8 @@
   "scripts": {
     "start": "electron ./lib",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron ./lib",
+    "dev:vite": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:electron": "wait-on tcp:127.0.0.1:5173 && electron ./lib",
     "build:react": "vite build",
     "build:mac": "npm run build:react && electron-builder --mac",
     "build:win": "npm run build:react && electron-builder --win --x64",
