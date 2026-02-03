@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
+import { Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
-import Input from '../../shared/ui/Input';
 
 // Timing phase colors according to design spec
 const TIMING_COLORS = {
-  dns: '#3b82f6',      // blue
-  tcp: '#14b8a6',      // teal
-  tls: '#22c55e',      // green
-  ttfb: '#a855f7',     // purple
+  dns: '#3b82f6', // blue
+  tcp: '#14b8a6', // teal
+  tls: '#22c55e', // green
+  ttfb: '#a855f7', // purple
   download: '#f97316', // orange
 };
 
@@ -19,31 +19,41 @@ function getRequestPhases(request) {
 
   // DNS lookup
   if (timings.dns > 0) {
-    phases.push({ type: 'dns', duration: timings.dns, offset, color: TIMING_COLORS.dns });
+    phases.push({
+      type: 'dns', duration: timings.dns, offset, color: TIMING_COLORS.dns,
+});
     offset += timings.dns;
   }
 
   // TCP connection
   if (timings.tcp > 0) {
-    phases.push({ type: 'tcp', duration: timings.tcp, offset, color: TIMING_COLORS.tcp });
+    phases.push({
+      type: 'tcp', duration: timings.tcp, offset, color: TIMING_COLORS.tcp,
+});
     offset += timings.tcp;
   }
 
   // TLS handshake
   if (timings.tls > 0) {
-    phases.push({ type: 'tls', duration: timings.tls, offset, color: TIMING_COLORS.tls });
+    phases.push({
+      type: 'tls', duration: timings.tls, offset, color: TIMING_COLORS.tls,
+});
     offset += timings.tls;
   }
 
   // Time to First Byte (TTFB)
   if (timings.ttfb > 0) {
-    phases.push({ type: 'ttfb', duration: timings.ttfb, offset, color: TIMING_COLORS.ttfb });
+    phases.push({
+      type: 'ttfb', duration: timings.ttfb, offset, color: TIMING_COLORS.ttfb,
+});
     offset += timings.ttfb;
   }
 
   // Download time
   if (timings.download > 0) {
-    phases.push({ type: 'download', duration: timings.download, offset, color: TIMING_COLORS.download });
+    phases.push({
+      type: 'download', duration: timings.download, offset, color: TIMING_COLORS.download,
+});
   }
 
   return phases;
@@ -63,7 +73,7 @@ function getStatusColor(status) {
   if (status >= 300 && status < 400) return 'text-blue-500';
   if (status >= 400 && status < 500) return 'text-orange-500';
   if (status >= 500) return 'text-red-500';
-  return 'text-tahoe-subtle';
+  return 'text-zinc-500 dark:text-zinc-400';
 }
 
 // Get method icon
@@ -81,55 +91,55 @@ function getMethodIcon(method) {
 }
 
 export default function WaterfallTimeline() {
-  const { requests, selectedRequest, selectRequest, searchQuery, setSearchQuery } = useNetwork();
+  const {
+    requests, selectedRequest, selectRequest, searchQuery, setSearchQuery,
+} = useNetwork();
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
     if (!searchQuery) return requests;
     const query = searchQuery.toLowerCase();
-    return requests.filter((req) =>
-      req.url?.toLowerCase().includes(query) ||
-      req.method?.toLowerCase().includes(query) ||
-      req.status?.toString().includes(query)
-    );
+    return requests.filter((req) => req.url?.toLowerCase().includes(query)
+      || req.method?.toLowerCase().includes(query)
+      || req.status?.toString().includes(query),);
   }, [requests, searchQuery]);
 
   // Calculate total duration for scaling
-  const maxDuration = useMemo(() => {
-    return Math.max(
-      ...requests.map((req) => req.timings?.total || 0),
-      1000 // minimum 1 second scale
-    );
-  }, [requests]);
+  const maxDuration = useMemo(() => Math.max(
+    ...requests.map((req) => req.timings?.total || 0),
+    1000, // minimum 1 second scale
+    ), [requests]);
 
   return (
-    <div className="h-[60%] flex flex-col border-b border-tahoe-border">
+    <div className="h-[60%] flex flex-col border-b border-zinc-200 dark:border-zinc-800">
       {/* Header */}
-      <div className="h-12 flex items-center justify-between px-4 border-b border-tahoe-border/50 shrink-0">
+      <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-tahoe-fg">Network Requests</h2>
-          <span className="text-xs text-tahoe-subtle">
-            {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Network Requests</h2>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {filteredRequests.length}
+            {' '}
+            {filteredRequests.length === 1 ? 'request' : 'requests'}
           </span>
         </div>
-        <Input
-          type="text"
+        <Input.Search
           placeholder="Filter requests..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-64 h-8 px-3 text-xs"
+          size="sm"
+          className="w-64"
         />
       </div>
 
       {/* Timing Legend */}
-      <div className="h-8 flex items-center gap-4 px-4 border-b border-tahoe-border/30 shrink-0">
+      <div className="h-8 flex items-center gap-4 px-4 border-b border-zinc-200/30 dark:border-zinc-800/30 shrink-0">
         {Object.entries(TIMING_COLORS).map(([key, color]) => (
           <div key={key} className="flex items-center gap-1.5">
             <div
               className="w-2.5 h-2.5 rounded-sm"
               style={{ backgroundColor: color }}
             />
-            <span className="text-xs text-tahoe-subtle uppercase">{key}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 uppercase">{key}</span>
           </div>
         ))}
       </div>
@@ -138,12 +148,12 @@ export default function WaterfallTimeline() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {filteredRequests.length === 0 ? (
           <div className="h-full flex items-center justify-center">
-            <p className="text-sm text-tahoe-subtle">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {searchQuery ? 'No requests match your filter' : 'No network requests captured yet'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-tahoe-border/30">
+          <div className="divide-y divide-zinc-200/30 dark:divide-zinc-800/30">
             {filteredRequests.map((request) => {
               const phases = getRequestPhases(request);
               const isSelected = selectedRequest?.id === request.id;
@@ -155,7 +165,7 @@ export default function WaterfallTimeline() {
                   className={`
                     group flex items-center gap-3 px-4 py-2.5 cursor-pointer
                     transition-colors duration-150
-                    ${isSelected ? 'bg-tahoe-accent/10' : 'hover:bg-tahoe-hover'}
+                    ${isSelected ? 'bg-blue-500/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}
                   `}
                 >
                   {/* Method Indicator */}
@@ -173,24 +183,24 @@ export default function WaterfallTimeline() {
                   {/* URL */}
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`text-sm truncate ${isSelected ? 'text-tahoe-accent' : 'text-tahoe-fg'}`}
+                      className={`text-sm truncate ${isSelected ? 'text-blue-500' : 'text-zinc-900 dark:text-zinc-100'}`}
                     >
                       {request.url}
                     </p>
                   </div>
 
                   {/* Size */}
-                  <span className="text-xs text-tahoe-subtle w-16 text-right tabular-nums">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
                     {request.size ? `${(request.size / 1024).toFixed(1)}KB` : '-'}
                   </span>
 
                   {/* Timing */}
-                  <span className="text-xs text-tahoe-subtle w-16 text-right tabular-nums">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
                     {formatTime(request.timings?.total)}
                   </span>
 
                   {/* Waterfall Bar */}
-                  <div className="w-48 h-5 bg-tahoe-bg/50 rounded overflow-hidden relative">
+                  <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative">
                     <div
                       className="absolute inset-y-0 left-0 flex"
                       style={{

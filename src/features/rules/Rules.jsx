@@ -6,6 +6,8 @@ import {
   useCallback,
   useMemo,
 } from 'react';
+import { Button } from '@pikoloo/darwin-ui';
+import { RotateCcw, Save, Power } from 'lucide-react';
 import { useRules } from '../../shared/context/RulesContext';
 import { useTheme } from '../../shared/context/ThemeContext';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
@@ -64,18 +66,6 @@ export default function Rules() {
     initWhistleLanguage(monaco);
   }, []);
 
-  const handleSave = () => {
-    saveRules();
-  };
-
-  const handleRevert = () => {
-    revertRules();
-  };
-
-  const handleToggleEnabled = () => {
-    toggleEnabled();
-  };
-
   const activePriority = useMemo(
     () => ruleGroups.filter((group) => group.selected).map((group) => group.name),
     [ruleGroups],
@@ -93,12 +83,12 @@ export default function Rules() {
   }, [setRuleGroupSelection]);
 
   return (
-    <div className="h-full flex flex-col bg-tahoe-bg text-tahoe-fg">
+    <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-tahoe-border glass-tahoe">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-tahoe-fg">Rules</h1>
-          <span className="text-xs text-tahoe-subtle">
+          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Rules</h1>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
             ({isEnabled ? 'Enabled' : 'Disabled'})
           </span>
         </div>
@@ -106,13 +96,13 @@ export default function Rules() {
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           {isSaving && (
-            <span className="text-xs text-tahoe-accent">Saving...</span>
+            <span className="text-xs text-blue-500">Saving...</span>
           )}
           {!isSaving && isDirty && (
-            <span className="text-xs text-tahoe-subtle">Unsaved changes</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Unsaved changes</span>
           )}
           {!isSaving && !isDirty && (
-            <span className="text-xs text-tahoe-subtle">Saved</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Saved</span>
           )}
 
           {/* Error message */}
@@ -121,53 +111,49 @@ export default function Rules() {
           )}
 
           {/* Action buttons */}
-          <button
-            onClick={handleRevert}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={revertRules}
             disabled={!isDirty || isSaving}
-            className="h-7 px-3 text-xs rounded-md font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-tahoe-border text-tahoe-fg hover:bg-tahoe-hover"
+            leftIcon={<RotateCcw className="w-4 h-4" />}
             title="Revert changes (Esc)"
           >
             Revert
-          </button>
+          </Button>
 
-          <button
-            onClick={handleSave}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={saveRules}
             disabled={!isDirty || isSaving}
-            className="h-7 px-3 text-xs rounded-md font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-tahoe-accent text-white hover:opacity-90"
+            leftIcon={<Save className="w-4 h-4" />}
             title="Save rules (Cmd+S)"
           >
             {isSaving ? 'Saving...' : 'Save'}
-          </button>
+          </Button>
 
-          <button
-            onClick={handleToggleEnabled}
-            className={`h-7 px-3 text-xs rounded-md font-medium transition-all ${
-              isEnabled
-                ? 'bg-green-600 text-white hover:opacity-90'
-                : 'bg-tahoe-border text-tahoe-fg hover:bg-tahoe-hover'
-            }`}
+          <Button
+            variant={isEnabled ? 'destructive' : 'secondary'}
+            size="sm"
+            onClick={toggleEnabled}
+            leftIcon={<Power className="w-4 h-4" />}
             title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
           >
             {isEnabled ? 'Disable All' : 'Enable All'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Editor */}
       <div className="flex-1 overflow-hidden flex">
-        <aside className="w-72 border-r border-tahoe-border bg-tahoe-surface backdrop-blur-md flex flex-col">
-          <div className="px-3 py-2 border-b border-tahoe-border/70">
+        <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
+          <div className="px-3 py-2 border-b border-zinc-200/70 dark:border-zinc-800/70">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-tahoe-subtle">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Rule Groups
               </h2>
-              {/* <span className="text-[10px] text-tahoe-subtle">
-                Priority: top → bottom
-              </span> */}
             </div>
-            {/* <p className="mt-1 text-[11px] text-tahoe-subtle">
-              Click to switch editor; double-click to activate this group.
-            </p> */}
             {backRulesFirst && (
               <p className="mt-1 text-[11px] text-amber-500">
                 Auto-adjusting to top-first priority mode.
@@ -187,19 +173,19 @@ export default function Rules() {
                   onDoubleClick={() => handleGroupDoubleClick(group)}
                   className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${
                     isEditorGroup
-                      ? 'border-tahoe-accent bg-tahoe-accent/10'
-                      : 'border-transparent hover:border-tahoe-border hover:bg-tahoe-hover'
+                      ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
+                      : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
                   }`}
                   title="Click to open in editor. Double-click to activate."
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium truncate">{group.name}</span>
+                    <span className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{group.name}</span>
                     {rank ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-accent text-white">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
                         #{rank}
                       </span>
                     ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-border text-tahoe-subtle">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
                         Off
                       </span>
                     )}
@@ -211,7 +197,7 @@ export default function Rules() {
                       </span>
                     )}
                     {isEditorGroup && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-border text-tahoe-fg">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
                         Editor
                       </span>
                     )}
@@ -221,12 +207,12 @@ export default function Rules() {
             })}
           </div>
 
-          <div className="px-3 py-2 border-t border-tahoe-border/70">
-            <p className="text-[11px] text-tahoe-subtle">
+          <div className="px-3 py-2 border-t border-zinc-200/70 dark:border-zinc-800/70">
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
               Active order:{' '}
               {activePriority.length ? activePriority.join(' → ') : 'None'}
             </p>
-            <p className="mt-1 text-[11px] text-tahoe-subtle">
+            <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
               Multiple choice: {allowMultipleChoice ? 'On' : 'Off (double-click turns it on)'}
             </p>
           </div>
@@ -236,8 +222,8 @@ export default function Rules() {
           {isLoading ? (
             <div className="h-full flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-tahoe-subtle">Loading rules...</span>
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading rules...</span>
               </div>
             </div>
           ) : (
@@ -245,8 +231,8 @@ export default function Rules() {
               fallback={
                 <div className="h-full flex items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-tahoe-subtle">Loading editor...</span>
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading editor...</span>
                   </div>
                 </div>
               }
@@ -265,17 +251,6 @@ export default function Rules() {
           )}
         </div>
       </div>
-
-      {/* Help text */}
-      {/* <div className="px-4 py-2 border-t border-tahoe-border text-xs text-tahoe-subtle">
-        <span className="font-medium">Syntax:</span> pattern operator value{' '}
-        <span className="mx-2">•</span>
-        <span className="font-medium">Examples:</span> www.example.com reqHeaders://custom{' '}
-        <span className="mx-2">•</span>
-        *.google.com protocol://https{' '}
-        <span className="mx-2">•</span>
-        Press Cmd+S to save
-      </div> */}
     </div>
   );
 }

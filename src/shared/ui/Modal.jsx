@@ -1,69 +1,69 @@
-import { useEffect, useRef, useState, React } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Modal as DarwinModal, Button, Input } from '@pikoloo/darwin-ui';
 
 export default function Modal({ isOpen, title, message, defaultValue = '', onConfirm, onCancel }) {
   const inputRef = useRef(null);
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+      // Focus the input when modal opens
+      const input = inputRef.current?.querySelector?.('input');
+      if (input) {
+        input.focus();
+        input.select();
+      }
     }
-  }, [isOpen]);
+    setValue(defaultValue);
+  }, [isOpen, defaultValue]);
 
-  if (!isOpen) return null;
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const value = inputRef.current?.value || '';
+  const handleConfirm = () => {
     onConfirm(value);
   };
 
-  const handleCancel = () => {
-    onCancel();
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleCancel();
-    }
-  };
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={handleBackdropClick}
+    <DarwinModal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={title}
+      size="md"
     >
-      <div className="bg-tahoe-bg border border-tahoe-border rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 className="text-lg font-semibold text-tahoe-fg mb-2">{title}</h2>
-        {message && <p className="text-sm text-tahoe-subtle mb-4">{message}</p>}
+      <div className="space-y-4">
+        {message && (
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {message}
+          </p>
+        )}
 
-        <form onSubmit={handleSubmit}>
-          <input
-            ref={inputRef}
-            type="text"
-            defaultValue={defaultValue}
-            className="w-full h-10 px-3 rounded-lg bg-tahoe-bg/50 border border-tahoe-border text-tahoe-fg placeholder:text-tahoe-subtle focus:border-tahoe-accent focus:ring-2 focus:ring-tahoe-accent/20 outline-none transition-all mb-4"
-            autoComplete="off"
-          />
+        <Input
+          ref={inputRef}
+          placeholder="Enter value..."
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleConfirm();
+            }
+          }}
+          autoComplete="off"
+        />
 
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="h-9 px-5 rounded-lg font-medium text-sm bg-tahoe-border text-tahoe-fg hover:bg-tahoe-hover transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="h-9 px-5 rounded-lg font-medium text-sm bg-tahoe-accent text-white hover:opacity-90 transition-all"
-            >
-              OK
-            </button>
-          </div>
-        </form>
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirm}
+          >
+            OK
+          </Button>
+        </div>
       </div>
-    </div>
+    </DarwinModal>
   );
 }
 
@@ -73,7 +73,7 @@ export default function Modal({ isOpen, title, message, defaultValue = '', onCon
  * Usage: showPrompt({ title, message, defaultValue }) => Promise<string | null>
  */
 export function usePrompt() {
-  const [state, setState] = React.useState({
+  const [state, setState] = useState({
     isOpen: false,
     title: '',
     message: '',
