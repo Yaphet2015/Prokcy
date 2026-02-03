@@ -33,14 +33,12 @@ export function RulesProvider({ children }) {
   useEffect(() => {
     if (window.electron?.onRulesUpdated) {
       const unsubscribe = window.electron.onRulesUpdated((rulesData) => {
-        // Update original rules from external changes
-        if (rulesData) {
-          const rulesText = extractDefaultRules(rulesData);
-          setOriginalRules(rulesText);
-          // Only update if not dirty (user is editing)
-          if (!isDirty) {
-            setRulesState(rulesText);
-          }
+        const next = normalizeRulesData(rulesData);
+        setIsEnabled(next.isEnabled);
+        setOriginalRules(next.text);
+        // Only update if not dirty (user is editing)
+        if (!isDirty) {
+          setRulesState(next.text);
         }
       });
 
@@ -56,9 +54,10 @@ export function RulesProvider({ children }) {
     try {
       if (window.electron?.getRules) {
         const rulesData = await window.electron.getRules();
-        const rulesText = extractDefaultRules(rulesData);
-        setOriginalRules(rulesText);
-        setRulesState(rulesText);
+        const next = normalizeRulesData(rulesData);
+        setIsEnabled(next.isEnabled);
+        setOriginalRules(next.text);
+        setRulesState(next.text);
       }
     } catch (err) {
       console.error('Failed to load rules:', err);
@@ -67,6 +66,21 @@ export function RulesProvider({ children }) {
       setIsLoading(false);
     }
   }, []);
+
+  // Reload rules when service restarts to avoid startup timing gaps.
+  useEffect(() => {
+    if (!window.electron?.onServiceStatusChanged) {
+      return undefined;
+    }
+    const unsubscribe = window.electron.onServiceStatusChanged((status) => {
+      if (status?.running) {
+        loadRules();
+      }
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [loadRules]);
 
   const setRules = useCallback((newRules) => {
     setRulesState(newRules);
@@ -147,25 +161,41 @@ export function RulesProvider({ children }) {
  *   ]
  * }
  */
-function extractDefaultRules(rulesData) {
+function normalizeRulesData(rulesData) {
   if (!rulesData) {
-    return '';
+    return { text: '', isEnabled: true };
   }
 
-  // If rulesData is a string, return it directly
   if (typeof rulesData === 'string') {
-    return rulesData;
+    return { text: rulesData, isEnabled: true };
   }
 
-  // If rulesData has a list property, find the Default rules
+  const isEnabled = rulesData.disabled !== true;
+
+  // Whistle uses `defalutRules` in its payload (typo kept for compatibility).
+  const defaultText = typeof rulesData.defalutRules === 'string'
+    ? rulesData.defalutRules
+    : (typeof rulesData.defaultRules === 'string' ? rulesData.defaultRules : '');
+  if (defaultText) {
+    return { text: defaultText, isEnabled };
+  }
+
   if (Array.isArray(rulesData.list)) {
-    const defaultRules = rulesData.list.find(r => r.name === 'Default');
+    const defaultRules = rulesData.list.find(r => /^default$/i.test(r?.name));
     if (defaultRules && typeof defaultRules.data === 'string') {
-      return defaultRules.data;
+      return { text: defaultRules.data, isEnabled };
+    }
+
+    // Fallback: show selected group's rules if there is no default block.
+    const selected = rulesData.list
+      .filter(r => r?.selected && typeof r?.data === 'string' && r.data.trim())
+      .map(r => `# [${r.name}]\n${r.data.trim()}`);
+    if (selected.length) {
+      return { text: selected.join('\n\n'), isEnabled };
     }
   }
 
-  return '';
+  return { text: '', isEnabled };
 }
 
 export function useRules() {
