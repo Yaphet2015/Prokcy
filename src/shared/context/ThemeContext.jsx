@@ -11,22 +11,24 @@ export function ThemeProvider({ children }) {
     // Get initial theme
     if (window.electron?.getTheme) {
       window.electron.getTheme()
-        .then(setIsDark)
+        .then((theme) => setIsDark(!!theme?.isDark))
         .catch(err => {
           console.error('Failed to get initial theme:', err);
           setIsDark(false); // Fallback to light mode
         });
     }
 
-    // Listen for theme changes (Electron will provide this)
-    const handleThemeChange = (event) => {
-      setIsDark(event.isDark);
-    };
-
-    window.addEventListener('theme-changed', handleThemeChange);
+    let unsubscribe;
+    if (window.electron?.onThemeChanged) {
+      unsubscribe = window.electron.onThemeChanged((theme) => {
+        setIsDark(!!theme?.isDark);
+      });
+    }
 
     return () => {
-      window.removeEventListener('theme-changed', handleThemeChange);
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
 

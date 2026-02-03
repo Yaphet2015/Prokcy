@@ -2,6 +2,13 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const electronApi = {
   getTheme: () => ipcRenderer.invoke('get-theme'),
+  onThemeChanged: (callback) => {
+    const listener = (event, theme) => callback(theme);
+    ipcRenderer.on('theme-changed', listener);
+    return () => ipcRenderer.removeListener('theme-changed', listener);
+  },
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  updateSettings: (payload) => ipcRenderer.invoke('update-settings', payload),
   getRules: () => ipcRenderer.invoke('get-rules'),
   setRules: (content, name) => ipcRenderer.invoke('set-rules', { content, name }),
   setRulesEnabled: (enabled) => ipcRenderer.invoke('set-rules-enabled', enabled),
