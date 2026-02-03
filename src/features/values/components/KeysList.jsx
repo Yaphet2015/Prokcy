@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import Input from '../../../shared/ui/Input';
+import Button from '../../../shared/ui/Button';
 
 export default function KeysList({ values, selectedKey, onSelectKey, onCreateValue }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,12 +52,12 @@ export default function KeysList({ values, selectedKey, onSelectKey, onCreateVal
 
       {/* Add button */}
       <div className="p-3 border-t border-tahoe-border/70">
-        <button
+        <Button
           onClick={handleCreate}
-          className="w-full h-9 px-5 rounded-lg font-medium text-sm bg-tahoe-accent text-white hover:opacity-90 transition-all"
+          className="w-full"
         >
           Add New Value
-        </button>
+        </Button>
       </div>
     </div>
   );
