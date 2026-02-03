@@ -25,6 +25,21 @@ export function ServiceProvider({ children }) {
   const apiCheckTimeoutRef = useRef(null);
   const apiCheckIntervalRef = useRef(null);
 
+  const syncServiceStatus = useCallback(async () => {
+    if (!window.electron?.getServiceStatus) {
+      return false;
+    }
+    try {
+      const result = await window.electron.getServiceStatus();
+      const running = result?.running ?? false;
+      setIsRunning(running);
+      return running;
+    } catch (err) {
+      console.error('Failed to sync service status:', err);
+      return false;
+    }
+  }, []);
+
   // Poll for API availability on mount
   useEffect(() => {
     const checkApiAvailable = () => {
@@ -63,18 +78,8 @@ export function ServiceProvider({ children }) {
   // Load initial service status when API is available
   useEffect(() => {
     if (!isApiAvailable) return;
-
-    const loadServiceStatus = async () => {
-      try {
-        const result = await window.electron.getServiceStatus();
-        setIsRunning(result?.running ?? false);
-      } catch (err) {
-        console.error('Failed to load service status:', err);
-      }
-    };
-
-    loadServiceStatus();
-  }, [isApiAvailable]);
+    syncServiceStatus();
+  }, [isApiAvailable, syncServiceStatus]);
 
   // Listen for service status changes from Whistle utility process
   useEffect(() => {
@@ -98,7 +103,13 @@ export function ServiceProvider({ children }) {
       setError('Service control not available. Restart the app to enable.');
       return;
     }
-    if (isRunning || isStarting) {
+    if (isStarting) {
+      return;
+    }
+
+    const running = await syncServiceStatus();
+    if (running) {
+      setError(null);
       return;
     }
 
@@ -106,22 +117,32 @@ export function ServiceProvider({ children }) {
     setError(null);
     try {
       const result = await window.electron.startService();
-      if (!result.success) {
+      if (!result.success && result.message !== 'Service already running') {
         throw new Error(result.message || 'Failed to start service');
+      }
+      if (result.message === 'Service already running') {
+        setIsRunning(true);
       }
     } catch (err) {
       console.error('Failed to start service:', err);
       setError(err.message || 'Failed to start service');
       setIsStarting(false);
     }
-  }, [isApiAvailable, isRunning, isStarting]);
+  }, [isApiAvailable, isStarting, syncServiceStatus]);
 
   const stopService = useCallback(async () => {
     if (!isApiAvailable) {
       setError('Service control not available. Restart the app to enable.');
       return;
     }
-    if (!isRunning || isStopping) {
+    if (isStopping) {
+      return;
+    }
+
+    const running = await syncServiceStatus();
+    if (!running) {
+      setError(null);
+      setIsRunning(false);
       return;
     }
 
@@ -129,15 +150,18 @@ export function ServiceProvider({ children }) {
     setError(null);
     try {
       const result = await window.electron.stopService();
-      if (!result.success) {
+      if (!result.success && result.message !== 'Service not running') {
         throw new Error(result.message || 'Failed to stop service');
+      }
+      if (result.message === 'Service not running') {
+        setIsRunning(false);
       }
     } catch (err) {
       console.error('Failed to stop service:', err);
       setError(err.message || 'Failed to stop service');
       setIsStopping(false);
     }
-  }, [isApiAvailable, isRunning, isStopping]);
+  }, [isApiAvailable, isStopping, syncServiceStatus]);
 
   const toggleService = useCallback(async () => {
     if (isRunning) {
