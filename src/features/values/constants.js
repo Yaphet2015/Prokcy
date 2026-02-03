@@ -1,4 +1,4 @@
-export const JSON5_LANGUAGE_ID = 'json5';
+export const JSON5_LANGUAGE_ID = 'json';
 
 // Initialize JSON5 language in Monaco
 export function initJson5Language(monaco) {
