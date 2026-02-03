@@ -13,14 +13,14 @@ export default function Network() {
           <div className={`
             w-2 h-2 rounded-full
             ${isConnected && isStreaming ? 'bg-green-500 animate-pulse' : 'bg-red-500'}
-          `} />
+          `}
+          />
           <span className="text-xs text-tahoe-subtle">
             {isConnected
               ? isStreaming
                 ? 'Connected'
                 : 'Connected - Reconnecting...'
-              : 'Disconnected'
-            }
+              : 'Disconnected'}
           </span>
         </div>
       </div>

@@ -161,13 +161,13 @@ export default function Rules() {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-tahoe-subtle">
                 Rule Groups
               </h2>
-              <span className="text-[10px] text-tahoe-subtle">
+              {/* <span className="text-[10px] text-tahoe-subtle">
                 Priority: top → bottom
-              </span>
+              </span> */}
             </div>
-            <p className="mt-1 text-[11px] text-tahoe-subtle">
+            {/* <p className="mt-1 text-[11px] text-tahoe-subtle">
               Click to switch editor; double-click to activate this group.
-            </p>
+            </p> */}
             {backRulesFirst && (
               <p className="mt-1 text-[11px] text-amber-500">
                 Auto-adjusting to top-first priority mode.
@@ -267,7 +267,7 @@ export default function Rules() {
       </div>
 
       {/* Help text */}
-      <div className="px-4 py-2 border-t border-tahoe-border text-xs text-tahoe-subtle">
+      {/* <div className="px-4 py-2 border-t border-tahoe-border text-xs text-tahoe-subtle">
         <span className="font-medium">Syntax:</span> pattern operator value{' '}
         <span className="mx-2">•</span>
         <span className="font-medium">Examples:</span> www.example.com reqHeaders://custom{' '}
@@ -275,7 +275,7 @@ export default function Rules() {
         *.google.com protocol://https{' '}
         <span className="mx-2">•</span>
         Press Cmd+S to save
-      </div>
+      </div> */}
     </div>
   );
 }
