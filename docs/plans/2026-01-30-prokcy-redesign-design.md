@@ -89,6 +89,37 @@ Full-height Monaco Editor with toolbar (Save, Revert, Enable/Disable All). Statu
 - Cmd/Ctrl+/ to toggle comments
 - Error squiggles for invalid syntax
 
+### Rules Grouping Panel (Left of Editor)
+
+Add a fixed-width group list panel to the left side of the Rules editor to manage rule-group activation without leaving the editing view.
+
+**Interaction model:**
+- **Single click:** Toggle the clicked group on/off (standard activation behavior)
+- **Double click:** Force multi-activation for that group (keep existing active groups, then activate target)
+- **Editor target:** Monaco continues editing `Default` rules content for this phase
+
+**Priority model:**
+- Group priority is displayed and interpreted as **top-to-bottom**
+- Active groups show rank badges (`#1`, `#2`, ...)
+- If backend reverse-priority mode is enabled (`backRulesFirst`), UI should normalize it to top-first mode before applying new group actions
+
+**State/data:**
+- Extend `RulesContext` with:
+  - `ruleGroups[]` (name, selected, priority, isDefault)
+  - `activeGroupNames[]`
+  - `allowMultipleChoice`
+  - `backRulesFirst`
+- Parse these from Whistle rules payload (`list`, `allowMultipleChoice`, `backRulesFirst`)
+
+**IPC contract additions:**
+- `set-rule-selection` → select/unselect a named group
+- `set-rules-allow-multiple-choice` → enable multi-activation mode
+- `set-rules-back-rules-first` → normalize priority direction to top-first
+
+**Whistle worker message handling additions:**
+- `setAllowMultipleChoice`
+- `setBackRulesFirst`
+
 ### Values Section
 
 Two-column layout: KeysList (left 30%) and ValueEditor (right 70%). Values support strings, numbers, and JSON objects with inline editing.

@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import { useRules } from '../../shared/context/RulesContext';
 import { useTheme } from '../../shared/context/ThemeContext';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
@@ -14,6 +21,13 @@ export default function Rules() {
     saveRules,
     revertRules,
     toggleEnabled,
+    setActiveEditorGroup,
+    setRuleGroupSelection,
+    ruleGroups,
+    activeGroupNames,
+    activeEditorGroupName,
+    allowMultipleChoice,
+    backRulesFirst,
     isDirty,
     isLoading,
     isSaving,
@@ -61,6 +75,22 @@ export default function Rules() {
   const handleToggleEnabled = () => {
     toggleEnabled();
   };
+
+  const activePriority = useMemo(
+    () => ruleGroups.filter((group) => group.selected).map((group) => group.name),
+    [ruleGroups],
+  );
+  const activePriorityIndex = useMemo(
+    () => Object.fromEntries(activePriority.map((name, idx) => [name, idx + 1])),
+    [activePriority],
+  );
+
+  const handleGroupDoubleClick = useCallback((group) => {
+    if (!group?.name) {
+      return;
+    }
+    setRuleGroupSelection(group.name, { multiActivate: true });
+  }, [setRuleGroupSelection]);
 
   return (
     <div className="h-full flex flex-col bg-tahoe-bg text-tahoe-fg">
@@ -124,37 +154,116 @@ export default function Rules() {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-hidden">
-        {isLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-tahoe-subtle">Loading rules...</span>
+      <div className="flex-1 overflow-hidden flex">
+        <aside className="w-72 border-r border-tahoe-border bg-tahoe-surface backdrop-blur-md flex flex-col">
+          <div className="px-3 py-2 border-b border-tahoe-border/70">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-tahoe-subtle">
+                Rule Groups
+              </h2>
+              <span className="text-[10px] text-tahoe-subtle">
+                Priority: top → bottom
+              </span>
             </div>
+            <p className="mt-1 text-[11px] text-tahoe-subtle">
+              Click to switch editor; double-click to activate this group.
+            </p>
+            {backRulesFirst && (
+              <p className="mt-1 text-[11px] text-amber-500">
+                Auto-adjusting to top-first priority mode.
+              </p>
+            )}
           </div>
-        ) : (
-          <Suspense
-            fallback={
-              <div className="h-full flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-tahoe-subtle">Loading editor...</span>
-                </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {ruleGroups.map((group) => {
+              const isActive = activeGroupNames.includes(group.name);
+              const isEditorGroup = group.name === activeEditorGroupName;
+              const rank = activePriorityIndex[group.name];
+              return (
+                <button
+                  key={group.name}
+                  onClick={() => setActiveEditorGroup(group.name)}
+                  onDoubleClick={() => handleGroupDoubleClick(group)}
+                  className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${
+                    isEditorGroup
+                      ? 'border-tahoe-accent bg-tahoe-accent/10'
+                      : 'border-transparent hover:border-tahoe-border hover:bg-tahoe-hover'
+                  }`}
+                  title="Click to open in editor. Double-click to activate."
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium truncate">{group.name}</span>
+                    {rank ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-accent text-white">
+                        #{rank}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-border text-tahoe-subtle">
+                        Off
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white">
+                        Active
+                      </span>
+                    )}
+                    {isEditorGroup && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tahoe-border text-tahoe-fg">
+                        Editor
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="px-3 py-2 border-t border-tahoe-border/70">
+            <p className="text-[11px] text-tahoe-subtle">
+              Active order:{' '}
+              {activePriority.length ? activePriority.join(' → ') : 'None'}
+            </p>
+            <p className="mt-1 text-[11px] text-tahoe-subtle">
+              Multiple choice: {allowMultipleChoice ? 'On' : 'Off (double-click turns it on)'}
+            </p>
+          </div>
+        </aside>
+
+        <div className="flex-1 overflow-hidden">
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-tahoe-subtle">Loading rules...</span>
               </div>
-            }
-          >
-            <MonacoEditor
-              value={rules}
-              onChange={setRules}
-              language="whistle"
-              theme={monacoTheme}
-              beforeMount={handleBeforeMount}
-              options={{
-                readOnly: false,
-              }}
-            />
-          </Suspense>
-        )}
+            </div>
+          ) : (
+            <Suspense
+              fallback={
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-tahoe-subtle">Loading editor...</span>
+                  </div>
+                </div>
+              }
+            >
+              <MonacoEditor
+                value={rules}
+                onChange={setRules}
+                language="whistle"
+                theme={monacoTheme}
+                beforeMount={handleBeforeMount}
+                options={{
+                  readOnly: false,
+                }}
+              />
+            </Suspense>
+          )}
+        </div>
       </div>
 
       {/* Help text */}
