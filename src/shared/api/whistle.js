@@ -52,19 +52,31 @@ export async function setRules(rules) {
 
 // Values API
 export async function getValues() {
-  return request('/api/values');
+  const result = await request('/cgi-bin/values/list2');
+  if (!result || !Array.isArray(result.list)) {
+    return {};
+  }
+  // Transform [{name, data}] => {name: data}
+  const values = {};
+  result.list.forEach(item => {
+    if (item && typeof item.name === 'string') {
+      values[item.name] = item.data || '';
+    }
+  });
+  return values;
 }
 
 export async function setValue(key, value) {
-  return request('/api/values', {
+  return request('/cgi-bin/values/add', {
     method: 'POST',
-    body: JSON.stringify({ key, value }),
+    body: JSON.stringify({ name: key, value: String(value) }),
   });
 }
 
 export async function deleteValue(key) {
-  return request(`/api/values/${key}`, {
-    method: 'DELETE',
+  return request('/cgi-bin/values/remove', {
+    method: 'POST',
+    body: JSON.stringify({ name: key }),
   });
 }
 
