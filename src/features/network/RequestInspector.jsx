@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@pikoloo/darwin-ui';
+import {
+  Tabs, TabsList, TabsTrigger, TabsContent,
+} from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
 
 // Format bytes to human-readable size
@@ -77,10 +79,13 @@ function HeadersTab({ request }) {
             <div className="flex gap-4 text-xs">
               <span className="font-medium text-blue-500 w-32 shrink-0">Status</span>
               <span className={`font-medium ${
-                request.status >= 200 && request.status < 300 ? 'text-green-500' :
-                request.status >= 400 ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'
-              }`}>
-                {request.status} {request.statusText}
+                request.status >= 200 && request.status < 300 ? 'text-green-500'
+                  : request.status >= 400 ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'
+              }`}
+              >
+                {request.status}
+                {' '}
+                {request.statusText}
               </span>
             </div>
             {Object.entries(headers.response || {}).map(([key, value]) => (
@@ -122,7 +127,9 @@ function BodyTab({ request }) {
             </span>
             {body.headers?.['content-type'] && (
               <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                ({body.headers['content-type']})
+                (
+                {body.headers['content-type']}
+                )
               </span>
             )}
           </div>
@@ -144,7 +151,7 @@ function BodyTab({ request }) {
 
 // Tab: Response
 function ResponseTab({ request }) {
-  const response = request.response;
+  const { response } = request;
   const contentType = response?.headers?.['content-type'] || '';
   const isJson = contentType.includes('application/json');
   const content = response?.body || '';
@@ -171,7 +178,11 @@ function ResponseTab({ request }) {
                 Response
               </span>
               {contentType && (
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">({contentType})</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                  (
+                  {contentType}
+                  )
+                </span>
               )}
             </div>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -234,9 +245,10 @@ function TimelineTab({ request }) {
           <div className="bg-zinc-100 dark:bg-zinc-900/50 rounded-lg p-3">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Status</p>
             <p className={`text-lg font-semibold ${
-              request.status >= 200 && request.status < 300 ? 'text-green-500' :
-              request.status >= 400 ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'
-            }`}>
+              request.status >= 200 && request.status < 300 ? 'text-green-500'
+                : request.status >= 400 ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'
+            }`}
+            >
               {request.status}
             </p>
           </div>
@@ -298,9 +310,10 @@ export default function RequestInspector() {
 
   if (!selectedRequest) {
     return (
-      <div className="h-[40%] flex items-center justify-center border-t border-zinc-200 dark:border-zinc-800">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a request to view details</p>
-      </div>
+      // <div className="h-[40%] flex items-center justify-center border-t border-zinc-200 dark:border-zinc-800">
+      //   <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a request to view details</p>
+      // </div>
+      null
     );
   }
 
