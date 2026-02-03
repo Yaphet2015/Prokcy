@@ -3,6 +3,11 @@ import { createContext, useContext, useState, useCallback, useMemo, useEffect } 
 const RulesContext = createContext({
   rules: '',
   originalRules: '',
+  ruleGroups: [],
+  activeGroupNames: [],
+  activeEditorGroupName: 'Default',
+  allowMultipleChoice: false,
+  backRulesFirst: false,
   isDirty: false,
   isEnabled: true,
   isLoading: false,
@@ -12,12 +17,19 @@ const RulesContext = createContext({
   saveRules: async () => {},
   revertRules: async () => {},
   toggleEnabled: async () => {},
+  setActiveEditorGroup: () => {},
+  setRuleGroupSelection: async () => {},
   refreshRules: async () => {},
 });
 
 export function RulesProvider({ children }) {
   const [rules, setRulesState] = useState('');
   const [originalRules, setOriginalRules] = useState('');
+  const [ruleGroups, setRuleGroups] = useState([]);
+  const [activeGroupNames, setActiveGroupNames] = useState([]);
+  const [activeEditorGroupName, setActiveEditorGroupName] = useState('Default');
+  const [allowMultipleChoice, setAllowMultipleChoice] = useState(false);
+  const [backRulesFirst, setBackRulesFirst] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,11 +46,18 @@ export function RulesProvider({ children }) {
     if (window.electron?.onRulesUpdated) {
       const unsubscribe = window.electron.onRulesUpdated((rulesData) => {
         const next = normalizeRulesData(rulesData);
+        const nextEditorGroupName = getEditorGroupName(next.ruleGroups, activeEditorGroupName);
+        const nextEditorText = getEditorGroupText(next.ruleGroups, nextEditorGroupName);
         setIsEnabled(next.isEnabled);
-        setOriginalRules(next.text);
+        setOriginalRules(nextEditorText);
+        setRuleGroups(next.ruleGroups);
+        setActiveGroupNames(next.activeGroupNames);
+        setActiveEditorGroupName(nextEditorGroupName);
+        setAllowMultipleChoice(next.allowMultipleChoice);
+        setBackRulesFirst(next.backRulesFirst);
         // Only update if not dirty (user is editing)
         if (!isDirty) {
-          setRulesState(next.text);
+          setRulesState(nextEditorText);
         }
       });
 
@@ -46,7 +65,7 @@ export function RulesProvider({ children }) {
         if (unsubscribe) unsubscribe();
       };
     }
-  }, [isDirty]);
+  }, [isDirty, activeEditorGroupName]);
 
   const loadRules = useCallback(async () => {
     setIsLoading(true);
@@ -55,9 +74,16 @@ export function RulesProvider({ children }) {
       if (window.electron?.getRules) {
         const rulesData = await window.electron.getRules();
         const next = normalizeRulesData(rulesData);
+        const nextEditorGroupName = getEditorGroupName(next.ruleGroups, activeEditorGroupName);
+        const nextEditorText = getEditorGroupText(next.ruleGroups, nextEditorGroupName);
         setIsEnabled(next.isEnabled);
-        setOriginalRules(next.text);
-        setRulesState(next.text);
+        setOriginalRules(nextEditorText);
+        setRulesState(nextEditorText);
+        setRuleGroups(next.ruleGroups);
+        setActiveGroupNames(next.activeGroupNames);
+        setActiveEditorGroupName(nextEditorGroupName);
+        setAllowMultipleChoice(next.allowMultipleChoice);
+        setBackRulesFirst(next.backRulesFirst);
       }
     } catch (err) {
       console.error('Failed to load rules:', err);
@@ -65,7 +91,7 @@ export function RulesProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeEditorGroupName]);
 
   // Reload rules when service restarts to avoid startup timing gaps.
   useEffect(() => {
@@ -95,8 +121,11 @@ export function RulesProvider({ children }) {
     setIsSaving(true);
     setError(null);
     try {
-      await window.electron.setRules(rules);
+      await window.electron.setRules(rules, activeEditorGroupName);
       setOriginalRules(rules);
+      setRuleGroups((prev) => prev.map((group) => (group.name === activeEditorGroupName
+        ? { ...group, data: rules }
+        : group)));
       setIsDirty(false);
     } catch (err) {
       console.error('Failed to save rules:', err);
@@ -104,7 +133,7 @@ export function RulesProvider({ children }) {
     } finally {
       setIsSaving(false);
     }
-  }, [rules, isDirty]);
+  }, [rules, isDirty, activeEditorGroupName]);
 
   const revertRules = useCallback(async () => {
     setRulesState(originalRules);
@@ -127,9 +156,59 @@ export function RulesProvider({ children }) {
     }
   }, [isEnabled]);
 
+  const setRuleGroupSelection = useCallback(async (name, options = {}) => {
+    if (!name || !window.electron?.setRuleSelection) {
+      return;
+    }
+    const target = ruleGroups.find((group) => group.name === name);
+    if (!target) {
+      return;
+    }
+
+    const multiActivate = options.multiActivate === true;
+    const nextSelected = multiActivate ? true : !target.selected;
+    if (multiActivate && target.selected) {
+      return;
+    }
+
+    try {
+      setError(null);
+      if (backRulesFirst && window.electron?.setRulesBackRulesFirst) {
+        await window.electron.setRulesBackRulesFirst(false);
+      }
+      if (multiActivate && !allowMultipleChoice && window.electron?.setRulesAllowMultipleChoice) {
+        await window.electron.setRulesAllowMultipleChoice(true);
+      }
+      await window.electron.setRuleSelection(name, nextSelected);
+    } catch (err) {
+      console.error('Failed to update rules group selection:', err);
+      setError(err.message || 'Failed to update rules group selection');
+    }
+  }, [ruleGroups, allowMultipleChoice, backRulesFirst]);
+
+  const setActiveEditorGroup = useCallback((name) => {
+    if (!name) {
+      return;
+    }
+    const target = ruleGroups.find((group) => group.name === name);
+    if (!target) {
+      return;
+    }
+    setActiveEditorGroupName(name);
+    setOriginalRules(target.data || '');
+    setRulesState(target.data || '');
+    setIsDirty(false);
+    setError(null);
+  }, [ruleGroups]);
+
   const value = useMemo(() => ({
     rules,
     originalRules,
+    ruleGroups,
+    activeGroupNames,
+    activeEditorGroupName,
+    allowMultipleChoice,
+    backRulesFirst,
     isDirty,
     isEnabled,
     isLoading,
@@ -139,14 +218,52 @@ export function RulesProvider({ children }) {
     saveRules,
     revertRules,
     toggleEnabled,
+    setActiveEditorGroup,
+    setRuleGroupSelection,
     refreshRules: loadRules,
-  }), [rules, originalRules, isDirty, isEnabled, isLoading, isSaving, error, setRules, saveRules, revertRules, toggleEnabled, loadRules]);
+  }), [
+    rules,
+    originalRules,
+    ruleGroups,
+    activeGroupNames,
+    activeEditorGroupName,
+    allowMultipleChoice,
+    backRulesFirst,
+    isDirty,
+    isEnabled,
+    isLoading,
+    isSaving,
+    error,
+    setRules,
+    saveRules,
+    revertRules,
+    toggleEnabled,
+    setActiveEditorGroup,
+    setRuleGroupSelection,
+    loadRules,
+  ]);
 
   return (
     <RulesContext.Provider value={value}>
       {children}
     </RulesContext.Provider>
   );
+}
+
+function getEditorGroupName(ruleGroups, preferredName) {
+  if (preferredName && ruleGroups.some((group) => group.name === preferredName)) {
+    return preferredName;
+  }
+  const defaultGroup = ruleGroups.find((group) => group.isDefault);
+  if (defaultGroup) {
+    return defaultGroup.name;
+  }
+  return ruleGroups[0]?.name || 'Default';
+}
+
+function getEditorGroupText(ruleGroups, groupName) {
+  const target = ruleGroups.find((group) => group.name === groupName);
+  return target?.data || '';
 }
 
 /**
@@ -162,40 +279,81 @@ export function RulesProvider({ children }) {
  * }
  */
 function normalizeRulesData(rulesData) {
+  const fallback = {
+    text: '',
+    isEnabled: true,
+    ruleGroups: [],
+    activeGroupNames: [],
+    allowMultipleChoice: false,
+    backRulesFirst: false,
+  };
+
   if (!rulesData) {
-    return { text: '', isEnabled: true };
+    return fallback;
   }
 
   if (typeof rulesData === 'string') {
-    return { text: rulesData, isEnabled: true };
+    return {
+      ...fallback,
+      text: rulesData,
+      ruleGroups: [{
+        name: 'Default',
+        data: rulesData,
+        selected: true,
+        isDefault: true,
+        priority: 1,
+      }],
+      activeGroupNames: ['Default'],
+    };
   }
 
   const isEnabled = rulesData.disabled !== true;
+  const allowMultipleChoice = !!rulesData.allowMultipleChoice;
+  const backRulesFirst = !!rulesData.backRulesFirst;
+  const rawList = Array.isArray(rulesData.list) ? rulesData.list : [];
+  const ruleGroups = rawList
+    .filter((item) => item && typeof item.name === 'string')
+    .map((item, index) => ({
+      name: item.name,
+      data: typeof item.data === 'string' ? item.data : '',
+      selected: !!item.selected,
+      isDefault: /^default$/i.test(item.name),
+      priority: index + 1,
+    }));
 
   // Whistle uses `defalutRules` in its payload (typo kept for compatibility).
   const defaultText = typeof rulesData.defalutRules === 'string'
     ? rulesData.defalutRules
     : (typeof rulesData.defaultRules === 'string' ? rulesData.defaultRules : '');
-  if (defaultText) {
-    return { text: defaultText, isEnabled };
+  const defaultGroup = ruleGroups.find((item) => item.isDefault);
+  if (defaultText && defaultGroup && defaultGroup.data !== defaultText) {
+    defaultGroup.data = defaultText;
   }
 
-  if (Array.isArray(rulesData.list)) {
-    const defaultRules = rulesData.list.find(r => /^default$/i.test(r?.name));
-    if (defaultRules && typeof defaultRules.data === 'string') {
-      return { text: defaultRules.data, isEnabled };
-    }
-
-    // Fallback: show selected group's rules if there is no default block.
-    const selected = rulesData.list
-      .filter(r => r?.selected && typeof r?.data === 'string' && r.data.trim())
-      .map(r => `# [${r.name}]\n${r.data.trim()}`);
-    if (selected.length) {
-      return { text: selected.join('\n\n'), isEnabled };
-    }
+  if (!ruleGroups.length) {
+    ruleGroups.push({
+      name: 'Default',
+      data: defaultText,
+      selected: true,
+      isDefault: true,
+      priority: 1,
+    });
   }
 
-  return { text: '', isEnabled };
+  const activeGroupNames = ruleGroups.filter((item) => item.selected).map((item) => item.name);
+  const editorGroup = ruleGroups.find((item) => item.isDefault);
+  const text = editorGroup && typeof editorGroup.data === 'string'
+    ? editorGroup.data
+    : defaultText;
+
+  return {
+    text: typeof text === 'string' ? text : '',
+    isEnabled,
+    ruleGroups,
+    activeGroupNames,
+    allowMultipleChoice,
+    backRulesFirst,
+  };
 }
 
 export function useRules() {
