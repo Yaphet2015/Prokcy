@@ -17,6 +17,7 @@
     "consistent-return": 0,
     "import/no-extraneous-dependencies": 0,
     "react/react-in-jsx-scope": 0,
-    "react/button-has-type": 0
+    "react/button-has-type": 0,
+    "no-nested-ternary": 0
   }
 }
