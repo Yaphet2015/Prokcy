@@ -1,5 +1,12 @@
 import { getBaseUrl, getAuthHeaders } from './config';
 
+function getElectronApi() {
+  if (typeof window !== 'undefined' && window.electron) {
+    return window.electron;
+  }
+  return null;
+}
+
 // Helper for making API requests
 async function request(endpoint, options = {}) {
   const url = `${getBaseUrl()}${endpoint}`;
@@ -52,7 +59,13 @@ export async function setRules(rules) {
 
 // Values API
 export async function getValues() {
-  const result = await request('/cgi-bin/values/list2');
+  const electronApi = getElectronApi();
+  const result = electronApi?.getValues
+    ? await electronApi.getValues()
+    : await request('/cgi-bin/values/list2');
+  if (result?.ec && result.ec !== 0) {
+    throw new Error(result.message || `API error: ${result.ec}`);
+  }
   if (!result || !Array.isArray(result.list)) {
     return {};
   }
@@ -67,6 +80,14 @@ export async function getValues() {
 }
 
 export async function setValue(key, value) {
+  const electronApi = getElectronApi();
+  if (electronApi?.setValue) {
+    const result = await electronApi.setValue(key, String(value));
+    if (result?.ec && result.ec !== 0) {
+      throw new Error(result.message || `API error: ${result.ec}`);
+    }
+    return result;
+  }
   return request('/cgi-bin/values/add', {
     method: 'POST',
     body: JSON.stringify({ name: key, value: String(value) }),
@@ -74,6 +95,14 @@ export async function setValue(key, value) {
 }
 
 export async function deleteValue(key) {
+  const electronApi = getElectronApi();
+  if (electronApi?.deleteValue) {
+    const result = await electronApi.deleteValue(key);
+    if (result?.ec && result.ec !== 0) {
+      throw new Error(result.message || `API error: ${result.ec}`);
+    }
+    return result;
+  }
   return request('/cgi-bin/values/remove', {
     method: 'POST',
     body: JSON.stringify({ name: key }),
