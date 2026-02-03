@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electron', {
+const electronApi = {
   getTheme: () => ipcRenderer.invoke('get-theme'),
   getRules: () => ipcRenderer.invoke('get-rules'),
   setRules: (content) => ipcRenderer.invoke('set-rules', content),
@@ -19,4 +19,10 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('service-status-changed', listener);
     return () => ipcRenderer.removeListener('service-status-changed', listener);
   },
-});
+};
+
+if (process.contextIsolated) {
+  contextBridge.exposeInMainWorld('electron', electronApi);
+} else {
+  window.electron = electronApi;
+}
