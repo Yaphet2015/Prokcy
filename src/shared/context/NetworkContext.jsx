@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { getBaseUrl, getAuthHeaders } from '../api/config';
+import { useService } from './ServiceContext';
 
 const NetworkContext = createContext({
   requests: [],
@@ -15,13 +15,191 @@ const NetworkContext = createContext({
   refreshRequests: () => {},
 });
 
-// Generate unique ID for requests
-let requestIdCounter = 0;
-function generateId() {
-  return `req_${Date.now()}_${++requestIdCounter}`;
+const DEFAULT_HOST = '127.0.0.1';
+const DEFAULT_PORT = '8888';
+const POLL_INTERVAL = 1000;
+const MAX_RECONNECT_DELAY = 30000;
+const FETCH_COUNT = 120;
+const TRACKED_IDS_COUNT = 200;
+const MAX_REQUESTS = 500;
+
+function toStringValue(value, fallback = '') {
+  if (typeof value === 'string' && value) {
+    return value;
+  }
+  if (value == null) {
+    return fallback;
+  }
+  return String(value);
+}
+
+function getHeaderValue(headers, name) {
+  if (!headers || typeof headers !== 'object') {
+    return '';
+  }
+  const target = name.toLowerCase();
+  const key = Object.keys(headers).find((k) => k.toLowerCase() === target);
+  if (!key) {
+    return '';
+  }
+  const value = headers[key];
+  return Array.isArray(value) ? value.join(', ') : toStringValue(value, '');
+}
+
+function estimateBase64Size(base64) {
+  if (!base64 || typeof base64 !== 'string') {
+    return 0;
+  }
+  let padding = 0;
+  if (base64.endsWith('==')) {
+    padding = 2;
+  } else if (base64.endsWith('=')) {
+    padding = 1;
+  }
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
+function decodeBase64ToText(base64) {
+  if (!base64 || typeof base64 !== 'string') {
+    return '';
+  }
+  try {
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+function clamp(value) {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function getTimings(item) {
+  const now = Date.now();
+  const start = Number(item?.startTime) || now;
+  const dnsTime = Number(item?.dnsTime) || start;
+  const requestTime = Number(item?.requestTime) || dnsTime;
+  const responseTime = Number(item?.responseTime) || requestTime;
+  const endTime = Number(item?.endTime) || now;
+
+  const dns = clamp(dnsTime - start);
+  const tcp = clamp(requestTime - dnsTime);
+  const ttfb = clamp(responseTime - requestTime);
+  const download = clamp(endTime - responseTime);
+  const total = clamp(endTime - start);
+
+  return {
+    dns,
+    tcp,
+    tls: 0,
+    ttfb,
+    download,
+    total,
+  };
+}
+
+function normalizeRequest(item) {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const id = toStringValue(item.id, '');
+  if (!id) {
+    return null;
+  }
+
+  const requestHeaders = item.req?.headers && typeof item.req.headers === 'object' ? item.req.headers : {};
+  const responseHeaders = item.res?.headers && typeof item.res.headers === 'object' ? item.res.headers : {};
+  const responseContentType = getHeaderValue(responseHeaders, 'content-type');
+
+  const requestBodyText = decodeBase64ToText(item.req?.base64);
+  const responseBodyBase64 = toStringValue(item.res?.base64, '');
+  const responseBody = responseContentType.startsWith('image/')
+    ? responseBodyBase64
+    : decodeBase64ToText(responseBodyBase64);
+
+  const responseSize = Number(item.res?.size) || estimateBase64Size(responseBodyBase64);
+
+  return {
+    id,
+    method: toStringValue(item.req?.method, 'GET').toUpperCase(),
+    url: toStringValue(item.url, ''),
+    status: Number(item.res?.statusCode) || 0,
+    statusText: toStringValue(item.res?.statusMessage, ''),
+    size: responseSize,
+    timings: getTimings(item),
+    headers: {
+      request: requestHeaders,
+      response: responseHeaders,
+    },
+    requestBody: requestBodyText
+      ? {
+          content: requestBodyText,
+          headers: requestHeaders,
+        }
+      : null,
+    response: item.res
+      ? {
+          body: responseBody,
+          headers: responseHeaders,
+          size: responseSize,
+        }
+      : null,
+    _sortTime: Number(item.startTime) || Date.now(),
+  };
+}
+
+function mergeRequests(previous, incoming) {
+  if (!incoming.length) {
+    return previous;
+  }
+
+  const merged = new Map(previous.map((req) => [req.id, req]));
+  incoming.forEach((req) => {
+    merged.set(req.id, req);
+  });
+
+  return Array.from(merged.values())
+    .sort((a, b) => b._sortTime - a._sortTime)
+    .slice(0, MAX_REQUESTS);
+}
+
+async function getRuntimeConfig() {
+  if (!window.electron?.getRuntimeConfig) {
+    return {
+      running: false,
+      host: DEFAULT_HOST,
+      port: DEFAULT_PORT,
+      username: '',
+      password: '',
+    };
+  }
+
+  try {
+    const config = await window.electron.getRuntimeConfig();
+    return {
+      running: !!config?.running,
+      host: toStringValue(config?.host, DEFAULT_HOST),
+      port: toStringValue(config?.port, DEFAULT_PORT),
+      username: toStringValue(config?.username, ''),
+      password: toStringValue(config?.password, ''),
+    };
+  } catch (error) {
+    console.error('Failed to load runtime config:', error);
+    return {
+      running: false,
+      host: DEFAULT_HOST,
+      port: DEFAULT_PORT,
+      username: '',
+      password: '',
+    };
+  }
 }
 
 export function NetworkProvider({ children }) {
+  const { isApiAvailable } = useService();
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [filters, setFiltersState] = useState({});
@@ -29,154 +207,136 @@ export function NetworkProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const eventSourceRef = useRef(null);
+  const requestsRef = useRef([]);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const lastIdRef = useRef('');
 
-  // Add new request to state
-  const addRequest = useCallback((requestData) => {
-    const request = {
-      id: generateId(),
-      ...requestData,
-    };
-    setRequests((prev) => [request, ...prev]);
-  }, []);
+  useEffect(() => {
+    requestsRef.current = requests;
+  }, [requests]);
 
-  // Update existing request
-  const updateRequest = useCallback((id, updates) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, ...updates } : req
-      )
-    );
-  }, []);
-
-  // Fetch initial requests
-  const refreshRequests = useCallback(async () => {
-    try {
-      const url = `${getBaseUrl()}/api/requests`;
-      const headers = getAuthHeaders();
-      const response = await fetch(url, { headers });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+  useEffect(() => {
+    setSelectedRequest((prev) => {
+      if (!prev) {
+        return prev;
       }
+      const updated = requests.find((req) => req.id === prev.id);
+      return updated || null;
+    });
+  }, [requests]);
 
-      const data = await response.json();
-      const requestsWithIds = (data.requests || []).map((req) => ({
-        id: generateId(),
-        ...req,
-      }));
+  const fetchNetworkData = useCallback(async ({ initial = false } = {}) => {
+    const config = await getRuntimeConfig();
 
-      setRequests(requestsWithIds);
-      setIsConnected(true);
-    } catch (error) {
-      console.error('Failed to fetch network requests:', error);
+    if (!config.running) {
       setIsConnected(false);
+      setIsStreaming(false);
+      return;
     }
+
+    const params = new URLSearchParams();
+    params.set('count', String(FETCH_COUNT));
+
+    if (!initial && lastIdRef.current) {
+      params.set('startTime', lastIdRef.current);
+    }
+
+    const trackedIds = requestsRef.current
+      .slice(0, TRACKED_IDS_COUNT)
+      .map((request) => request.id)
+      .join(',');
+
+    if (trackedIds) {
+      params.set('ids', trackedIds);
+    }
+
+    const payload = window.electron?.getNetworkData
+      ? await window.electron.getNetworkData(Object.fromEntries(params.entries()))
+      : await (async () => {
+          const response = await fetch(`http://${config.host}:${config.port}/cgi-bin/get-data?${params.toString()}`);
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          return response.json();
+        })();
+    if (payload?.ec && payload.ec !== 0) {
+      throw new Error(`API error: ${payload.ec}`);
+    }
+
+    const data = payload?.data;
+    const dataMap = data?.data && typeof data.data === 'object' ? data.data : {};
+    const incoming = Object.values(dataMap)
+      .map(normalizeRequest)
+      .filter(Boolean);
+
+    setRequests((prev) => mergeRequests(prev, incoming));
+
+    const nextLastId = toStringValue(data?.lastId || data?.endId, '');
+    if (nextLastId) {
+      lastIdRef.current = nextLastId;
+    }
+
+    setIsConnected(true);
+    setIsStreaming(true);
   }, []);
 
-  // Clear all requests
+  const refreshRequests = useCallback(async () => {
+    lastIdRef.current = '';
+    await fetchNetworkData({ initial: true });
+  }, [fetchNetworkData]);
+
   const clearRequests = useCallback(() => {
+    lastIdRef.current = '';
     setRequests([]);
     setSelectedRequest(null);
   }, []);
 
-  // Setup SSE connection
   useEffect(() => {
-    const connectSSE = () => {
-      // Close existing connection
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+    if (!isApiAvailable) {
+      setIsConnected(false);
+      setIsStreaming(false);
+      return;
+    }
 
+    let stopped = false;
+
+    const scheduleReconnect = () => {
+      const delay = Math.min(1000 * (2 ** reconnectAttemptsRef.current), MAX_RECONNECT_DELAY);
+      reconnectAttemptsRef.current += 1;
+      reconnectTimeoutRef.current = setTimeout(() => {
+        if (!stopped) {
+          poll(false);
+        }
+      }, delay);
+    };
+
+    const poll = async (initial) => {
       try {
-        const url = `${getBaseUrl()}/api/requests/stream`;
-        const headers = getAuthHeaders();
-
-        // Build URL with auth if needed
-        const authHeader = headers.Authorization;
-        const sseUrl = authHeader
-          ? `${url}?${new URLSearchParams({
-              token: authHeader.replace('Basic ', ''),
-            })}`
-          : url;
-
-        const eventSource = new EventSource(sseUrl);
-        eventSourceRef.current = eventSource;
-
-        eventSource.onopen = () => {
-          console.log('SSE connection opened');
-          setIsConnected(true);
-          setIsStreaming(true);
-          reconnectAttemptsRef.current = 0;
-        };
-
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-
-            switch (data.type) {
-              case 'request':
-                // New request captured
-                addRequest(data.request);
-                break;
-              case 'update':
-                // Request updated (e.g., response received)
-                updateRequest(data.id, data.updates);
-                break;
-              case 'complete':
-                // Request completed
-                updateRequest(data.id, { completed: true, ...data.updates });
-                break;
-              default:
-                console.warn('Unknown SSE event type:', data.type);
-            }
-          } catch (error) {
-            console.error('Failed to parse SSE event:', error);
+        await fetchNetworkData({ initial });
+        reconnectAttemptsRef.current = 0;
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (!stopped) {
+            poll(false);
           }
-        };
-
-        eventSource.onerror = (error) => {
-          console.error('SSE connection error:', error);
-          setIsConnected(false);
-          setIsStreaming(false);
-          eventSource.close();
-
-          // Reconnect with exponential backoff
-          const maxDelay = 30000;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), maxDelay);
-          reconnectAttemptsRef.current++;
-
-          console.log(`Reconnecting in ${delay}ms...`);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connectSSE();
-          }, delay);
-        };
+        }, POLL_INTERVAL);
       } catch (error) {
-        console.error('Failed to create SSE connection:', error);
+        console.error('Failed to fetch network requests:', error);
         setIsConnected(false);
         setIsStreaming(false);
+        scheduleReconnect();
       }
     };
 
-    // Start SSE connection
-    connectSSE();
+    poll(true);
 
-    // Fetch initial requests
-    refreshRequests();
-
-    // Cleanup
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+      stopped = true;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [addRequest, updateRequest, refreshRequests]);
+  }, [fetchNetworkData, isApiAvailable]);
 
   const selectRequest = useCallback((request) => {
     setSelectedRequest(request);
