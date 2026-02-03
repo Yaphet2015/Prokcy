@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
+import Modal from '../../../shared/ui/Modal';
 
 export default function KeysList({ values, selectedKey, onSelectKey, onCreateValue }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredKeys = useMemo(() => {
     const keys = Object.keys(values).sort();
@@ -13,10 +15,18 @@ export default function KeysList({ values, selectedKey, onSelectKey, onCreateVal
   }, [values, searchQuery]);
 
   const handleCreate = () => {
-    const name = prompt('Enter new value name:');
+    setIsModalOpen(true);
+  };
+
+  const handleModalConfirm = (name) => {
     if (name && name.trim()) {
       onCreateValue(name.trim());
     }
+    setIsModalOpen(false);
+  };
+
+  const handleModalCancel = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -59,6 +69,15 @@ export default function KeysList({ values, selectedKey, onSelectKey, onCreateVal
           Add New Value
         </Button>
       </div>
+
+      {/* Modal for creating new value */}
+      <Modal
+        isOpen={isModalOpen}
+        title="New Value"
+        message="Enter a name for the new value:"
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+      />
     </div>
   );
 }

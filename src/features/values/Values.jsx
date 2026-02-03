@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useValues } from '../../shared/context/ValuesContext';
 import KeysList from './components/KeysList';
 import ValueEditor from './components/ValueEditor';
+import Modal from '../../shared/ui/Modal';
 
 export default function Values() {
   const {
@@ -16,6 +17,9 @@ export default function Values() {
     isSaving,
     error,
   } = useValues();
+
+  const [isNewValueModalOpen, setIsNewValueModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   const handleValueChange = (newValue) => {
     if (selectedKey) {
@@ -41,20 +45,14 @@ export default function Values() {
       // Cmd/Ctrl+N: Create new value
       if (isMod && e.key === 'n' && !e.shiftKey) {
         e.preventDefault();
-        const name = prompt('Enter new value name:');
-        if (name && name.trim()) {
-          createValue(name.trim());
-        }
+        setIsNewValueModalOpen(true);
       }
 
       // Cmd/Ctrl+Shift+R: Rename selected
       if (isMod && e.shiftKey && e.key === 'R') {
         e.preventDefault();
         if (selectedKey) {
-          const newName = prompt('Enter new name:', selectedKey);
-          if (newName && newName.trim() && newName.trim() !== selectedKey) {
-            renameKey(selectedKey, newName.trim());
-          }
+          setIsRenameModalOpen(true);
         }
       }
 
@@ -78,7 +76,29 @@ export default function Values() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedKey, createValue, renameKey, deleteValue]);
+  }, [selectedKey, deleteValue]);
+
+  const handleNewValueConfirm = (name) => {
+    if (name && name.trim()) {
+      createValue(name.trim());
+    }
+    setIsNewValueModalOpen(false);
+  };
+
+  const handleNewValueCancel = () => {
+    setIsNewValueModalOpen(false);
+  };
+
+  const handleRenameConfirm = (newName) => {
+    if (selectedKey && newName && newName.trim() && newName.trim() !== selectedKey) {
+      renameKey(selectedKey, newName.trim());
+    }
+    setIsRenameModalOpen(false);
+  };
+
+  const handleRenameCancel = () => {
+    setIsRenameModalOpen(false);
+  };
 
   if (isLoading) {
     return (
@@ -137,6 +157,23 @@ export default function Values() {
         <span className="mx-2">-</span>
         <span className="font-medium">Shortcuts:</span> Cmd+N New - Cmd+Shift+R Rename - Cmd+D Delete - Cmd+F Search
       </div>
+
+      {/* Modals */}
+      <Modal
+        isOpen={isNewValueModalOpen}
+        title="New Value"
+        message="Enter a name for the new value:"
+        onConfirm={handleNewValueConfirm}
+        onCancel={handleNewValueCancel}
+      />
+      <Modal
+        isOpen={isRenameModalOpen}
+        title="Rename Value"
+        message="Enter a new name for this value:"
+        defaultValue={selectedKey}
+        onConfirm={handleRenameConfirm}
+        onCancel={handleRenameCancel}
+      />
     </div>
   );
 }

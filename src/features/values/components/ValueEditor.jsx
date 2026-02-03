@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import { initJson5Language, JSON5_LANGUAGE_ID } from '../constants';
+import Modal from '../../../shared/ui/Modal';
 
 const MonacoEditor = lazy(() => import('../../../shared/ui/MonacoEditor').then(m => ({ default: m.default })));
 
@@ -15,6 +16,7 @@ export default function ValueEditor({
   const { isDark } = useTheme();
   const [editorValue, setEditorValue] = useState(value || '{}');
   const [isValid, setIsValid] = useState(true);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   useEffect(() => {
     setEditorValue(value || '{}');
@@ -42,12 +44,20 @@ export default function ValueEditor({
   };
 
   const handleRename = () => {
-    const newName = prompt('Enter new name:', selectedKey);
+    setIsRenameModalOpen(true);
+  };
+
+  const handleRenameConfirm = (newName) => {
     if (newName && newName.trim() && newName.trim() !== selectedKey) {
       window.dispatchEvent(new CustomEvent('values-rename', {
         detail: { oldKey: selectedKey, newKey: newName.trim() }
       }));
     }
+    setIsRenameModalOpen(false);
+  };
+
+  const handleRenameCancel = () => {
+    setIsRenameModalOpen(false);
   };
 
   if (!selectedKey) {
@@ -107,6 +117,16 @@ export default function ValueEditor({
           />
         </Suspense>
       </div>
+
+      {/* Rename modal */}
+      <Modal
+        isOpen={isRenameModalOpen}
+        title="Rename Value"
+        message="Enter a new name for this value:"
+        defaultValue={selectedKey}
+        onConfirm={handleRenameConfirm}
+        onCancel={handleRenameCancel}
+      />
     </div>
   );
 }
