@@ -15,7 +15,7 @@ function App() {
   const ActiveComponent = views[activeView];
 
   return (
-    <div className="h-screen w-screen bg-tahoe-bg text-tahoe-fg flex">
+    <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
       <Sidebar activeView={activeView} onViewChange={setActiveView} />
 
       <main className="flex-1 overflow-hidden">
