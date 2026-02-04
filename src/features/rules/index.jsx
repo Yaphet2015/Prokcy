@@ -13,6 +13,9 @@ import { useTheme } from '../../shared/context/ThemeContext';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
 
+// Import hook directly (cannot be lazy-loaded)
+import { useMonacoSave } from '../../shared/ui/MonacoEditor';
+
 // Lazy load Monaco to avoid large bundle
 const MonacoEditor = lazy(() => import('../../shared/ui/MonacoEditor').then(module => ({ default: module.default })));
 
@@ -37,6 +40,15 @@ export default function Rules() {
 
   const { isDark } = useTheme();
   const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
+
+  // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
+  const handleMonacoSave = useCallback(() => {
+    if (isDirty) {
+      saveRules();
+    }
+  }, [isDirty, saveRules]);
+
+  useMonacoSave(handleMonacoSave);
 
   // Update Monaco theme when system theme changes
   useEffect(() => {
@@ -155,13 +167,6 @@ export default function Rules() {
       {/* Editor */}
       <div className="flex-1 overflow-hidden flex">
         <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
-          {/* <div className="px-3 py-2 border-b border-zinc-200/70 dark:border-zinc-800/70">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Rule Groups
-              </h2>
-            </div>
-          </div> */}
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {ruleGroups.map((group) => {
