@@ -289,7 +289,8 @@ export function NetworkProvider({ children }) {
   }, [fetchNetworkData]);
 
   const clearRequests = useCallback(() => {
-    lastIdRef.current = '';
+    // Prevent the next poll from reloading old requests after a manual clear.
+    lastIdRef.current = String(Date.now());
     setRequests([]);
     setSelectedRequest(null);
   }, []);
