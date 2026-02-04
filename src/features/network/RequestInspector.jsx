@@ -407,7 +407,7 @@ export default function RequestInspector() {
 
           <Button
             variant="ghost"
-            size="lg"
+            size="sm"
             onClick={() => selectRequest(null)}
             leftIcon={<X className="w-4 h-4" />}
             aria-label="Close request inspector"
