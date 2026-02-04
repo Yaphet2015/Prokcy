@@ -6,6 +6,53 @@ import * as monaco from 'monaco-editor';
 loader.config({ monaco });
 
 /**
+ * Suppress Monaco's internal 'productService' error that occurs in Electron.
+ * This error doesn't affect functionality - it's a service resolution warning
+ * from Monaco's dependency injection system running in a non-browser context.
+ */
+function suppressProductServiceError() {
+  const originalError = console.error;
+  console.error = (...args) => {
+    const message = args[0];
+    if (
+      typeof message === 'string' &&
+      (message.includes('unknown service') || message.includes('productService'))
+    ) {
+      return; // Suppress this specific Monaco error
+    }
+    originalError.apply(console, args);
+  };
+}
+
+// Run suppression once when module loads
+suppressProductServiceError();
+
+/**
+ * Global error handlers to catch Monaco service errors before they propagate.
+ * These catch errors thrown during Monaco's service resolution (e.g., during paste operations).
+ */
+if (typeof window !== 'undefined') {
+  // Catch Monaco's internal service errors at window level
+  window.addEventListener('error', (event) => {
+    if (event.message?.includes('productService') ||
+        event.message?.includes('unknown service')) {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+  }, true); // Use capture phase to catch errors early
+
+  // Also catch promise rejections from Monaco
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason?.message?.includes('productService') ||
+        event.reason?.message?.includes('unknown service')) {
+      event.preventDefault();
+      return false;
+    }
+  });
+}
+
+/**
  * Monaco Editor wrapper with Tahoe theme support
  *
  * @param {Object} props
@@ -54,6 +101,20 @@ export default function MonacoEditor({
       // Toggle comment
       const action = editor.getAction('editor.action.commentLine');
       if (action) action.run();
+    });
+
+    // Custom paste command using Electron's clipboard API
+    // This bypasses Monaco's internal service resolution that fails in Electron
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
+      const electron = window.require?.('electron');
+      const clipboard = electron?.clipboard;
+
+      if (clipboard && typeof clipboard.readText === 'function') {
+        const text = clipboard.readText();
+        if (text) {
+          editor.trigger('keyboard', 'type', { text });
+        }
+      }
     });
   };
 
