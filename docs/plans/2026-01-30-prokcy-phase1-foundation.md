@@ -488,7 +488,7 @@ const Input = forwardRef(({
         bg-tahoe-bg/50 border border-tahoe-border
         text-tahoe-fg placeholder:text-tahoe-subtle
         focus:border-tahoe-accent focus:ring-2 focus:ring-tahoe-accent/20
-        outline-none transition-all
+        outline-hidden transition-all
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
       `}
@@ -1582,7 +1582,7 @@ src/
 ## Tahoe Theme
 
 The app uses a custom macOS Tahoe-inspired theme:
-- Glass effects with backdrop-blur
+- Glass effects with backdrop-blur-sm
 - Rounded corners (6px - 16px)
 - System font stack
 - Dark/light mode sync with macOS

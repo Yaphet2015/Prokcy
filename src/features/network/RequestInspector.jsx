@@ -414,7 +414,6 @@ export default function RequestInspector() {
           />
         </div>
 
-        {/* Tab Content */}
         <div className="flex-1 overflow-auto">
           <TabsContent value="headers">
             <HeadersTab request={selectedRequest} />
