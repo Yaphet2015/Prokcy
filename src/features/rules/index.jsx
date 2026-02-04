@@ -181,7 +181,7 @@ export default function Rules() {
                   title="Click to open in editor. Double-click to toggle active state."
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{group.name}</span>
+                    <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
                     {rank ? (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
                         #
@@ -199,23 +199,10 @@ export default function Rules() {
                         Active
                       </span>
                     )}
-                    {isEditorGroup && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
-                        Editor
-                      </span>
-                    )}
                   </div>
                 </button>
               );
             })}
-          </div>
-
-          <div className="px-3 py-2 border-t border-zinc-200/70 dark:border-zinc-800/70">
-            {/* <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Active order:
-              {' '}
-              {activePriority.length ? activePriority.join(' → ') : 'None'}
-            </p> */}
           </div>
         </aside>
 
