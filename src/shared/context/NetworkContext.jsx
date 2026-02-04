@@ -23,7 +23,7 @@ const POLL_INTERVAL = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 const FETCH_COUNT = 120;
 const TRACKED_IDS_COUNT = 200;
-const MAX_REQUESTS = 500;
+const DEFAULT_REQUEST_LIST_LIMIT = 500;
 
 function toStringValue(value, fallback = '') {
   if (typeof value === 'string' && value) {
@@ -153,9 +153,9 @@ function normalizeRequest(item) {
   };
 }
 
-function mergeRequests(previous, incoming) {
+function mergeRequests(previous, incoming, maxRequests) {
   if (!incoming.length) {
-    return previous;
+    return previous.slice(0, maxRequests);
   }
 
   const merged = new Map(previous.map((req) => [req.id, req]));
@@ -165,7 +165,7 @@ function mergeRequests(previous, incoming) {
 
   return Array.from(merged.values())
     .sort((a, b) => b.sortTime - a.sortTime)
-    .slice(0, MAX_REQUESTS);
+    .slice(0, maxRequests);
 }
 
 async function getRuntimeConfig() {
@@ -208,8 +208,10 @@ export function NetworkProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [requestListLimit, setRequestListLimit] = useState(DEFAULT_REQUEST_LIST_LIMIT);
 
   const requestsRef = useRef([]);
+  const requestListLimitRef = useRef(DEFAULT_REQUEST_LIST_LIMIT);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const lastIdRef = useRef('');
@@ -217,6 +219,14 @@ export function NetworkProvider({ children }) {
   useEffect(() => {
     requestsRef.current = requests;
   }, [requests]);
+
+  useEffect(() => {
+    requestListLimitRef.current = requestListLimit;
+  }, [requestListLimit]);
+
+  useEffect(() => {
+    setRequests((prev) => (prev.length > requestListLimit ? prev.slice(0, requestListLimit) : prev));
+  }, [requestListLimit]);
 
   useEffect(() => {
     setSelectedRequest((prev) => {
@@ -228,6 +238,39 @@ export function NetworkProvider({ children }) {
     });
   }, [requests]);
 
+  const applyRequestListLimit = useCallback((value) => {
+    const parsed = Number(value);
+    const nextLimit = Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_REQUEST_LIST_LIMIT;
+    setRequestListLimit(nextLimit);
+    setRequests((prev) => prev.slice(0, nextLimit));
+  }, []);
+
+  const loadRequestListLimit = useCallback(async () => {
+    if (!window.electron?.getSettings) {
+      return;
+    }
+    try {
+      const settings = await window.electron.getSettings();
+      applyRequestListLimit(settings?.requestListLimit);
+    } catch (error) {
+      console.error('Failed to load request list limit:', error);
+    }
+  }, [applyRequestListLimit]);
+
+  useEffect(() => {
+    loadRequestListLimit();
+  }, [loadRequestListLimit]);
+
+  useEffect(() => {
+    const handleSettingsUpdated = (event) => {
+      applyRequestListLimit(event?.detail?.requestListLimit);
+    };
+    window.addEventListener('prokcy-settings-updated', handleSettingsUpdated);
+    return () => {
+      window.removeEventListener('prokcy-settings-updated', handleSettingsUpdated);
+    };
+  }, [applyRequestListLimit]);
+
   const fetchNetworkData = useCallback(async ({ initial = false } = {}) => {
     const config = await getRuntimeConfig();
 
@@ -238,14 +281,15 @@ export function NetworkProvider({ children }) {
     }
 
     const params = new URLSearchParams();
-    params.set('count', String(FETCH_COUNT));
+    const activeLimit = Math.max(1, requestListLimitRef.current);
+    params.set('count', String(Math.min(FETCH_COUNT, activeLimit)));
 
     if (!initial && lastIdRef.current) {
       params.set('startTime', lastIdRef.current);
     }
 
     const trackedIds = requestsRef.current
-      .slice(0, TRACKED_IDS_COUNT)
+      .slice(0, Math.min(TRACKED_IDS_COUNT, activeLimit))
       .map((request) => request.id)
       .join(',');
 
@@ -272,7 +316,7 @@ export function NetworkProvider({ children }) {
       .map(normalizeRequest)
       .filter(Boolean);
 
-    setRequests((prev) => mergeRequests(prev, incoming));
+    setRequests((prev) => mergeRequests(prev, incoming, activeLimit));
 
     const nextLastId = toStringValue(data?.lastId || data?.endId, '');
     if (nextLastId) {
