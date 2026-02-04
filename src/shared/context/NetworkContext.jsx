@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import {
+  createContext, useContext, useState, useCallback, useMemo, useEffect, useRef,
+} from 'react';
 import { useService } from './ServiceContext';
 
 const NetworkContext = createContext({
@@ -136,18 +138,18 @@ function normalizeRequest(item) {
     },
     requestBody: requestBodyText
       ? {
-          content: requestBodyText,
-          headers: requestHeaders,
-        }
+        content: requestBodyText,
+        headers: requestHeaders,
+      }
       : null,
     response: item.res
       ? {
-          body: responseBody,
-          headers: responseHeaders,
-          size: responseSize,
-        }
+        body: responseBody,
+        headers: responseHeaders,
+        size: responseSize,
+      }
       : null,
-    _sortTime: Number(item.startTime) || Date.now(),
+    sortTime: Number(item.startTime) || Date.now(),
   };
 }
 
@@ -162,7 +164,7 @@ function mergeRequests(previous, incoming) {
   });
 
   return Array.from(merged.values())
-    .sort((a, b) => b._sortTime - a._sortTime)
+    .sort((a, b) => b.sortTime - a.sortTime)
     .slice(0, MAX_REQUESTS);
 }
 
@@ -254,12 +256,12 @@ export function NetworkProvider({ children }) {
     const payload = window.electron?.getNetworkData
       ? await window.electron.getNetworkData(Object.fromEntries(params.entries()))
       : await (async () => {
-          const response = await fetch(`http://${config.host}:${config.port}/cgi-bin/get-data?${params.toString()}`);
-          if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-          }
-          return response.json();
-        })();
+        const response = await fetch(`http://${config.host}:${config.port}/cgi-bin/get-data?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return response.json();
+      })();
     if (payload?.ec && payload.ec !== 0) {
       throw new Error(`API error: ${payload.ec}`);
     }

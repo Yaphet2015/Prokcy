@@ -21,7 +21,7 @@ function getRequestPhases(request) {
   if (timings.dns > 0) {
     phases.push({
       type: 'dns', duration: timings.dns, offset, color: TIMING_COLORS.dns,
-});
+    });
     offset += timings.dns;
   }
 
@@ -29,7 +29,7 @@ function getRequestPhases(request) {
   if (timings.tcp > 0) {
     phases.push({
       type: 'tcp', duration: timings.tcp, offset, color: TIMING_COLORS.tcp,
-});
+    });
     offset += timings.tcp;
   }
 
@@ -37,7 +37,7 @@ function getRequestPhases(request) {
   if (timings.tls > 0) {
     phases.push({
       type: 'tls', duration: timings.tls, offset, color: TIMING_COLORS.tls,
-});
+    });
     offset += timings.tls;
   }
 
@@ -45,7 +45,7 @@ function getRequestPhases(request) {
   if (timings.ttfb > 0) {
     phases.push({
       type: 'ttfb', duration: timings.ttfb, offset, color: TIMING_COLORS.ttfb,
-});
+    });
     offset += timings.ttfb;
   }
 
@@ -53,7 +53,7 @@ function getRequestPhases(request) {
   if (timings.download > 0) {
     phases.push({
       type: 'download', duration: timings.download, offset, color: TIMING_COLORS.download,
-});
+    });
   }
 
   return phases;
@@ -93,7 +93,7 @@ function getMethodIcon(method) {
 export default function WaterfallTimeline() {
   const {
     requests, selectedRequest, selectRequest, searchQuery, setSearchQuery,
-} = useNetwork();
+  } = useNetwork();
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
@@ -101,17 +101,17 @@ export default function WaterfallTimeline() {
     const query = searchQuery.toLowerCase();
     return requests.filter((req) => req.url?.toLowerCase().includes(query)
       || req.method?.toLowerCase().includes(query)
-      || req.status?.toString().includes(query),);
+      || req.status?.toString().includes(query));
   }, [requests, searchQuery]);
 
   // Calculate total duration for scaling
   const maxDuration = useMemo(() => Math.max(
     ...requests.map((req) => req.timings?.total || 0),
     1000, // minimum 1 second scale
-    ), [requests]);
+  ), [requests]);
 
   return (
-    <div className="h-[60%] flex flex-col border-b border-zinc-200 dark:border-zinc-800">
+    <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
       {/* Header */}
       <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         <div className="flex items-center gap-3">
@@ -122,13 +122,16 @@ export default function WaterfallTimeline() {
             {filteredRequests.length === 1 ? 'request' : 'requests'}
           </span>
         </div>
-        <Input.Search
-          placeholder="Filter requests..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          size="sm"
-          className="w-64"
-        />
+
+        <div>
+          <Input
+            placeholder="Filter requests..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size="sm"
+            className="w-64"
+          />
+        </div>
       </div>
 
       {/* Timing Legend */}
@@ -162,6 +165,14 @@ export default function WaterfallTimeline() {
                 <div
                   key={request.id}
                   onClick={() => selectRequest(request)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectRequest(request);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   className={`
                     group flex items-center gap-3 px-4 py-2.5 cursor-pointer
                     transition-colors duration-150
@@ -204,7 +215,7 @@ export default function WaterfallTimeline() {
                     <div
                       className="absolute inset-y-0 left-0 flex"
                       style={{
-                        width: `${Math.min((request.timings?.total || 0) / maxDuration * 100, 100)}%`,
+                        width: `${Math.min(((request.timings?.total || 0) / maxDuration) * 100, 100)}%`,
                       }}
                     >
                       {phases.map((phase, idx) => (

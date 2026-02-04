@@ -6,9 +6,9 @@ export default function Network() {
   const { isConnected, isStreaming } = useNetwork();
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-zinc-950">
+    <div className="h-full w-full flex flex-col bg-white dark:bg-zinc-950">
       {/* Connection Status Bar */}
-      <div className="h-8 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+      {/* <div className="h-8 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         <div className="flex items-center gap-2">
           <div className={`
             w-2 h-2 rounded-full
@@ -23,7 +23,7 @@ export default function Network() {
               : 'Disconnected'}
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Waterfall Timeline (60%) */}
       <WaterfallTimeline />

@@ -309,16 +309,11 @@ export default function RequestInspector() {
   const [activeTab, setActiveTab] = useState('headers');
 
   if (!selectedRequest) {
-    return (
-      // <div className="h-[40%] flex items-center justify-center border-t border-zinc-200 dark:border-zinc-800">
-      //   <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a request to view details</p>
-      // </div>
-      null
-    );
+    return null;
   }
 
   return (
-    <div className="h-[40%] flex flex-col border-t border-zinc-200 dark:border-zinc-800">
+    <div className="flex-1 shrink-0 flex flex-col border-t border-zinc-200 dark:border-zinc-800">
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="h-10 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
