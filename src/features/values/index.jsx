@@ -104,15 +104,17 @@ export default function Values() {
   return (
     <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
+      <div className="blur-xl">
+        {/* <div className="flex items-center gap-2">
           <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Values</h1>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            ({Object.keys(values).length})
+            (
+            {Object.keys(values).length}
+            )
           </span>
-        </div>
+        </div> */}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 absolute right-4 top-1/2 -translate-y-1/2">
           {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
           {error && <span className="text-xs text-red-500">{error}</span>}
         </div>
@@ -143,11 +145,11 @@ export default function Values() {
       </div>
 
       {/* Help text */}
-      <div className="px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+      {/* <div className="px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
         <span className="font-medium">Format:</span> JSON5 (comments allowed, trailing commas allowed)
         <span className="mx-2">-</span>
         <span className="font-medium">Shortcuts:</span> Cmd+N New - Cmd+Shift+R Rename - Cmd+D Delete - Cmd+F Search
-      </div>
+      </div> */}
 
       {/* Modals */}
       <Modal

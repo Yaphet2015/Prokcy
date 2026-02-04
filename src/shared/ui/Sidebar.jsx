@@ -20,7 +20,7 @@ export default function Sidebar({ activeView, onViewChange }) {
       className={`
         h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
         bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
-        transition-all duration-200
+        transition-all duration-200 justify-between
         ${isCollapsed ? 'w-16' : 'w-60'}
       `}
     >

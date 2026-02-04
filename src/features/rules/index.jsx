@@ -86,11 +86,20 @@ export default function Rules() {
     <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Rules</h1>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            ({isEnabled ? 'Enabled' : 'Disabled'})
-          </span>
+        <div className="flex flex-col">
+          <div className="flex gap-2 items-center line">
+            <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Rules</h1>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              (
+              {isEnabled ? 'Enabled' : 'Disabled'}
+              )
+            </span>
+          </div>
+
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            Active order:
+            {activePriority.length ? activePriority.join(' → ') : 'None'}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -148,7 +157,7 @@ export default function Rules() {
       {/* Editor */}
       <div className="flex-1 overflow-hidden flex">
         <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
-          <div className="px-3 py-2 border-b border-zinc-200/70 dark:border-zinc-800/70">
+          {/* <div className="px-3 py-2 border-b border-zinc-200/70 dark:border-zinc-800/70">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Rule Groups
@@ -159,7 +168,7 @@ export default function Rules() {
                 Auto-adjusting to top-first priority mode.
               </p>
             )}
-          </div>
+          </div> */}
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {ruleGroups.map((group) => {
@@ -182,7 +191,8 @@ export default function Rules() {
                     <span className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{group.name}</span>
                     {rank ? (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
-                        #{rank}
+                        #
+                        {rank}
                       </span>
                     ) : (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
@@ -208,13 +218,11 @@ export default function Rules() {
           </div>
 
           <div className="px-3 py-2 border-t border-zinc-200/70 dark:border-zinc-800/70">
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Active order:{' '}
+            {/* <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Active order:
+              {' '}
               {activePriority.length ? activePriority.join(' → ') : 'None'}
-            </p>
-            <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-              Multiple choice: {allowMultipleChoice ? 'On' : 'Off (double-click turns it on)'}
-            </p>
+            </p> */}
           </div>
         </aside>
 
@@ -228,14 +236,14 @@ export default function Rules() {
             </div>
           ) : (
             <Suspense
-              fallback={
+              fallback={(
                 <div className="h-full flex items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading editor...</span>
                   </div>
                 </div>
-              }
+              )}
             >
               <MonacoEditor
                 value={rules}

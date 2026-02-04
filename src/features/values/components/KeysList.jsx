@@ -83,9 +83,8 @@ const KeysList = forwardRef(({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search */}
       <div className="p-3 border-b border-zinc-200 dark:border-zinc-800">
-        <Input.Search
+        <Input
           placeholder="Search values..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

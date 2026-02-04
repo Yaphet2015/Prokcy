@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import Sidebar from './shared/ui/Sidebar';
-import Network from './features/network/Network';
-import Rules from './features/rules/Rules';
-import Values from './features/values/Values';
+import Network from './features/network';
+import Rules from './features/rules';
+import Values from './features/values';
 import Settings from './features/settings/Settings';
 
 const views = {
@@ -59,7 +59,7 @@ function App() {
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
       <Sidebar activeView={activeView} onViewChange={setActiveView} />
 
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden w-full">
         <ActiveComponent />
       </main>
     </div>
