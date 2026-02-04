@@ -28,8 +28,6 @@ export default function Rules() {
     ruleGroups,
     activeGroupNames,
     activeEditorGroupName,
-    allowMultipleChoice,
-    backRulesFirst,
     isDirty,
     isLoading,
     isSaving,
@@ -79,7 +77,7 @@ export default function Rules() {
     if (!group?.name) {
       return;
     }
-    setRuleGroupSelection(group.name, { multiActivate: true });
+    setRuleGroupSelection(group.name);
   }, [setRuleGroupSelection]);
 
   return (
@@ -163,11 +161,6 @@ export default function Rules() {
                 Rule Groups
               </h2>
             </div>
-            {backRulesFirst && (
-              <p className="mt-1 text-[11px] text-amber-500">
-                Auto-adjusting to top-first priority mode.
-              </p>
-            )}
           </div> */}
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -185,7 +178,7 @@ export default function Rules() {
                       ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
                       : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
                   }`}
-                  title="Click to open in editor. Double-click to activate."
+                  title="Click to open in editor. Double-click to toggle active state."
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{group.name}</span>

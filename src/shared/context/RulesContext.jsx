@@ -6,8 +6,6 @@ const RulesContext = createContext({
   ruleGroups: [],
   activeGroupNames: [],
   activeEditorGroupName: 'Default',
-  allowMultipleChoice: false,
-  backRulesFirst: false,
   isDirty: false,
   isEnabled: true,
   isLoading: false,
@@ -28,8 +26,6 @@ export function RulesProvider({ children }) {
   const [ruleGroups, setRuleGroups] = useState([]);
   const [activeGroupNames, setActiveGroupNames] = useState([]);
   const [activeEditorGroupName, setActiveEditorGroupName] = useState('Default');
-  const [allowMultipleChoice, setAllowMultipleChoice] = useState(false);
-  const [backRulesFirst, setBackRulesFirst] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,8 +49,6 @@ export function RulesProvider({ children }) {
         setRuleGroups(next.ruleGroups);
         setActiveGroupNames(next.activeGroupNames);
         setActiveEditorGroupName(nextEditorGroupName);
-        setAllowMultipleChoice(next.allowMultipleChoice);
-        setBackRulesFirst(next.backRulesFirst);
         // Only update if not dirty (user is editing)
         if (!isDirty) {
           setRulesState(nextEditorText);
@@ -82,8 +76,6 @@ export function RulesProvider({ children }) {
         setRuleGroups(next.ruleGroups);
         setActiveGroupNames(next.activeGroupNames);
         setActiveEditorGroupName(nextEditorGroupName);
-        setAllowMultipleChoice(next.allowMultipleChoice);
-        setBackRulesFirst(next.backRulesFirst);
       }
     } catch (err) {
       console.error('Failed to load rules:', err);
@@ -165,26 +157,17 @@ export function RulesProvider({ children }) {
       return;
     }
 
-    const multiActivate = options.multiActivate === true;
-    const nextSelected = multiActivate ? true : !target.selected;
-    if (multiActivate && target.selected) {
-      return;
-    }
+    const explicitSelected = typeof options.selected === 'boolean' ? options.selected : null;
+    const nextSelected = explicitSelected === null ? !target.selected : explicitSelected;
 
     try {
       setError(null);
-      if (backRulesFirst && window.electron?.setRulesBackRulesFirst) {
-        await window.electron.setRulesBackRulesFirst(false);
-      }
-      if (multiActivate && !allowMultipleChoice && window.electron?.setRulesAllowMultipleChoice) {
-        await window.electron.setRulesAllowMultipleChoice(true);
-      }
       await window.electron.setRuleSelection(name, nextSelected);
     } catch (err) {
       console.error('Failed to update rules group selection:', err);
       setError(err.message || 'Failed to update rules group selection');
     }
-  }, [ruleGroups, allowMultipleChoice, backRulesFirst]);
+  }, [ruleGroups]);
 
   const setActiveEditorGroup = useCallback((name) => {
     if (!name) {
@@ -207,8 +190,6 @@ export function RulesProvider({ children }) {
     ruleGroups,
     activeGroupNames,
     activeEditorGroupName,
-    allowMultipleChoice,
-    backRulesFirst,
     isDirty,
     isEnabled,
     isLoading,
@@ -227,8 +208,6 @@ export function RulesProvider({ children }) {
     ruleGroups,
     activeGroupNames,
     activeEditorGroupName,
-    allowMultipleChoice,
-    backRulesFirst,
     isDirty,
     isEnabled,
     isLoading,
@@ -284,8 +263,6 @@ function normalizeRulesData(rulesData) {
     isEnabled: true,
     ruleGroups: [],
     activeGroupNames: [],
-    allowMultipleChoice: false,
-    backRulesFirst: false,
   };
 
   if (!rulesData) {
@@ -308,8 +285,6 @@ function normalizeRulesData(rulesData) {
   }
 
   const isEnabled = rulesData.disabled !== true;
-  const allowMultipleChoice = !!rulesData.allowMultipleChoice;
-  const backRulesFirst = !!rulesData.backRulesFirst;
   const rawList = Array.isArray(rulesData.list) ? rulesData.list : [];
   const ruleGroups = rawList
     .filter((item) => item && typeof item.name === 'string')
@@ -351,8 +326,6 @@ function normalizeRulesData(rulesData) {
     isEnabled,
     ruleGroups,
     activeGroupNames,
-    allowMultipleChoice,
-    backRulesFirst,
   };
 }
 

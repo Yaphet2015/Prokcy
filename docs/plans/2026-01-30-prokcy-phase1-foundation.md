@@ -1650,11 +1650,10 @@ Add a Rules Group list to the left of Monaco in the Rules view.
 - Keep rule priority as **top-to-bottom** and display active rank clearly
 
 **Implementation tasks:**
-1. Extend renderer preload + IPC handlers for group select/unselect and multi-choice toggling
-2. Extend worker message handling for `setAllowMultipleChoice` and `setBackRulesFirst`
-3. Extend `RulesContext` to expose groups, active names, multiple-choice flag, and priority mode
-4. Build left-side Rules Group panel in `src/features/rules/Rules.jsx`
-5. Add UX hint text for double-click multi-activation and active order preview
+1. Extend renderer preload + IPC handlers for group select/unselect
+2. Extend `RulesContext` to expose groups, active names, and priority mode
+3. Build left-side Rules Group panel in `src/features/rules/Rules.jsx`
+4. Add UX hint text for double-click multi-activation and active order preview
 
 **Acceptance criteria:**
 - User can activate one group with single click
