@@ -1,9 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "../node_modules/@pikoloo/darwin-ui/dist";
 
 :root {
-  /* Light mode (default) */
+  /* Light mode */
   --color-tahoe-bg: #ffffff;
   --color-tahoe-fg: #1d1d1f;
   --color-tahoe-accent: #007aff;
@@ -11,7 +10,7 @@
   --color-tahoe-surface: rgba(255,255,255,0.8);
   --color-tahoe-hover: rgba(0,0,0,0.03);
   --color-tahoe-subtle: #86868b;
-  --color-tahoe-glow: rgba(0, 122, 255, 0.3); /* #007aff with opacity */
+  --color-tahoe-glow: rgba(0, 122, 255, 0.3);
 }
 
 .dark {
@@ -23,11 +22,39 @@
   --color-tahoe-surface: rgba(30,30,30,0.8);
   --color-tahoe-hover: rgba(255,255,255,0.05);
   --color-tahoe-subtle: #86868b;
-  --color-tahoe-glow: rgba(10, 132, 255, 0.3); /* #0a84ff with opacity */
+  --color-tahoe-glow: rgba(10, 132, 255, 0.3);
+}
+
+@theme {
+  --color-tahoe-bg: var(--color-tahoe-bg);
+  --color-tahoe-fg: var(--color-tahoe-fg);
+  --color-tahoe-accent: var(--color-tahoe-accent);
+  --color-tahoe-border: var(--color-tahoe-border);
+  --color-tahoe-surface: var(--color-tahoe-surface);
+  --color-tahoe-hover: var(--color-tahoe-hover);
+  --color-tahoe-subtle: var(--color-tahoe-subtle);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  --blur-tahoe: 20px;
+
+  --shadow-tahoe-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-tahoe-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-tahoe-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-tahoe-glow: 0 0 20px var(--color-tahoe-glow);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-mono: "SF Mono", Monaco, monospace;
 }
 
 body {
-  @apply bg-tahoe-bg text-tahoe-fg font-sans;
+  background-color: var(--color-tahoe-bg);
+  color: var(--color-tahoe-fg);
+  font-family: var(--font-sans);
   margin: 0;
 }
 
@@ -42,11 +69,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-tahoe-border rounded-lg;
+  background-color: var(--color-tahoe-border);
+  border-radius: var(--radius-lg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-tahoe-subtle;
+  background-color: var(--color-tahoe-subtle);
 }
 
 /* Glass effect utility */

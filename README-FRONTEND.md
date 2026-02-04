@@ -35,7 +35,7 @@ src/
 ## Tahoe Theme
 
 The app uses a custom macOS Tahoe-inspired theme:
-- Glass effects with backdrop-blur
+- Glass effects with backdrop-blur-sm
 - Rounded corners (6px - 16px)
 - System font stack
 - Dark/light mode sync with macOS
