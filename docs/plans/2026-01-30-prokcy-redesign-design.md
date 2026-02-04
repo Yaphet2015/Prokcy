@@ -98,6 +98,9 @@ Add a fixed-width group list panel to the left side of the Rules editor to manag
 - **Double click:** Force multi-activation for that group (keep existing active groups, then activate target)
 - **Editor target:** Monaco continues editing `Default` rules content for this phase
 
+**Runtime requirement:**
+- Start Whistle with `enableMultipleRules` mode so selecting one group does not implicitly clear other active groups.
+
 **Priority model:**
 - Group priority is displayed and interpreted as **top-to-bottom**
 - Active groups show rank badges (`#1`, `#2`, ...)
