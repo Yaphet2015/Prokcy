@@ -19,6 +19,9 @@ const THEME_OPTIONS = [
 ];
 
 const THEME_MODES = THEME_OPTIONS.map((item) => item.value);
+const DEFAULT_REQUEST_LIST_LIMIT = '500';
+const MIN_REQUEST_LIST_LIMIT = 100;
+const MAX_REQUEST_LIST_LIMIT = 5000;
 
 const DEFAULT_SETTINGS = {
   port: '8888',
@@ -29,6 +32,7 @@ const DEFAULT_SETTINGS = {
   bypass: '',
   useDefaultStorage: false,
   maxHttpHeaderSize: '256',
+  requestListLimit: DEFAULT_REQUEST_LIST_LIMIT,
   startAtLogin: false,
   hideFromDock: false,
   themeMode: 'system',
@@ -42,9 +46,24 @@ const isPort = (value) => {
   const port = Number(value);
   return Number.isInteger(port) && port > 0 && port < 65536;
 };
+const isRequestListLimit = (value) => {
+  if (!value) {
+    return false;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed)
+    && parsed >= MIN_REQUEST_LIST_LIMIT
+    && parsed <= MAX_REQUEST_LIST_LIMIT;
+};
 
 const normalizeSettings = (settings = {}) => {
   const maxHttpHeaderSize = String(settings.maxHttpHeaderSize || '256');
+  const requestListLimitValue = Number(settings.requestListLimit);
+  const requestListLimit = Number.isInteger(requestListLimitValue)
+    && requestListLimitValue >= MIN_REQUEST_LIST_LIMIT
+    && requestListLimitValue <= MAX_REQUEST_LIST_LIMIT
+    ? String(requestListLimitValue)
+    : DEFAULT_REQUEST_LIST_LIMIT;
   return {
     port: String(settings.port || DEFAULT_SETTINGS.port),
     socksPort: String(settings.socksPort || ''),
@@ -56,6 +75,7 @@ const normalizeSettings = (settings = {}) => {
     maxHttpHeaderSize: HEADER_SIZE_OPTIONS.some((item) => item.value === maxHttpHeaderSize)
       ? maxHttpHeaderSize
       : DEFAULT_SETTINGS.maxHttpHeaderSize,
+    requestListLimit,
     startAtLogin: !!settings.startAtLogin,
     hideFromDock: !!settings.hideFromDock,
     themeMode: THEME_MODES.includes(settings.themeMode)
@@ -132,6 +152,9 @@ export default function Settings() {
     if (password && hasWhitespace(password)) {
       return 'Password cannot have spaces';
     }
+    if (!isRequestListLimit(form.requestListLimit.trim())) {
+      return `Request list limit must be an integer between ${MIN_REQUEST_LIST_LIMIT} and ${MAX_REQUEST_LIST_LIMIT}`;
+    }
     return '';
   };
 
@@ -161,6 +184,7 @@ export default function Settings() {
         bypass: form.bypass.trim(),
         useDefaultStorage: form.useDefaultStorage,
         maxHttpHeaderSize: form.maxHttpHeaderSize,
+        requestListLimit: Number(form.requestListLimit.trim()),
       },
       preferences: {
         startAtLogin: form.startAtLogin,
@@ -180,6 +204,7 @@ export default function Settings() {
       });
       setForm(next);
       setSavedForm(next);
+      window.dispatchEvent(new CustomEvent('prokcy-settings-updated', { detail: next }));
       setMessage('Settings saved');
     } catch (err) {
       setError(err?.message || 'Failed to save settings');
@@ -278,6 +303,18 @@ export default function Settings() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">Request List Limit</span>
+              <input
+                type="number"
+                min={MIN_REQUEST_LIST_LIMIT}
+                max={MAX_REQUEST_LIST_LIMIT}
+                value={form.requestListLimit}
+                onChange={(e) => updateField('requestListLimit', e.target.value)}
+                disabled={loading}
+                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+              />
             </label>
             <label className="space-y-1">
               <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Username</span>
