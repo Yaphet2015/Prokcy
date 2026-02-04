@@ -377,7 +377,7 @@ export default function RequestInspector() {
   return (
     <div
       ref={inspectorRef}
-      className="flex-none min-h-6 flex overflow-hidden flex-col border-t border-zinc-200 dark:border-zinc-800"
+      className="flex-none min-h-6 flex overflow-auto flex-col border-t border-zinc-200 dark:border-zinc-800"
       style={{ height: `${inspectorHeight}px` }}
     >
       <button
