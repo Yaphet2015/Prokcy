@@ -10,6 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: ['monaco-editor', '@monaco-editor/react'],
+  },
   build: {
     outDir: 'dist-react',
     emptyOutDir: true,
