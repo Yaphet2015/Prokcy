@@ -79,15 +79,15 @@ function getStatusColor(status) {
 // Get method icon
 function getMethodIcon(method) {
   const icons = {
-    GET: '🟢',
-    POST: '🟡',
-    PUT: '🔵',
-    DELETE: '🔴',
-    PATCH: '🟠',
-    HEAD: '⚪',
-    OPTIONS: '⚪',
+    GET: 'GET', // 🟢
+    POST: 'POST', // 🟡
+    PUT: 'PUT', // 🔵
+    DELETE: 'DELETE', // 🔴
+    PATCH: 'PATCH', // 🟠
+    HEAD: 'HEAD', // ⚪
+    OPTIONS: 'OPTIONS', // ⚪
   };
-  return icons[method] || '⚪';
+  return icons[method] || ''; // ⚪
 }
 
 export default function WaterfallTimeline() {
@@ -188,7 +188,7 @@ export default function WaterfallTimeline() {
                   `}
                 >
                   {/* Method Indicator */}
-                  <span className="text-sm w-6 text-center" title={request.method}>
+                  <span className="text-xs w-12 text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
                     {getMethodIcon(request.method)}
                   </span>
 
@@ -201,8 +201,9 @@ export default function WaterfallTimeline() {
 
                   {/* URL */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm truncate ${isSelected ? 'text-blue-500' : 'text-zinc-900 dark:text-zinc-100'}`}
+                    <p className={`text-sm truncate ${isSelected
+                      ? 'text-blue-500' : 'text-zinc-900 dark:text-zinc-100'
+                    }`}
                     >
                       {request.url}
                     </p>
