@@ -101,24 +101,17 @@ Add a fixed-width group list panel to the left side of the Rules editor to manag
 **Priority model:**
 - Group priority is displayed and interpreted as **top-to-bottom**
 - Active groups show rank badges (`#1`, `#2`, ...)
-- If backend reverse-priority mode is enabled (`backRulesFirst`), UI should normalize it to top-first mode before applying new group actions
 
 **State/data:**
 - Extend `RulesContext` with:
   - `ruleGroups[]` (name, selected, priority, isDefault)
   - `activeGroupNames[]`
-  - `allowMultipleChoice`
-  - `backRulesFirst`
-- Parse these from Whistle rules payload (`list`, `allowMultipleChoice`, `backRulesFirst`)
+- Parse these from Whistle rules payload (`list`)
 
 **IPC contract additions:**
 - `set-rule-selection` → select/unselect a named group
-- `set-rules-allow-multiple-choice` → enable multi-activation mode
-- `set-rules-back-rules-first` → normalize priority direction to top-first
 
 **Whistle worker message handling additions:**
-- `setAllowMultipleChoice`
-- `setBackRulesFirst`
 
 ### Values Section
 
