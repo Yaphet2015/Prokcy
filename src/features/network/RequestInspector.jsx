@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Tabs, TabsList, TabsTrigger, TabsContent,
+  Button,
 } from '@pikoloo/darwin-ui';
+import { X } from 'lucide-react';
 import { useNetwork } from '../../shared/context/NetworkContext';
 
 // Format bytes to human-readable size
@@ -305,28 +307,115 @@ function TimelineTab({ request }) {
 }
 
 export default function RequestInspector() {
-  const { selectedRequest } = useNetwork();
+  const { selectedRequest, selectRequest } = useNetwork();
   const [activeTab, setActiveTab] = useState('headers');
+  const [inspectorHeight, setInspectorHeight] = useState(320);
+  const [isDragging, setIsDragging] = useState(false);
+  const inspectorRef = useRef(null);
+  const dragStateRef = useRef(null);
+
+  const MIN_INSPECTOR_HEIGHT = 160;
+  const MIN_TIMELINE_HEIGHT = 200;
+
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const handleMouseMove = (event) => {
+      if (!dragStateRef.current) {
+        return;
+      }
+
+      const deltaY = dragStateRef.current.startY - event.clientY;
+      const parentHeight = inspectorRef.current?.parentElement?.getBoundingClientRect().height ?? Infinity;
+      const maxHeight = Number.isFinite(parentHeight)
+        ? Math.max(MIN_INSPECTOR_HEIGHT, parentHeight - MIN_TIMELINE_HEIGHT)
+        : dragStateRef.current.startHeight + deltaY;
+      const nextHeight = Math.min(
+        maxHeight,
+        Math.max(MIN_INSPECTOR_HEIGHT, dragStateRef.current.startHeight + deltaY),
+      );
+
+      setInspectorHeight(nextHeight);
+    };
+
+    const handleMouseUp = () => {
+      dragStateRef.current = null;
+      setIsDragging(false);
+    };
+
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const startResize = (event) => {
+    event.preventDefault();
+    dragStateRef.current = {
+      startY: event.clientY,
+      startHeight: inspectorHeight,
+    };
+    setIsDragging(true);
+  };
 
   if (!selectedRequest) {
     return null;
   }
 
   return (
-    <div className="flex-1 shrink-0 flex flex-col border-t border-zinc-200 dark:border-zinc-800">
+    <div
+      ref={inspectorRef}
+      className="flex-none min-h-6 flex overflow-hidden flex-col border-t border-zinc-200 dark:border-zinc-800"
+      style={{ height: `${inspectorHeight}px` }}
+    >
+      <button
+        type="button"
+        className={[
+          'h-1 w-full cursor-row-resize shrink-0',
+          'bg-zinc-200/80 hover:bg-blue-400/70',
+          'dark:bg-zinc-800/80 dark:hover:bg-blue-500/70',
+        ].join(' ')}
+        onMouseDown={startResize}
+        aria-label="Resize request inspector"
+      />
+
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="h-10 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+      <Tabs glass value={activeTab} onValueChange={setActiveTab}>
+        <div
+          className={[
+            'flex items-center justify-between shrink-0',
+          ].join(' ')}
+        >
           <TabsList>
             <TabsTrigger value="headers">Headers</TabsTrigger>
             <TabsTrigger value="body">Request Body</TabsTrigger>
             <TabsTrigger value="response">Response</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
+
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => selectRequest(null)}
+            leftIcon={<X className="w-4 h-4" />}
+            aria-label="Close request inspector"
+          />
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           <TabsContent value="headers">
             <HeadersTab request={selectedRequest} />
           </TabsContent>

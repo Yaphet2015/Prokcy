@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Input } from '@pikoloo/darwin-ui';
+import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
 
 // Timing phase colors according to design spec
@@ -92,7 +92,7 @@ function getMethodIcon(method) {
 
 export default function WaterfallTimeline() {
   const {
-    requests, selectedRequest, selectRequest, searchQuery, setSearchQuery,
+    requests, selectedRequest, selectRequest, searchQuery, setSearchQuery, clearRequests,
   } = useNetwork();
 
   // Filter requests by search query
@@ -123,7 +123,15 @@ export default function WaterfallTimeline() {
           </span>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearRequests}
+            disabled={requests.length === 0}
+          >
+            Clear
+          </Button>
           <Input
             placeholder="Filter requests..."
             value={searchQuery}
