@@ -221,6 +221,7 @@ Register `whistle` language with syntax highlighting:
 - Patterns → string color
 - Comments (`#`) → gray
 - Multi-line rule support
+- Autocomplete includes the full protocol set listed in Whistle docs (including aliases like `xhttp-proxy`, `xhttps-proxy`, and filter forms such as `lineProps`, `excludeFilter`, `includeFilter`)
 
 ### Custom Themes
 

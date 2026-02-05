@@ -1,5 +1,144 @@
 let isWhistleLanguageRegistered = false;
 
+const WHISTLE_PROTOCOLS = [
+  '301',
+  '302',
+  'attachment',
+  'auth',
+  'cache',
+  'cssAppend',
+  'cssBody',
+  'cssPrepend',
+  'delete',
+  'disable',
+  'enable',
+  'excludeFilter',
+  'file',
+  'forwardedFor',
+  'frameScript',
+  'headerReplace',
+  'host',
+  'htmlAppend',
+  'htmlBody',
+  'htmlPrepend',
+  'http',
+  'http-proxy',
+  'https',
+  'https-proxy',
+  'ignore',
+  'includeFilter',
+  'jsAppend',
+  'jsBody',
+  'jsPrepend',
+  'lineProps',
+  'locationHref',
+  'log',
+  'method',
+  'pac',
+  'pathReplace',
+  'pipe',
+  'proxy',
+  'rawfile',
+  'redirect',
+  'referer',
+  'replaceStatus',
+  'reqAppend',
+  'reqBody',
+  'reqCharset',
+  'reqCookies',
+  'reqCors',
+  'reqDelay',
+  'reqHeaders',
+  'reqMerge',
+  'reqPrepend',
+  'reqReplace',
+  'reqRules',
+  'reqScript',
+  'reqSpeed',
+  'reqType',
+  'reqWrite',
+  'reqWriteRaw',
+  'resAppend',
+  'resBody',
+  'resCharset',
+  'resCookies',
+  'resCors',
+  'resDelay',
+  'resHeaders',
+  'resMerge',
+  'resPrepend',
+  'resReplace',
+  'resRules',
+  'resScript',
+  'resSpeed',
+  'resType',
+  'resWrite',
+  'resWriteRaw',
+  'responseFor',
+  'skip',
+  'sniCallback',
+  'socks',
+  'statusCode',
+  'style',
+  'tlsOptions',
+  'tpl',
+  'trailers',
+  'tunnel',
+  'ua',
+  'urlParams',
+  'weinre',
+  'ws',
+  'wss',
+  'xfile',
+  'xhost',
+  'xhttp-proxy',
+  'xhttps-proxy',
+  'xproxy',
+  'xrawfile',
+  'xsocks',
+  'xtpl',
+];
+
+const EXTRA_PROTOCOLS = [
+  'clientId',
+  'dns',
+  'params',
+  'protocol',
+  'rules',
+  'rulesFile',
+  'upstream',
+  'values',
+  'wi',
+  'wu',
+];
+
+const PROTOCOL_DOCS: Record<string, string> = {
+  'http-proxy': 'Forward to HTTP proxy',
+  'xhttp-proxy': 'Forward to HTTP proxy without DNS resolve',
+  'https-proxy': 'Forward to HTTPS proxy',
+  'xhttps-proxy': 'Forward to HTTPS proxy without DNS resolve',
+  reqHeaders: 'Modify request headers',
+  resHeaders: 'Modify response headers',
+  reqBody: 'Modify request body',
+  resBody: 'Modify response body',
+  reqType: 'Modify request type',
+  resType: 'Modify response type',
+  reqDelay: 'Delay request',
+  resDelay: 'Delay response',
+  reqSpeed: 'Throttle request speed',
+  resSpeed: 'Throttle response speed',
+  urlParams: 'Modify URL query params',
+  pathReplace: 'Replace URL path',
+  lineProps: 'Set line-level rule properties',
+};
+
+const PROTOCOL_SUGGESTIONS = [...new Set([...WHISTLE_PROTOCOLS, ...EXTRA_PROTOCOLS])]
+  .sort((a, b) => a.localeCompare(b))
+  .map((name) => ({
+    label: `${name}://`,
+    documentation: PROTOCOL_DOCS[name] || 'Whistle protocol',
+  }));
+
 /**
  * Whistle rule syntax: pattern operator value
  *
@@ -40,7 +179,7 @@ export function registerWhistleLanguage(monaco) {
         [/\/\/|:\/\/|=>|@|:/, 'operator'],
 
         // Protocol patterns (protocol://)
-        [/\b[a-z]+:\/\//, 'keyword'],
+        [/\b[a-z][\w-]*:\/\//i, 'keyword'],
 
         // File paths (file:///, rules://, etc.)
         [/(file|rules|values|rulesFile|wi|wu|ws|wss|tunnel|https2|http|https|socks|ss|tls):\/\//, 'type'],
@@ -108,9 +247,6 @@ export function registerWhistleLanguage(monaco) {
   monaco.languages.registerCompletionItemProvider('whistle', {
     triggerCharacters: [' ', ':', '/'],
     provideCompletionItems: (model, position) => {
-      const line = model.getLineContent(position.lineNumber);
-      const textBefore = line.substring(0, position.column - 1);
-
       // Get the current word being typed
       const word = model.getWordUntilPosition(position);
       const currentWord = word.word || '';
@@ -122,92 +258,8 @@ export function registerWhistleLanguage(monaco) {
         endColumn: word.endColumn,
       };
 
-      // Whistle protocols/operators list
-      const protocols = [
-        // Request/Response modification
-        { label: 'reqHeaders://', documentation: 'Modify request headers' },
-        { label: 'resHeaders://', documentation: 'Modify response headers' },
-        { label: 'reqType://', documentation: 'Modify request method' },
-        { label: 'resType://', documentation: 'Modify response content type' },
-        { label: 'reqBody://', documentation: 'Modify request body' },
-        { label: 'resBody://', documentation: 'Modify response body' },
-        { label: 'reqCookies://', documentation: 'Modify request cookies' },
-        { label: 'resCookies://', documentation: 'Modify response cookies' },
-        { label: 'replace://', documentation: 'Replace response content' },
-        { label: 'reqReplace://', documentation: 'Replace request content' },
-        { label: 'resReplace://', documentation: 'Replace response content' },
-
-        // Proxy settings
-        { label: 'proxy://', documentation: 'Forward to HTTP proxy' },
-        { label: 'httpsProxy://', documentation: 'Forward to HTTPS proxy' },
-        { label: 'socks://', documentation: 'Forward to SOCKS proxy' },
-        { label: 'tunnel://', documentation: 'Tunnel to destination' },
-
-        // Protocol settings
-        { label: 'protocol://', documentation: 'Modify request protocol' },
-        { label: 'host://', documentation: 'Modify request host' },
-        { label: 'https2://', documentation: 'Use HTTPS2' },
-
-        // Delay
-        { label: 'reqDelay://', documentation: 'Delay request (ms)' },
-        { label: 'resDelay://', documentation: 'Delay response (ms)' },
-        { label: 'delay://', documentation: 'Delay both request and response' },
-
-        // Speed limit
-        { label: 'speed://', documentation: 'Limit network speed (KB/s)' },
-        { label: 'reqSpeed://', documentation: 'Limit request speed' },
-        { label: 'resSpeed://', documentation: 'Limit response speed' },
-
-        // Redirect
-        { label: 'redirect://', documentation: '302 redirect' },
-        { label: '302://', documentation: '302 redirect' },
-        { label: '301://', documentation: '301 redirect' },
-
-        // Rules & Values
-        { label: 'rules://', documentation: 'Use another rules file' },
-        { label: 'values://', documentation: 'Use value from Values store' },
-        { label: 'rulesFile://', documentation: 'Use rules from file' },
-
-        // File operations
-        { label: 'file://', documentation: 'Return local file' },
-        { label: 'xfile://', documentation: 'Return local file (cross-origin)' },
-
-        // Disable/Enable
-        { label: 'disable://', documentation: 'Disable request capture' },
-        { label: 'enable://', documentation: 'Enable capture after disable' },
-        { label: 'ignore://', documentation: 'Ignore request' },
-
-        // Other protocols
-        { label: 'attachment://', documentation: 'Download as attachment' },
-        { label: 'cache://', documentation: 'Cache response' },
-        { label: 'css://', documentation: 'Inject CSS' },
-        { label: 'js://', documentation: 'Inject JavaScript' },
-        { label: 'html://', documentation: 'Inject HTML' },
-        { label: 'resWrite://', documentation: 'Write response' },
-        { label: 'resCombine://', documentation: 'Combine multiple responses' },
-        { label: 'resCors://', documentation: 'Enable CORS for response' },
-        { label: 'reqCors://', documentation: 'Enable CORS for request' },
-        { label: 'filter://', documentation: 'Filter response' },
-        { label: 'log://', documentation: 'Output logs' },
-        { label: 'statusCode://', documentation: 'Modify response status code' },
-        { label: 'auth://', documentation: 'Basic authentication' },
-        { label: 'location://', documentation: 'Custom location' },
-        { label: 'ua://', documentation: 'Custom User-Agent' },
-        { label: 'params://', documentation: 'Modify URL parameters' },
-        { label: 'urlParams://', documentation: 'Modify URL parameters' },
-        { label: 'cookie://', documentation: 'Set request cookies' },
-        { label: 'trailingslash://', documentation: 'Add trailing slash' },
-        { label: 'upstream://', documentation: 'Custom upstream' },
-        { label: 'clientId://', documentation: 'Set client ID' },
-        { label: 'dns://', documentation: 'Custom DNS server' },
-        { label: 'wi://', documentation: 'WebSocket interface' },
-        { label: 'wu://', documentation: 'WebSocket URL' },
-        { label: 'ws://', documentation: 'WebSocket protocol' },
-        { label: 'wss://', documentation: 'WebSocket Secure protocol' },
-      ];
-
       // Filter and convert to suggestions
-      const suggestions = protocols
+      const suggestions = PROTOCOL_SUGGESTIONS
         .filter(p => {
           // If user typed something, filter protocols that start with it
           if (currentWord) {
