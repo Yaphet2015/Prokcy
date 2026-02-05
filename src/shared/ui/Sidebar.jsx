@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@pikoloo/darwin-ui';
 import {
   ChevronLeft, ChevronRight, Activity, FileText, Key, Settings,
@@ -12,16 +11,17 @@ const navigationItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function Sidebar({ activeView, onViewChange }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
+export default function Sidebar({
+  activeView, onViewChange, isCollapsed, onToggleCollapse,
+}) {
   return (
     <aside
       className={`
         h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
         bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
         transition-all duration-200 justify-between
-        ${isCollapsed ? 'w-16' : 'w-60'}
+        overflow-x-hidden
+        ${isCollapsed ? 'w-14' : 'w-60'}
       `}
     >
       {/* Header */}
@@ -34,7 +34,7 @@ export default function Sidebar({ activeView, onViewChange }) {
       </div> */}
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-x-hidden overflow-y-auto">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
@@ -63,11 +63,11 @@ export default function Sidebar({ activeView, onViewChange }) {
       <div className="p-3 border-t border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         {isCollapsed ? (
           <div className="flex flex-col gap-3 items-center">
-            <ServiceToggle />
+            {/* <ServiceToggle /> */}
             <Button.Icon
               variant="ghost"
               size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={onToggleCollapse}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               className="w-full rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
@@ -79,7 +79,7 @@ export default function Sidebar({ activeView, onViewChange }) {
             <Button.Icon
               variant="ghost"
               size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={onToggleCollapse}
               aria-label="Collapse sidebar"
               className="rounded-lg py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >

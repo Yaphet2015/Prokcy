@@ -25,13 +25,20 @@ const viewAliases = {
 
 function App() {
   const [activeView, setActiveView] = useState('network');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const ActiveComponent = views[activeView] || views.network;
 
   useEffect(() => {
     const handleShortcut = (event) => {
+      // Cmd+, to open settings
       if ((event.metaKey || event.ctrlKey) && event.key === ',') {
         event.preventDefault();
         setActiveView('settings');
+      }
+      // Cmd+B to toggle sidebar
+      if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
+        event.preventDefault();
+        setIsSidebarCollapsed(prev => !prev);
       }
     };
 
@@ -57,7 +64,12 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
+      <Sidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+      />
 
       <main className="flex-1 overflow-hidden w-full">
         <ActiveComponent />
