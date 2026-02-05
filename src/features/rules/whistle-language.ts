@@ -130,6 +130,7 @@ const PROTOCOL_DOCS: Record<string, string> = {
   urlParams: 'Modify URL query params',
   pathReplace: 'Replace URL path',
   lineProps: 'Set line-level rule properties',
+  'style': 'Apply custom styles to network request rows (bg-color, text-color, border, font-weight)',
 };
 
 const PROTOCOL_SUGGESTIONS = [...new Set([...WHISTLE_PROTOCOLS, ...EXTRA_PROTOCOLS])]
@@ -321,6 +322,8 @@ function getHoverText(word) {
     'host://': 'Modify request host\n\nExample: `www.example.com host://test.com`',
     'disable': 'Disable matched request\n\nExample: `www.example.com disable://`',
     'enable': 'Enable capture after disable\n\nExample: `www.example.com enable://`',
+    'style://': 'Apply custom styles to network request rows\n\nProperties: bg-color, text-color, border-left, font-weight\n\nExample: `*.example.com style://bg-color:#fef3c7,text-color:#92400e,border-left:3px solid #f59e0b,font-weight:bold`',
+    'style': 'Apply custom styles to network request rows\n\nProperties: bg-color, text-color, border-left, font-weight\n\nExample: `api.test.com style://font-weight:bold,bg-color:#ecfdf5`',
   };
 
   return docs[word] || null;
