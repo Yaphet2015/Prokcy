@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { Button } from '@pikoloo/darwin-ui';
+import { Plus } from 'lucide-react';
 import { useValues } from '../../shared/context/ValuesContext';
 import KeysList from './components/KeysList';
 import ValueEditor from './components/ValueEditor';
@@ -50,20 +52,20 @@ export default function Values() {
       }
 
       // Cmd/Ctrl+Shift+R: Rename selected
-      if (isMod && e.shiftKey && e.key === 'R') {
-        e.preventDefault();
-        if (selectedKey) {
-          setIsRenameModalOpen(true);
-        }
-      }
+      // if (isMod && e.shiftKey && e.key === 'R') {
+      //   e.preventDefault();
+      //   if (selectedKey) {
+      //     setIsRenameModalOpen(true);
+      //   }
+      // }
 
       // Cmd/Ctrl+D: Delete selected
-      if (isMod && e.key === 'd' && !e.shiftKey) {
-        e.preventDefault();
-        if (selectedKey) {
-          deleteValue(selectedKey);
-        }
-      }
+      // if (isMod && e.key === 'd' && !e.shiftKey) {
+      //   e.preventDefault();
+      //   if (selectedKey) {
+      //     deleteValue(selectedKey);
+      //   }
+      // }
 
       // Cmd/Ctrl+F: Focus search
       if (isMod && e.key === 'f' && !e.shiftKey) {
@@ -103,17 +105,7 @@ export default function Values() {
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Header */}
       <div className="blur-xl">
-        {/* <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Values</h1>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            (
-            {Object.keys(values).length}
-            )
-          </span>
-        </div> */}
-
         <div className="flex items-center gap-3 absolute right-4 top-1/2 -translate-y-1/2">
           {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
           {error && <span className="text-xs text-red-500">{error}</span>}
@@ -123,6 +115,24 @@ export default function Values() {
       {/* Two-column layout */}
       <div className="flex-1 overflow-hidden flex">
         <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md">
+          {/* Sidebar Header */}
+          <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                Values
+              </h2>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => window.dispatchEvent(new CustomEvent('values-start-create'))}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                title="Create new value"
+              >
+                New
+              </Button>
+            </div>
+          </div>
+
           <KeysList
             ref={keysListRef}
             values={values}
@@ -143,13 +153,6 @@ export default function Values() {
           />
         </main>
       </div>
-
-      {/* Help text */}
-      {/* <div className="px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
-        <span className="font-medium">Format:</span> JSON5 (comments allowed, trailing commas allowed)
-        <span className="mx-2">-</span>
-        <span className="font-medium">Shortcuts:</span> Cmd+N New - Cmd+Shift+R Rename - Cmd+D Delete - Cmd+F Search
-      </div> */}
 
       {/* Modals */}
       <Modal

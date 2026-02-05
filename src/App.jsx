@@ -3,7 +3,7 @@ import Sidebar from './shared/ui/Sidebar';
 import Network from './features/network';
 import Rules from './features/rules';
 import Values from './features/values';
-import Settings from './features/settings/Settings';
+import Settings from './features/settings';
 
 const views = {
   network: Network,

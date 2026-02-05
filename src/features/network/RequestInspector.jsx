@@ -51,7 +51,7 @@ function HeadersTab({ request }) {
   const headers = request.headers || {};
 
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
       <div className="space-y-6">
         {/* Request Headers */}
         <div>
@@ -120,7 +120,7 @@ function BodyTab({ request }) {
   }
 
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
       {body ? (
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -171,7 +171,7 @@ function ResponseTab({ request }) {
   const isImage = contentType.startsWith('image/');
 
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
       {response ? (
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -218,6 +218,230 @@ function ResponseTab({ request }) {
   );
 }
 
+// Tab: Matched Rules
+function RulesTab({ request }) {
+  const rules = request.rules || {};
+
+  // Check if a value has meaningful content (not empty object/array/string)
+  const hasMeaningfulValue = (value) => {
+    if (value === null || value === undefined) {
+      return false;
+    }
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+    if (typeof value === 'object') {
+      return Object.keys(value).length > 0;
+    }
+    return true;
+  };
+
+  const ruleEntries = Object.entries(rules).filter(([, rule]) => {
+    if (!rule) {
+      return false;
+    }
+    // Check for pattern (non-empty string)
+    if (rule.pattern && typeof rule.pattern === 'string' && rule.pattern.trim()) {
+      return true;
+    }
+    // Check for value with meaningful content
+    if (hasMeaningfulValue(rule.value)) {
+      return true;
+    }
+    return false;
+  });
+
+  // Rule type configurations for visual differentiation
+  const ruleTypeConfig = {
+    style: { color: 'from-violet-500 to-purple-600', label: 'Style Override' },
+    redirect: { color: 'from-blue-500 to-cyan-600', label: 'Redirect' },
+    replace: { color: 'from-amber-500 to-orange-600', label: 'Replace' },
+    rewrite: { color: 'from-emerald-500 to-green-600', label: 'Rewrite' },
+    host: { color: 'from-rose-500 to-pink-600', label: 'Host Mapping' },
+    proxy: { color: 'from-sky-500 to-blue-600', label: 'Proxy' },
+    protocol: { color: 'from-indigo-500 to-violet-600', label: 'Protocol' },
+    disable: { color: 'from-zinc-500 to-gray-600', label: 'Disable' },
+    cache: { color: 'from-teal-500 to-emerald-600', label: 'Cache' },
+    cors: { color: 'from-fuchsia-500 to-pink-600', label: 'CORS' },
+    log: { color: 'from-lime-500 to-green-600', label: 'Log' },
+  };
+
+  const getRuleConfig = (type) => {
+    const typeStr = typeof type === 'string' ? type : String(type);
+    const config = ruleTypeConfig[typeStr.toLowerCase()];
+    return config || { color: 'from-slate-500 to-zinc-600', label: typeStr };
+  };
+
+  // Convert value to string safely
+  const valueToString = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
+  const parseRuleValue = (rule) => {
+    // Check for direct protocol property first
+    if (rule.protocol) {
+      return { protocol: rule.protocol, value: rule.value };
+    }
+
+    // Check for rawMatcher which often contains the full rule value
+    if (rule.rawMatcher) {
+      const rawValue = String(rule.rawMatcher);
+      const protoMatch = rawValue.match(/^(\w+):\/\/(.*)$/);
+      if (protoMatch) {
+        return { protocol: protoMatch[1], value: protoMatch[2], pattern: rule.pattern };
+      }
+      // rawMatcher might just be a protocol name
+      if (rawValue.match(/^\w+$/)) {
+        return { protocol: rawValue, value: '', pattern: rule.pattern };
+      }
+      return { value: rawValue, pattern: rule.pattern };
+    }
+
+    if (rule.pattern) {
+      const rawValue = rule.value || '';
+      // Try to extract protocol from value
+      const protoMatch = String(rawValue).match(/^(\w+):\/\/(.+)$/);
+      if (protoMatch) {
+        return { pattern: rule.pattern, protocol: protoMatch[1], value: protoMatch[2] };
+      }
+      return { pattern: rule.pattern, value: rawValue };
+    }
+
+    // Handle protocol-based values like "style://bg-color:red"
+    const value = valueToString(rule.value || '');
+    const match = value.match(/^(\w+):\/\/(.+)$/);
+    if (match) {
+      return { protocol: match[1], value: match[2] };
+    }
+    // Check if value is a plain protocol string (e.g., "log" or "log://")
+    const simpleProtoMatch = value.match(/^(\w+)(:\/\/)?$/);
+    if (simpleProtoMatch) {
+      return { protocol: simpleProtoMatch[1], value: '' };
+    }
+    return { value };
+  };
+
+  return (
+    <div className="px-5 h-full overflow-y-auto scrollbar-hide">
+      {ruleEntries.length === 0 ? (
+        <div className="h-full flex flex-col items-center justify-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800/50 dark:to-zinc-900/50 flex items-center justify-center">
+            <span className="text-3xl">Ø</span>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">
+              No rules matched
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              This request was processed without any active rules
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+              Matched Rules
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
+              {ruleEntries.length}
+            </span>
+          </div>
+
+          {ruleEntries.map(([type, rule]) => {
+            const typeStr = String(type || 'unknown');
+            const config = getRuleConfig(typeStr);
+            const parsed = parseRuleValue(rule);
+
+            return (
+              <div
+                key={typeStr}
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100/50 dark:from-zinc-900/50 dark:to-zinc-800/30 border border-zinc-200 dark:border-zinc-700/50 transition-all duration-200 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-600"
+              >
+                {/* Accent bar */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${config.color || 'from-slate-500 to-zinc-600'} opacity-80 group-hover:opacity-100 transition-opacity`} />
+
+                <div className="pl-4 pr-4 py-3">
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
+                      {String(config.label || 'Unknown Rule')}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-zinc-200/80 dark:bg-zinc-700/50 text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+                      {parsed.protocol || (parsed.pattern && 'pattern') || typeStr}
+                    </span>
+                  </div>
+
+                  {/* Pattern/Protocol indicator */}
+                  {parsed.pattern && (
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase shrink-0 mt-0.5">
+                        Pattern
+                      </span>
+                      <code className="flex-1 text-[11px] font-mono bg-red-500/10 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 rounded border border-red-200 dark:border-red-800/30 break-all">
+                        {valueToString(parsed.pattern)}
+                      </code>
+                    </div>
+                  )}
+
+                  {parsed.protocol && (
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase shrink-0 mt-0.5">
+                        Protocol
+                      </span>
+                      <code className="text-[11px] font-mono bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded">
+                        {valueToString(parsed.protocol)}
+                        ://
+                      </code>
+                    </div>
+                  )}
+
+                  {/* Value display */}
+                  {parsed.value && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase">
+                        {parsed.pattern || parsed.protocol ? 'Replacement' : 'Value'}
+                      </span>
+                      <code className="block text-xs font-mono bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 break-all">
+                        {valueToString(parsed.value)}
+                      </code>
+                    </div>
+                  )}
+
+                  {/* Raw value fallback for complex rules */}
+                  {!parsed.value && !parsed.pattern && rule.value && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase">
+                        Rule Definition
+                      </span>
+                      <code className="block text-xs font-mono bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 break-all">
+                        {valueToString(rule.value)}
+                      </code>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Tab: Timeline
 function TimelineTab({ request }) {
   const timings = request.timings || {};
@@ -232,7 +456,7 @@ function TimelineTab({ request }) {
   ].filter(p => timings[p.key] > 0);
 
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
       <div className="space-y-4">
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
@@ -377,7 +601,7 @@ export default function RequestInspector() {
   return (
     <div
       ref={inspectorRef}
-      className="flex-none min-h-6 flex overflow-auto flex-col border-t border-zinc-200 dark:border-zinc-800"
+      className="flex-none min-h-6 flex overflow-auto flex-col border-t border-zinc-200 dark:border-zinc-800 scrollbar-hide"
       style={{ height: `${inspectorHeight}px` }}
     >
       <button
@@ -402,6 +626,7 @@ export default function RequestInspector() {
             <TabsTrigger value="headers">Headers</TabsTrigger>
             <TabsTrigger value="body">Request Body</TabsTrigger>
             <TabsTrigger value="response">Response</TabsTrigger>
+            <TabsTrigger value="rules">Rules</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
 
@@ -426,6 +651,9 @@ export default function RequestInspector() {
           </TabsContent>
           <TabsContent value="timeline">
             <TimelineTab request={selectedRequest} />
+          </TabsContent>
+          <TabsContent value="rules">
+            <RulesTab request={selectedRequest} />
           </TabsContent>
         </div>
       </Tabs>
