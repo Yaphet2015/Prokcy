@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
+import { getRequestStyles } from '../../shared/utils/styleParser';
 
 // Timing phase colors according to design spec
 const TIMING_COLORS = {
@@ -10,6 +11,9 @@ const TIMING_COLORS = {
   ttfb: '#a855f7', // purple
   download: '#f97316', // orange
 };
+
+// Approximate row height for viewport calculations
+const ROW_HEIGHT = 42;
 
 // Timing phases for a request bar
 function getRequestPhases(request) {
@@ -79,21 +83,71 @@ function getStatusColor(status) {
 // Get method icon
 function getMethodIcon(method) {
   const icons = {
-    GET: 'GET', // 🟢
-    POST: 'POST', // 🟡
-    PUT: 'PUT', // 🔵
-    DELETE: 'DELETE', // 🔴
-    PATCH: 'PATCH', // 🟠
-    HEAD: 'HEAD', // ⚪
-    OPTIONS: 'OPTIONS', // ⚪
+    GET: 'GET',
+    POST: 'POST',
+    PUT: 'PUT',
+    DELETE: 'DELETE',
+    PATCH: 'PATCH',
+    HEAD: 'HEAD',
+    OPTIONS: 'OPTIONS',
   };
-  return icons[method] || ''; // ⚪
+  return icons[method] || '';
+}
+
+/**
+ * Waterfall bar component with viewport-relative positioning
+ */
+function WaterfallBar({ request, visibleTimeRange }) {
+  const phases = getRequestPhases(request);
+  const requestStart = request.sortTime;
+  const requestDuration = request.timings?.total || 0;
+
+  const { minTime, maxTime } = visibleTimeRange;
+  const timeSpan = maxTime - minTime || 1;
+
+  // Calculate position and width as percentages of the viewport's time span
+  const barOffset = requestStart - minTime;
+  const leftPercent = (barOffset / timeSpan) * 100;
+  const widthPercent = Math.max((requestDuration / timeSpan) * 100, 0.5);
+
+  return (
+    <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative">
+      <div
+        className="absolute inset-y-0 flex"
+        style={{
+          left: `${leftPercent}%`,
+          width: `${widthPercent}%`,
+        }}
+      >
+        {phases.map((phase, idx) => {
+          const phaseOffsetPercent = (phase.offset / requestDuration) * 100;
+          const phaseWidthPercent = (phase.duration / requestDuration) * 100;
+
+          return (
+            <div
+              key={idx}
+              className="h-full first:rounded-l last:rounded-r"
+              style={{
+                backgroundColor: phase.color,
+                width: `${phaseWidthPercent}%`,
+                marginLeft: idx > 0 ? undefined : `${phaseOffsetPercent}%`,
+              }}
+              title={`${phase.type}: ${formatTime(phase.duration)}`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function WaterfallTimeline() {
   const {
     requests, selectedRequest, selectRequest, searchQuery, setSearchQuery, clearRequests,
   } = useNetwork();
+
+  const listRef = useRef(null);
+  const [visibleTimeRange, setVisibleTimeRange] = useState({ minTime: 0, maxTime: 1000 });
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
@@ -104,11 +158,57 @@ export default function WaterfallTimeline() {
       || req.status?.toString().includes(query));
   }, [requests, searchQuery]);
 
-  // Calculate total duration for scaling
-  const maxDuration = useMemo(() => Math.max(
-    ...requests.map((req) => req.timings?.total || 0),
-    1000, // minimum 1 second scale
-  ), [requests]);
+  // Calculate visible time range based on scroll position
+  const updateVisibleTimeRange = useCallback(() => {
+    if (!listRef.current || filteredRequests.length === 0) {
+      return;
+    }
+
+    const container = listRef.current;
+    const scrollTop = container.scrollTop;
+    const viewHeight = container.clientHeight;
+
+    const firstVisibleIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT));
+    const lastVisibleIndex = Math.min(
+      filteredRequests.length - 1,
+      Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT),
+    );
+
+    const visibleRequests = filteredRequests.slice(firstVisibleIndex, lastVisibleIndex + 1);
+
+    if (visibleRequests.length === 0) {
+      return;
+    }
+
+    const minTime = Math.min(...visibleRequests.map((r) => r.sortTime));
+    const maxTime = Math.max(
+      ...visibleRequests.map((r) => r.sortTime + (r.timings?.total || 0)),
+    );
+
+    setVisibleTimeRange({ minTime, maxTime });
+  }, [filteredRequests]);
+
+  // Update time range on scroll
+  useEffect(() => {
+    const container = listRef.current;
+    if (!container) {
+      return undefined;
+    }
+
+    const handleScroll = () => {
+      requestAnimationFrame(updateVisibleTimeRange);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [updateVisibleTimeRange]);
+
+  // Update time range when filtered requests change
+  useEffect(() => {
+    updateVisibleTimeRange();
+  }, [updateVisibleTimeRange]);
 
   return (
     <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
@@ -156,7 +256,10 @@ export default function WaterfallTimeline() {
       </div>
 
       {/* Request List */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+      >
         {filteredRequests.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -166,7 +269,6 @@ export default function WaterfallTimeline() {
         ) : (
           <div className="divide-y divide-zinc-200/30 dark:divide-zinc-800/30">
             {filteredRequests.map((request) => {
-              const phases = getRequestPhases(request);
               const isSelected = selectedRequest?.id === request.id;
 
               return (
@@ -186,6 +288,7 @@ export default function WaterfallTimeline() {
                     transition-colors duration-150
                     ${isSelected ? 'bg-blue-500/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}
                   `}
+                  style={getRequestStyles(request)}
                 >
                   {/* Method Indicator */}
                   <span className="text-xs w-12 text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
@@ -219,28 +322,8 @@ export default function WaterfallTimeline() {
                     {formatTime(request.timings?.total)}
                   </span>
 
-                  {/* Waterfall Bar */}
-                  <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative">
-                    <div
-                      className="absolute inset-y-0 left-0 flex"
-                      style={{
-                        width: `${Math.min(((request.timings?.total || 0) / maxDuration) * 100, 100)}%`,
-                      }}
-                    >
-                      {phases.map((phase, idx) => (
-                        <div
-                          key={idx}
-                          className="h-full first:rounded-l last:rounded-r"
-                          style={{
-                            backgroundColor: phase.color,
-                            width: `${(phase.duration / (request.timings?.total || 1)) * 100}%`,
-                            marginLeft: idx > 0 ? undefined : `${(phase.offset / maxDuration) * 100}%`,
-                          }}
-                          title={`${phase.type}: ${formatTime(phase.duration)}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  {/* Waterfall Bar - viewport-relative */}
+                  <WaterfallBar request={request} visibleTimeRange={visibleTimeRange} />
                 </div>
               );
             })}

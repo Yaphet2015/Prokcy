@@ -149,6 +149,7 @@ function normalizeRequest(item) {
         size: responseSize,
       }
       : null,
+    rules: item.rules || {},
     sortTime: Number(item.startTime) || Date.now(),
   };
 }
