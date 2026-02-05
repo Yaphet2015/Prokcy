@@ -3,6 +3,7 @@ import {
   ChevronLeft, ChevronRight, Activity, FileText, Key, Settings,
 } from 'lucide-react';
 import ServiceToggle from './ServiceToggle';
+import { useService } from '../context/ServiceContext';
 
 const navigationItems = [
   { id: 'network', label: 'Network', icon: Activity },
@@ -14,6 +15,8 @@ const navigationItems = [
 export default function Sidebar({
   activeView, onViewChange, isCollapsed, onToggleCollapse,
 }) {
+  const { isSystemProxy } = useService();
+  const isSystemProxyEnabled = isSystemProxy === 'enabled';
   return (
     <aside
       className={`
@@ -88,11 +91,13 @@ export default function Sidebar({
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
             <div className="flex items-center justify-between flex-1">
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
-                  Service
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 text-nowrap">
+                  Proxy Service
                 </span>
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                  Whistle Proxy
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400  text-nowrap">
+                  with system proxy
+                  {' '}
+                  {isSystemProxyEnabled ? 'on' : 'off'}
                 </span>
               </div>
               <ServiceToggle />
