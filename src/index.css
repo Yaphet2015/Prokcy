@@ -84,6 +84,16 @@ body {
   border: 1px solid var(--color-tahoe-border);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Service toggle shimmer animation */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }

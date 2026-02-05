@@ -2,7 +2,6 @@ import {
   useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle,
 } from 'react';
 import { Button, Input } from '@pikoloo/darwin-ui';
-import { Plus } from 'lucide-react';
 
 const KeysList = forwardRef(({
   values, selectedKey, onSelectKey, onCreateValue,
@@ -57,10 +56,6 @@ const KeysList = forwardRef(({
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [isCreating]);
-
-  const handleCreate = () => {
-    setIsCreating(true);
-  };
 
   const handleNewKeyConfirm = () => {
     const name = newKeyName.trim();
@@ -143,18 +138,6 @@ const KeysList = forwardRef(({
             </button>
           ))
         )}
-      </div>
-
-      {/* Add button */}
-      <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
-        <Button
-          variant="primary"
-          onClick={handleCreate}
-          leftIcon={<Plus className="w-4 h-4" />}
-          className="w-full"
-        >
-          Add New Value
-        </Button>
       </div>
     </div>
   );

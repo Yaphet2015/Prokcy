@@ -229,9 +229,6 @@ export default function Settings() {
         <div className="flex items-center gap-2">
           <SettingsIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
           <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Settings</h1>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            (Cmd+, to open)
-          </span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -278,12 +275,6 @@ export default function Settings() {
       <div className="flex-1 overflow-hidden flex">
         {/* Sidebar */}
         <aside className="w-56 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
-          {/* Sidebar Header */}
-          <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
-            <h2 className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-              Categories
-            </h2>
-          </div>
 
           {/* Navigation items */}
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -322,7 +313,7 @@ export default function Settings() {
               {/* Proxy Section */}
               {activeCategory === 'proxy' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Proxy Configuration
                     </h2>
@@ -441,7 +432,7 @@ export default function Settings() {
                   </section>
 
                   {/* Storage Section */}
-                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Storage
                     </h2>
@@ -468,7 +459,7 @@ export default function Settings() {
               {/* App Section */}
               {activeCategory === 'app' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Appearance
                     </h2>
@@ -492,7 +483,7 @@ export default function Settings() {
                     </div>
                   </section>
 
-                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Behavior
                     </h2>
