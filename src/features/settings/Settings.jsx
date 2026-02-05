@@ -1,6 +1,14 @@
 import {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
+import { Button, Input } from '@pikoloo/darwin-ui';
+import { Settings as SettingsIcon, RotateCcw, Save } from 'lucide-react';
+
+// Settings categories for sidebar navigation
+const SETTINGS_CATEGORIES = [
+  { id: 'proxy', label: 'Proxy', icon: '🌐' },
+  { id: 'app', label: 'App', icon: '⚙️' },
+];
 
 const HEADER_SIZE_OPTIONS = [
   { label: '256k', value: '256' },
@@ -85,6 +93,7 @@ const normalizeSettings = (settings = {}) => {
 };
 
 export default function Settings() {
+  const [activeCategory, setActiveCategory] = useState('proxy');
   const [form, setForm] = useState(DEFAULT_SETTINGS);
   const [savedForm, setSavedForm] = useState(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -214,191 +223,320 @@ export default function Settings() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <div className="max-w-4xl mx-auto px-6 py-5 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-semibold">Settings</h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Cmd+, to open this page
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={loadSettings}
-              disabled={loading || saving}
-              className="px-3 py-1.5 text-xs rounded-md border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-            >
-              Reload
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!isDirty || loading || saving}
-              className="px-3 py-1.5 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
+    <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      {/* Main Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shrink-0">
+        <div className="flex items-center gap-2">
+          <SettingsIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Settings</h1>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            (Cmd+, to open)
+          </span>
         </div>
 
-        {(error || message) && (
-          <div
-            className={`px-3 py-2 rounded-md text-xs border ${
-              error
-                ? 'text-red-600 dark:text-red-300 border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10'
-                : 'text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10'
-            }`}
+        <div className="flex items-center gap-3">
+          {/* Status/Feedback */}
+          {error && (
+            <span className="text-xs text-red-500">{error}</span>
+          )}
+          {message && !error && (
+            <span className="text-xs text-emerald-500">{message}</span>
+          )}
+          {!error && !message && isDirty && (
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Unsaved changes</span>
+          )}
+          {!error && !message && !isDirty && (
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">All saved</span>
+          )}
+
+          {/* Action buttons */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadSettings}
+            disabled={loading || saving}
+            leftIcon={<RotateCcw className="w-4 h-4" />}
+            title="Reload settings"
           >
-            {error || message}
-          </div>
-        )}
+            Reload
+          </Button>
 
-        <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">
-            Proxy
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Whistle Port</span>
-              <input
-                type="number"
-                value={form.port}
-                onChange={(e) => updateField('port', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Socks Port</span>
-              <input
-                type="number"
-                value={form.socksPort}
-                onChange={(e) => updateField('socksPort', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Bound Host</span>
-              <input
-                value={form.host}
-                onChange={(e) => updateField('host', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Max HTTP Header Size</span>
-              <select
-                value={form.maxHttpHeaderSize}
-                onChange={(e) => updateField('maxHttpHeaderSize', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              >
-                {HEADER_SIZE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Request List Limit</span>
-              <input
-                type="number"
-                min={MIN_REQUEST_LIST_LIMIT}
-                max={MAX_REQUEST_LIST_LIMIT}
-                value={form.requestListLimit}
-                onChange={(e) => updateField('requestListLimit', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Username</span>
-              <input
-                value={form.username}
-                onChange={(e) => updateField('username', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Password</span>
-              <input
-                value={form.password}
-                onChange={(e) => updateField('password', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
-              />
-            </label>
-            <label className="space-y-1 md:col-span-2">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Bypass List</span>
-              <textarea
-                value={form.bypass}
-                onChange={(e) => updateField('bypass', e.target.value)}
-                disabled={loading}
-                rows={4}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 resize-none"
-              />
-            </label>
-          </div>
-        </section>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSave}
+            disabled={!isDirty || loading || saving}
+            leftIcon={<Save className="w-4 h-4" />}
+            title="Save settings"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      </div>
 
-        <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">
-            App
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="space-y-1">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
-              <select
-                value={form.themeMode}
-                onChange={(e) => updateField('themeMode', e.target.value)}
-                disabled={loading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+      {/* Main content area with sidebar */}
+      <div className="flex-1 overflow-hidden flex">
+        {/* Sidebar */}
+        <aside className="w-56 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
+          {/* Sidebar Header */}
+          <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+              Categories
+            </h2>
+          </div>
+
+          {/* Navigation items */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {SETTINGS_CATEGORIES.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setActiveCategory(category.id)}
+                className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${
+                  activeCategory === category.id
+                    ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
+                    : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
+                }`}
               >
-                {THEME_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.startAtLogin}
-                  onChange={(e) => updateField('startAtLogin', e.target.checked)}
-                  disabled={loading}
-                />
-                <span>Start at login</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.hideFromDock}
-                  onChange={(e) => updateField('hideFromDock', e.target.checked)}
-                  disabled={loading}
-                />
-                <span>Hide icon in Dock (macOS)</span>
-              </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{category.icon}</span>
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{category.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Main content area */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Loading state */}
+          {loading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading settings...</span>
+              </div>
             </div>
-            <label className="flex items-start gap-2 text-sm md:col-span-2">
-              <input
-                type="checkbox"
-                checked={form.useDefaultStorage}
-                onChange={(e) => updateField('useDefaultStorage', e.target.checked)}
-                disabled={loading}
-                className="mt-0.5"
-              />
-              <span>Use whistle's default storage directory</span>
-            </label>
-          </div>
-        </section>
+          ) : (
+            <>
+              {/* Proxy Section */}
+              {activeCategory === 'proxy' && (
+                <div className="max-w-3xl space-y-6">
+                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      Proxy Configuration
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Whistle Port */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Whistle Port</span>
+                        <Input
+                          type="number"
+                          value={form.port}
+                          onChange={(e) => updateField('port', e.target.value)}
+                          disabled={loading}
+                          placeholder="8888"
+                        />
+                      </label>
+
+                      {/* Socks Port */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Socks Port</span>
+                        <Input
+                          type="number"
+                          value={form.socksPort}
+                          onChange={(e) => updateField('socksPort', e.target.value)}
+                          disabled={loading}
+                          placeholder="Optional"
+                        />
+                      </label>
+
+                      {/* Bound Host */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Bound Host</span>
+                        <Input
+                          value={form.host}
+                          onChange={(e) => updateField('host', e.target.value)}
+                          disabled={loading}
+                          placeholder="e.g., 127.0.0.1"
+                        />
+                      </label>
+
+                      {/* Max HTTP Header Size */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Max HTTP Header Size</span>
+                        <select
+                          value={form.maxHttpHeaderSize}
+                          onChange={(e) => updateField('maxHttpHeaderSize', e.target.value)}
+                          disabled={loading}
+                          className="w-full h-9 px-3 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        >
+                          {HEADER_SIZE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      {/* Request List Limit */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Request List Limit</span>
+                        <Input
+                          type="number"
+                          min={MIN_REQUEST_LIST_LIMIT}
+                          max={MAX_REQUEST_LIST_LIMIT}
+                          value={form.requestListLimit}
+                          onChange={(e) => updateField('requestListLimit', e.target.value)}
+                          disabled={loading}
+                          placeholder={`${DEFAULT_REQUEST_LIST_LIMIT}`}
+                        />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Between
+                          {' '}
+                          {MIN_REQUEST_LIST_LIMIT}
+                          {' '}
+                          and
+                          {' '}
+                          {MAX_REQUEST_LIST_LIMIT}
+                        </p>
+                      </label>
+
+                      {/* Proxy Username */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Username</span>
+                        <Input
+                          value={form.username}
+                          onChange={(e) => updateField('username', e.target.value)}
+                          disabled={loading}
+                          placeholder="Optional authentication"
+                        />
+                      </label>
+
+                      {/* Proxy Password */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Password</span>
+                        <Input
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => updateField('password', e.target.value)}
+                          disabled={loading}
+                          placeholder="Optional authentication"
+                        />
+                      </label>
+
+                      {/* Bypass List - full width */}
+                      <label className="space-y-1.5 md:col-span-2">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Bypass List</span>
+                        <textarea
+                          value={form.bypass}
+                          onChange={(e) => updateField('bypass', e.target.value)}
+                          disabled={loading}
+                          rows={4}
+                          placeholder="One host per line, e.g., localhost, 127.0.0.1"
+                          className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                        />
+                      </label>
+                    </div>
+                  </section>
+
+                  {/* Storage Section */}
+                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      Storage
+                    </h2>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.useDefaultStorage}
+                        onChange={(e) => updateField('useDefaultStorage', e.target.checked)}
+                        disabled={loading}
+                        className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm text-zinc-900 dark:text-zinc-100">Use whistle's default storage directory</span>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                          By default, Whistle Client uses a separate storage directory (~/.whistle_client/).
+                          Enable this to share settings with the CLI version of Whistle.
+                        </p>
+                      </div>
+                    </label>
+                  </section>
+                </div>
+              )}
+
+              {/* App Section */}
+              {activeCategory === 'app' && (
+                <div className="max-w-3xl space-y-6">
+                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      Appearance
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Theme */}
+                      <label className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
+                        <select
+                          value={form.themeMode}
+                          onChange={(e) => updateField('themeMode', e.target.value)}
+                          disabled={loading}
+                          className="w-full h-9 px-3 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        >
+                          {THEME_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 p-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      Behavior
+                    </h2>
+                    <div className="space-y-4">
+                      {/* Start at login */}
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.startAtLogin}
+                          onChange={(e) => updateField('startAtLogin', e.target.checked)}
+                          disabled={loading}
+                          className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm text-zinc-900 dark:text-zinc-100">Start at login</span>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                            Automatically launch Whistle Client when you log in to your computer.
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Hide from Dock */}
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.hideFromDock}
+                          onChange={(e) => updateField('hideFromDock', e.target.checked)}
+                          disabled={loading}
+                          className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm text-zinc-900 dark:text-zinc-100">Hide icon in Dock</span>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                            Remove the Whistle Client icon from your macOS Dock. Access it from the menu bar instead.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </section>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
