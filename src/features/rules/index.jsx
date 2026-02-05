@@ -28,7 +28,7 @@ function Rules() {
     rules,
     setRules,
     saveRules,
-    revertRules,
+    // revertRules,
     toggleEnabled,
     setActiveEditorGroup,
     setRuleGroupSelection,
@@ -251,10 +251,10 @@ function Rules() {
 
             {/* Global enable/disable */}
             <Button
-              variant={isEnabled ? 'destructive' : 'secondary'}
+              variant={isEnabled ? 'ghost' : 'secondary'}
               size="sm"
               onClick={toggleEnabled}
-              leftIcon={<Power className="w-4 h-4" />}
+              leftIcon={<Power color={isEnabled ? 'red' : 'green'} className="w-4 h-4" />}
               title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
             >
               {isEnabled ? 'Disable All' : 'Enable All'}
@@ -346,21 +346,21 @@ function Rules() {
 
           <div className="flex-1 overflow-hidden relative">
             {/* Editor Header - Absolute positioned at top right */}
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+            <div className="absolute top-2 right-5 z-10 flex items-center gap-2">
               {/* Status indicator */}
-              {isSaving && (
+              {/* {isSaving && (
                 <span className="text-xs text-blue-500 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Saving...</span>
-              )}
-              {!isSaving && isDirty && (
+              )} */}
+              {/* {!isSaving && isDirty && (
                 <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Unsaved changes</span>
               )}
               {!isSaving && !isDirty && (
                 <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Saved</span>
-              )}
+              )} */}
 
               {/* Action buttons */}
-              <Button
-                variant="secondary"
+              {/* <Button
+                variant="ghost"
                 size="sm"
                 onClick={revertRules}
                 disabled={!isDirty || isSaving}
@@ -368,7 +368,7 @@ function Rules() {
                 title="Revert changes (Esc)"
               >
                 Revert
-              </Button>
+              </Button> */}
 
               <Button
                 variant="primary"
