@@ -17,6 +17,9 @@ const RulesContext = createContext({
   toggleEnabled: async () => {},
   setActiveEditorGroup: () => {},
   setRuleGroupSelection: async () => {},
+  createGroup: async () => {},
+  deleteGroup: async () => {},
+  renameGroup: async () => {},
   refreshRules: async () => {},
 });
 
@@ -184,6 +187,99 @@ export function RulesProvider({ children }) {
     setError(null);
   }, [ruleGroups]);
 
+  const createGroup = useCallback(async (name, content = '') => {
+    if (!name || !window.electron?.createRulesGroup) {
+      return { success: false, message: 'Invalid name' };
+    }
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { success: false, message: 'Name cannot be empty' };
+    }
+    if (/^default$/i.test(trimmedName)) {
+      return { success: false, message: 'Cannot create Default group' };
+    }
+    if (ruleGroups.some((g) => g.name === trimmedName)) {
+      return { success: false, message: 'Group already exists' };
+    }
+
+    try {
+      setError(null);
+      await window.electron.createRulesGroup(trimmedName, content);
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to create rules group:', err);
+      setError(err.message || 'Failed to create rules group');
+      return { success: false, message: err.message || 'Failed to create rules group' };
+    }
+  }, [ruleGroups]);
+
+  const deleteGroup = useCallback(async (name) => {
+    if (!name || !window.electron?.deleteRulesGroup) {
+      return { success: false, message: 'Invalid name' };
+    }
+    const trimmedName = name.trim();
+    if (/^default$/i.test(trimmedName)) {
+      return { success: false, message: 'Cannot delete Default group' };
+    }
+
+    try {
+      setError(null);
+      await window.electron.deleteRulesGroup(trimmedName);
+      // If deleted group was being edited, switch to Default
+      if (activeEditorGroupName === trimmedName) {
+        setActiveEditorGroupName('Default');
+        const defaultGroup = ruleGroups.find((g) => g.isDefault) || ruleGroups[0];
+        if (defaultGroup) {
+          setOriginalRules(defaultGroup.data || '');
+          setRulesState(defaultGroup.data || '');
+        }
+      }
+      setIsDirty(false);
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to delete rules group:', err);
+      setError(err.message || 'Failed to delete rules group');
+      return { success: false, message: err.message || 'Failed to delete rules group' };
+    }
+  }, [activeEditorGroupName, ruleGroups]);
+
+  const renameGroup = useCallback(async (name, newName) => {
+    if (!name || !newName || !window.electron?.renameRulesGroup) {
+      return { success: false, message: 'Invalid names' };
+    }
+    const trimmedName = name.trim();
+    const trimmedNewName = newName.trim();
+    if (!trimmedNewName) {
+      return { success: false, message: 'New name cannot be empty' };
+    }
+    if (/^default$/i.test(trimmedName)) {
+      return { success: false, message: 'Cannot rename Default group' };
+    }
+    if (/^default$/i.test(trimmedNewName)) {
+      return { success: false, message: 'Cannot rename to Default' };
+    }
+    if (trimmedName === trimmedNewName) {
+      return { success: true };
+    }
+    if (ruleGroups.some((g) => g.name === trimmedNewName)) {
+      return { success: false, message: 'A group with this name already exists' };
+    }
+
+    try {
+      setError(null);
+      await window.electron.renameRulesGroup(trimmedName, trimmedNewName);
+      // Update editor group name if renamed group was being edited
+      if (activeEditorGroupName === trimmedName) {
+        setActiveEditorGroupName(trimmedNewName);
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to rename rules group:', err);
+      setError(err.message || 'Failed to rename rules group');
+      return { success: false, message: err.message || 'Failed to rename rules group' };
+    }
+  }, [activeEditorGroupName, ruleGroups]);
+
   const value = useMemo(() => ({
     rules,
     originalRules,
@@ -201,6 +297,9 @@ export function RulesProvider({ children }) {
     toggleEnabled,
     setActiveEditorGroup,
     setRuleGroupSelection,
+    createGroup,
+    deleteGroup,
+    renameGroup,
     refreshRules: loadRules,
   }), [
     rules,
@@ -219,6 +318,9 @@ export function RulesProvider({ children }) {
     toggleEnabled,
     setActiveEditorGroup,
     setRuleGroupSelection,
+    createGroup,
+    deleteGroup,
+    renameGroup,
     loadRules,
   ]);
 
