@@ -15,6 +15,12 @@ const TIMING_COLORS = {
 // Approximate row height for viewport calculations
 const ROW_HEIGHT = 42;
 
+// Minimum percentage width for a request bar to be visible
+const MIN_BAR_WIDTH_PERCENT = 2;
+
+// Compression factor for idle gaps (higher = more compression)
+const GAP_COMPRESSION_FACTOR = 0.15;
+
 // Timing phases for a request bar
 function getRequestPhases(request) {
   const timings = request.timings || {};
@@ -95,20 +101,66 @@ function getMethodIcon(method) {
 }
 
 /**
- * Waterfall bar component with viewport-relative positioning
+ * Compress a gap using logarithmic scaling
+ * Small gaps are compressed less than large gaps
  */
-function WaterfallBar({ request, visibleTimeRange }) {
+function compressGap(gap, compressionFactor = GAP_COMPRESSION_FACTOR) {
+  if (gap <= 0) return 0;
+  // Logarithmic compression: log(1 + gap) * factor
+  return Math.log(1 + gap) * compressionFactor * 100;
+}
+
+/**
+ * Calculate compressed timeline for visible requests
+ * Returns the position and scale for each request
+ */
+function calculateCompressedTimeline(requests) {
+  if (requests.length === 0) {
+    return { compressedDuration: 1000, requestPositions: [] };
+  }
+
+  // Sort requests by start time
+  const sorted = [...requests].sort((a, b) => a.sortTime - b.sortTime);
+
+  const positions = [];
+  let compressedPosition = 0;
+  let lastEndTime = null;
+
+  for (const request of sorted) {
+    const startTime = request.sortTime;
+    const duration = request.timings?.total || 0;
+    const endTime = startTime + duration;
+
+    // Calculate gap from previous request
+    if (lastEndTime !== null && startTime > lastEndTime) {
+      const gap = startTime - lastEndTime;
+      compressedPosition += compressGap(gap);
+    }
+
+    positions.push({
+      request,
+      compressedPosition,
+      duration,
+    });
+
+    compressedPosition += duration;
+    lastEndTime = endTime;
+  }
+
+  const compressedDuration = compressedPosition > 0 ? compressedPosition : 1000;
+
+  return { compressedDuration, requestPositions: positions };
+}
+
+/**
+ * Waterfall bar component with compressed timeline
+ */
+function WaterfallBar({ request, compressedPosition, duration, compressedDuration }) {
   const phases = getRequestPhases(request);
-  const requestStart = request.sortTime;
-  const requestDuration = request.timings?.total || 0;
 
-  const { minTime, maxTime } = visibleTimeRange;
-  const timeSpan = maxTime - minTime || 1;
-
-  // Calculate position and width as percentages of the viewport's time span
-  const barOffset = requestStart - minTime;
-  const leftPercent = (barOffset / timeSpan) * 100;
-  const widthPercent = Math.max((requestDuration / timeSpan) * 100, 0.5);
+  // Calculate position and width as percentages
+  const leftPercent = (compressedPosition / compressedDuration) * 100;
+  const widthPercent = Math.max((duration / compressedDuration) * 100, MIN_BAR_WIDTH_PERCENT / compressedDuration * 100);
 
   return (
     <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative">
@@ -116,12 +168,12 @@ function WaterfallBar({ request, visibleTimeRange }) {
         className="absolute inset-y-0 flex"
         style={{
           left: `${leftPercent}%`,
-          width: `${widthPercent}%`,
+          width: `${Math.max(widthPercent, 0.5)}%`,
         }}
       >
         {phases.map((phase, idx) => {
-          const phaseOffsetPercent = (phase.offset / requestDuration) * 100;
-          const phaseWidthPercent = (phase.duration / requestDuration) * 100;
+          const phaseOffsetPercent = (phase.offset / duration) * 100;
+          const phaseWidthPercent = (phase.duration / duration) * 100;
 
           return (
             <div
@@ -147,7 +199,10 @@ export default function WaterfallTimeline() {
   } = useNetwork();
 
   const listRef = useRef(null);
-  const [visibleTimeRange, setVisibleTimeRange] = useState({ minTime: 0, maxTime: 1000 });
+  const [timelineState, setTimelineState] = useState({
+    compressedDuration: 1000,
+    requestPositions: [],
+  });
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
@@ -158,8 +213,17 @@ export default function WaterfallTimeline() {
       || req.status?.toString().includes(query));
   }, [requests, searchQuery]);
 
-  // Calculate visible time range based on scroll position
-  const updateVisibleTimeRange = useCallback(() => {
+  // Create a position map for quick lookup
+  const positionMap = useMemo(() => {
+    const map = new Map();
+    for (const pos of timelineState.requestPositions) {
+      map.set(pos.request.id, pos);
+    }
+    return map;
+  }, [timelineState.requestPositions]);
+
+  // Update compressed timeline based on visible requests
+  const updateTimeline = useCallback(() => {
     if (!listRef.current || filteredRequests.length === 0) {
       return;
     }
@@ -174,21 +238,22 @@ export default function WaterfallTimeline() {
       Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT),
     );
 
-    const visibleRequests = filteredRequests.slice(firstVisibleIndex, lastVisibleIndex + 1);
+    // Include some buffer before and after for smoother scrolling
+    const buffer = 5;
+    const startIndex = Math.max(0, firstVisibleIndex - buffer);
+    const endIndex = Math.min(filteredRequests.length - 1, lastVisibleIndex + buffer);
+
+    const visibleRequests = filteredRequests.slice(startIndex, endIndex + 1);
 
     if (visibleRequests.length === 0) {
       return;
     }
 
-    const minTime = Math.min(...visibleRequests.map((r) => r.sortTime));
-    const maxTime = Math.max(
-      ...visibleRequests.map((r) => r.sortTime + (r.timings?.total || 0)),
-    );
-
-    setVisibleTimeRange({ minTime, maxTime });
+    const timeline = calculateCompressedTimeline(visibleRequests);
+    setTimelineState(timeline);
   }, [filteredRequests]);
 
-  // Update time range on scroll
+  // Update timeline on scroll
   useEffect(() => {
     const container = listRef.current;
     if (!container) {
@@ -196,19 +261,19 @@ export default function WaterfallTimeline() {
     }
 
     const handleScroll = () => {
-      requestAnimationFrame(updateVisibleTimeRange);
+      requestAnimationFrame(updateTimeline);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [updateVisibleTimeRange]);
+  }, [updateTimeline]);
 
-  // Update time range when filtered requests change
+  // Update timeline when filtered requests change
   useEffect(() => {
-    updateVisibleTimeRange();
-  }, [updateVisibleTimeRange]);
+    updateTimeline();
+  }, [updateTimeline]);
 
   return (
     <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
@@ -270,6 +335,7 @@ export default function WaterfallTimeline() {
           <div className="divide-y divide-zinc-200/30 dark:divide-zinc-800/30">
             {filteredRequests.map((request) => {
               const isSelected = selectedRequest?.id === request.id;
+              const pos = positionMap.get(request.id);
 
               return (
                 <div
@@ -322,8 +388,17 @@ export default function WaterfallTimeline() {
                     {formatTime(request.timings?.total)}
                   </span>
 
-                  {/* Waterfall Bar - viewport-relative */}
-                  <WaterfallBar request={request} visibleTimeRange={visibleTimeRange} />
+                  {/* Waterfall Bar - with compressed idle gaps */}
+                  {pos ? (
+                    <WaterfallBar
+                      request={request}
+                      compressedPosition={pos.compressedPosition}
+                      duration={pos.duration}
+                      compressedDuration={timelineState.compressedDuration}
+                    />
+                  ) : (
+                    <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
+                  )}
                 </div>
               );
             })}
