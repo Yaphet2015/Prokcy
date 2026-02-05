@@ -352,14 +352,14 @@ function RulesTab({ request }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 mb-4">
+          {/* <div className="flex items-center gap-2 mb-4">
             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
               Matched Rules
             </span>
             <span className="px-2 py-0.5 rounded-full bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
               {ruleEntries.length}
             </span>
-          </div>
+          </div> */}
 
           {ruleEntries.map(([type, rule]) => {
             const typeStr = String(type || 'unknown');
