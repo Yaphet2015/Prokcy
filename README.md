@@ -127,6 +127,69 @@
 w2 install --registry=https://registry.npmmirror.com whistle.script whistle.inspect
 ```
 
+### Rules Group 生效顺序与覆盖关系（Prokcy 内）
+
+#### 1) 是否生效的总开关
+- 点击 `Disable All` 后，所有规则（包括 `Default` 和所有 Group）都不生效。
+- 点击 `Enable All` 后，才会按下面的顺序继续匹配。
+
+#### 2) Group 是否参与匹配
+- 只有 `selected = true` 的 Group 会参与规则计算，`Off` 的 Group 完全不参与。
+- `Default` 也是一个特殊 Group（可启用/禁用，但不能删除/重命名）。
+- 当前界面里：单击 Group 是切换编辑对象；双击 Group 才是切换启用/停用状态。
+
+#### 3) Group 间优先级（最重要）
+- 本应用启动 Whistle 时开启了 `enableMultipleRules`，允许多个 Group 同时生效。
+- 同时生效时，优先级按列表**从上到下**（UI 上 `#1 -> #2 -> ...`）：
+  - 越靠上优先级越高；
+  - 越靠下作为兜底。
+- 这对应代码中的 `enableBackRulesFirst(false)`：前面的规则优先，后面的规则补充。
+
+#### 4) Group 内部优先级
+- 单个 Group 文件内部也是**从上到下**匹配。
+- 同类规则（例如都在改写 URL / 都是 proxy）命中冲突时，通常是先匹配到的那条生效，后面的同类规则不再覆盖它。
+
+#### 5) 与 Default 的关系
+- 选中的自定义 Group 会先于 `Default` 参与匹配；
+- 因此常见行为是：自定义 Group 用于覆盖，`Default` 作为兜底。
+
+#### 6) 例子
+示例 A（Group 间覆盖）：
+
+```txt
+Group A（#1，已启用）
+example.com https://a.test
+
+Group B（#2，已启用）
+example.com https://b.test
+```
+
+请求 `http://example.com/1` 时，优先命中 Group A，最终走 `https://a.test`（B 作为低优先级不覆盖）。
+
+示例 B（Default 兜底）：
+
+```txt
+Group A（#1，已启用）
+foo.com https://foo-group.test
+
+Default（已启用）
+foo.com https://foo-default.test
+bar.com https://bar-default.test
+```
+
+- `foo.com` 命中 Group A（覆盖 Default）。
+- `bar.com` 在 Group A 未命中，回落到 Default。
+
+示例 C（同一 Group 内部顺序）：
+
+```txt
+Group A（已启用）
+example.com https://first.test
+example.com https://second.test
+```
+
+同一请求会先命中第一条，第二条通常不会再覆盖第一条。
+
 # 常见问题
 
 #### 1. 启用客户端设置系统代理，部分应用（如 Outlook、Word 等）可能出现网络连接异常

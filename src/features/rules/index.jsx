@@ -3,12 +3,14 @@ import {
   Suspense,
   useEffect,
   useState,
+  useRef,
   useCallback,
   useMemo,
 } from 'react';
+import { Reorder, useDragControls, motion } from 'framer-motion';
 import { Button, ContextMenu } from '@pikoloo/darwin-ui';
 import {
-  RotateCcw, Save, Power, Plus, Pencil, Trash2, FilePlus,
+  RotateCcw, Save, Power, Plus, Pencil, Trash2, FilePlus, GripVertical,
 } from 'lucide-react';
 import { useRules } from '../../shared/context/RulesContext';
 import { useTheme } from '../../shared/context/ThemeContext';
@@ -23,6 +25,97 @@ import { useMonacoSave } from '../../shared/ui/MonacoEditor';
 // Lazy load Monaco to avoid large bundle
 const MonacoEditor = lazy(() => import('../../shared/ui/MonacoEditor').then(module => ({ default: module.default })));
 
+// Draggable rule group item component
+function RuleGroupItem({
+  group,
+  isActive,
+  isEditorGroup,
+  rank,
+  setActiveEditorGroup,
+  handleGroupDoubleClick,
+  handleContextCreate,
+  handleContextRename,
+  handleContextDelete,
+  onDragStart,
+  onDragEnd,
+}) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={group}
+      dragListener={false}
+      dragControls={dragControls}
+      className="relative group"
+      whileDrag={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)', zIndex: 50 }}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <ContextMenu>
+        <ContextMenu.Trigger asChild>
+          <motion.button
+            type="button"
+            onClick={() => setActiveEditorGroup(group.name)}
+            onDoubleClick={() => handleGroupDoubleClick(group)}
+            className={`w-full px-3 py-2 rounded-lg border transition-all text-left pr-10 ${
+              isEditorGroup
+                ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
+                : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
+            }`}
+            title="Click to open in editor. Double-click to toggle active state. Right-click for more options."
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
+              {rank ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
+                  #
+                  {rank}
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
+                  Off
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5">
+              {isActive && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white">
+                  Active
+                </span>
+              )}
+            </div>
+          </motion.button>
+        </ContextMenu.Trigger>
+        <ContextMenu.Content>
+          <ContextMenu.Item onSelect={handleContextCreate}>
+            <FilePlus className="w-4 h-4 mr-2" />
+            Create New Group
+          </ContextMenu.Item>
+          <ContextMenu.Item onSelect={() => handleContextRename(group)}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Rename
+          </ContextMenu.Item>
+          <ContextMenu.Item destructive onSelect={() => handleContextDelete(group)}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </ContextMenu.Item>
+        </ContextMenu.Content>
+      </ContextMenu>
+      {/* Drag handle - separate so button clicks still work */}
+      <motion.div
+        className="absolute right-2 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 transition-opacity z-10 opacity-60 hover:opacity-100"
+        onPointerDown={(e) => dragControls.start(e)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <GripVertical className="w-4 h-4 text-zinc-400" />
+      </motion.div>
+    </Reorder.Item>
+  );
+}
+
 function Rules() {
   const {
     rules,
@@ -35,6 +128,7 @@ function Rules() {
     createGroup,
     deleteGroup,
     renameGroup,
+    reorderGroups,
     ruleGroups,
     activeGroupNames,
     activeEditorGroupName,
@@ -47,10 +141,20 @@ function Rules() {
 
   const { isDark } = useTheme();
   const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
+  const [localRuleGroups, setLocalRuleGroups] = useState(ruleGroups);
+  const [isReordering, setIsReordering] = useState(false);
+  const latestOrderRef = useRef(ruleGroups);
 
   // Prompt and confirm hooks
   const [showPrompt, promptElement] = usePrompt();
   const [showConfirm, confirmElement] = useConfirm();
+
+  useEffect(() => {
+    if (!isReordering) {
+      setLocalRuleGroups(ruleGroups);
+      latestOrderRef.current = ruleGroups;
+    }
+  }, [ruleGroups, isReordering]);
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
   const handleMonacoSave = useCallback(() => {
@@ -88,13 +192,36 @@ function Rules() {
   }, []);
 
   const activePriority = useMemo(
-    () => ruleGroups.filter((group) => group.selected).map((group) => group.name),
-    [ruleGroups],
+    () => localRuleGroups.filter((group) => group.selected).map((group) => group.name),
+    [localRuleGroups],
   );
   const activePriorityIndex = useMemo(
     () => Object.fromEntries(activePriority.map((name, idx) => [name, idx + 1])),
     [activePriority],
   );
+
+  // Handle drag-and-drop reordering
+  const handleReorder = useCallback((newOrder) => {
+    setLocalRuleGroups(newOrder);
+    latestOrderRef.current = newOrder;
+  }, []);
+
+  const handleDragStart = useCallback(() => {
+    setIsReordering(true);
+  }, []);
+
+  const handleDragEnd = useCallback(async () => {
+    const result = await reorderGroups(latestOrderRef.current);
+    setIsReordering(false);
+    if (!result.success) {
+      // Show error via prompt
+      await showPrompt({
+        title: 'Error',
+        message: result.message || 'Failed to reorder groups',
+        defaultValue: '',
+      });
+    }
+  }, [reorderGroups, showPrompt]);
 
   const handleGroupDoubleClick = useCallback((group) => {
     if (!group?.name) {
@@ -283,65 +410,34 @@ function Rules() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {ruleGroups.map((group) => {
+            <Reorder.Group
+              axis="y"
+              values={localRuleGroups}
+              onReorder={handleReorder}
+              className="flex-1 overflow-y-auto p-2 space-y-1"
+            >
+              {localRuleGroups.map((group) => {
                 const isActive = activeGroupNames.includes(group.name);
                 const isEditorGroup = group.name === activeEditorGroupName;
                 const rank = activePriorityIndex[group.name];
                 return (
-                  <ContextMenu key={group.name}>
-                    <ContextMenu.Trigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setActiveEditorGroup(group.name)}
-                        onDoubleClick={() => handleGroupDoubleClick(group)}
-                        className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${
-                          isEditorGroup
-                            ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
-                            : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
-                        }`}
-                        title="Click to open in editor. Double-click to toggle active state. Right-click for more options."
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
-                          {rank ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
-                              #
-                              {rank}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
-                              Off
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          {isActive && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    </ContextMenu.Trigger>
-                    <ContextMenu.Content>
-                      <ContextMenu.Item onSelect={handleContextCreate}>
-                        <FilePlus className="w-4 h-4 mr-2" />
-                        Create New Group
-                      </ContextMenu.Item>
-                      <ContextMenu.Item onSelect={() => handleContextRename(group)}>
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Rename
-                      </ContextMenu.Item>
-                      <ContextMenu.Item destructive onSelect={() => handleContextDelete(group)}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </ContextMenu.Item>
-                    </ContextMenu.Content>
-                  </ContextMenu>
+                  <RuleGroupItem
+                    key={group.name}
+                    group={group}
+                    isActive={isActive}
+                    isEditorGroup={isEditorGroup}
+                    rank={rank}
+                    setActiveEditorGroup={setActiveEditorGroup}
+                    handleGroupDoubleClick={handleGroupDoubleClick}
+                    handleContextCreate={handleContextCreate}
+                    handleContextRename={handleContextRename}
+                    handleContextDelete={handleContextDelete}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  />
                 );
               })}
-            </div>
+            </Reorder.Group>
           </aside>
 
           <div className="flex-1 overflow-hidden relative">
