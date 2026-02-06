@@ -104,17 +104,22 @@ Add a fixed-width group list panel to the left side of the Rules editor to manag
 **Priority model:**
 - Group priority is displayed and interpreted as **top-to-bottom**
 - Active groups show rank badges (`#1`, `#2`, ...)
+- Drag-and-drop reorder must update the renderer list optimistically, then persist via IPC. If persistence fails, rollback to the previous order.
 
 **State/data:**
 - Extend `RulesContext` with:
   - `ruleGroups[]` (name, selected, priority, isDefault)
   - `activeGroupNames[]`
 - Parse these from Whistle rules payload (`list`)
+- Maintain a persisted UI order (`rulesOrder`, includes `Default`) and always apply it when rendering incoming `list`.
 
 **IPC contract additions:**
 - `set-rule-selection` → select/unselect a named group
+- `reorder-rules-groups` → persist reordered group names
+- `get-rules-order` / `set-rules-order` → persist renderer order (including `Default`) in preferences
 
 **Whistle worker message handling additions:**
+- `reorderRulesGroups`: persist custom group order by applying `moveToTop` in reverse order; `Default` stays fixed at top.
 
 ### Values Section
 

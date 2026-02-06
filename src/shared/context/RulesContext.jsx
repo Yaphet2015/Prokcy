@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from 'react';
 
 const RulesContext = createContext({
   rules: '',
@@ -20,6 +28,7 @@ const RulesContext = createContext({
   createGroup: async () => {},
   deleteGroup: async () => {},
   renameGroup: async () => {},
+  reorderGroups: async () => {},
   refreshRules: async () => {},
 });
 
@@ -34,6 +43,7 @@ export function RulesProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+  const ruleOrderRef = useRef([]);
 
   // Load rules on mount
   useEffect(() => {
@@ -45,13 +55,16 @@ export function RulesProvider({ children }) {
     if (window.electron?.onRulesUpdated) {
       const unsubscribe = window.electron.onRulesUpdated((rulesData) => {
         const next = normalizeRulesData(rulesData);
-        const nextEditorGroupName = getEditorGroupName(next.ruleGroups, activeEditorGroupName);
-        const nextEditorText = getEditorGroupText(next.ruleGroups, nextEditorGroupName);
+        const nextOrder = normalizeRuleOrder(ruleOrderRef.current, next.ruleGroups);
+        const orderedGroups = applyRuleOrder(next.ruleGroups, nextOrder);
+        const nextEditorGroupName = getEditorGroupName(orderedGroups, activeEditorGroupName);
+        const nextEditorText = getEditorGroupText(orderedGroups, nextEditorGroupName);
         setIsEnabled(next.isEnabled);
         setOriginalRules(nextEditorText);
-        setRuleGroups(next.ruleGroups);
-        setActiveGroupNames(next.activeGroupNames);
+        setRuleGroups(orderedGroups);
+        setActiveGroupNames(orderedGroups.filter((item) => item.selected).map((item) => item.name));
         setActiveEditorGroupName(nextEditorGroupName);
+        ruleOrderRef.current = nextOrder;
         // Only update if not dirty (user is editing)
         if (!isDirty) {
           setRulesState(nextEditorText);
@@ -69,16 +82,30 @@ export function RulesProvider({ children }) {
     setError(null);
     try {
       if (window.electron?.getRules) {
-        const rulesData = await window.electron.getRules();
+        const persistedOrderPromise = window.electron?.getRulesOrder
+          ? window.electron.getRulesOrder().catch((err) => {
+            if (!isMissingIpcHandler(err, 'get-rules-order')) {
+              throw err;
+            }
+            return [];
+          })
+          : Promise.resolve([]);
+        const [rulesData, persistedOrder] = await Promise.all([
+          window.electron.getRules(),
+          persistedOrderPromise,
+        ]);
         const next = normalizeRulesData(rulesData);
-        const nextEditorGroupName = getEditorGroupName(next.ruleGroups, activeEditorGroupName);
-        const nextEditorText = getEditorGroupText(next.ruleGroups, nextEditorGroupName);
+        const nextOrder = normalizeRuleOrder(persistedOrder, next.ruleGroups);
+        const orderedGroups = applyRuleOrder(next.ruleGroups, nextOrder);
+        const nextEditorGroupName = getEditorGroupName(orderedGroups, activeEditorGroupName);
+        const nextEditorText = getEditorGroupText(orderedGroups, nextEditorGroupName);
         setIsEnabled(next.isEnabled);
         setOriginalRules(nextEditorText);
         setRulesState(nextEditorText);
-        setRuleGroups(next.ruleGroups);
-        setActiveGroupNames(next.activeGroupNames);
+        setRuleGroups(orderedGroups);
+        setActiveGroupNames(orderedGroups.filter((item) => item.selected).map((item) => item.name));
         setActiveEditorGroupName(nextEditorGroupName);
+        ruleOrderRef.current = nextOrder;
       }
     } catch (err) {
       console.error('Failed to load rules:', err);
@@ -268,6 +295,45 @@ export function RulesProvider({ children }) {
     }
   }, [activeEditorGroupName, ruleGroups]);
 
+  const reorderGroups = useCallback(async (newOrder) => {
+    if (!Array.isArray(newOrder) || !window.electron?.reorderRulesGroups) {
+      return { success: false, message: 'Reordering not supported' };
+    }
+
+    const previousOrder = ruleGroups;
+    const previousRuleOrder = ruleOrderRef.current;
+    const isSameOrder = previousOrder.length === newOrder.length
+      && previousOrder.every((group, index) => group.name === newOrder[index]?.name);
+    if (isSameOrder) {
+      return { success: true };
+    }
+
+    try {
+      setError(null);
+      // Optimistically update the list so DnD doesn't snap back while persisting.
+      setRuleGroups(newOrder);
+      const orderedNames = newOrder.map((g) => g.name);
+      ruleOrderRef.current = orderedNames;
+      if (window.electron?.setRulesOrder) {
+        try {
+          await window.electron.setRulesOrder(orderedNames);
+        } catch (err) {
+          if (!isMissingIpcHandler(err, 'set-rules-order')) {
+            throw err;
+          }
+        }
+      }
+      await window.electron.reorderRulesGroups(orderedNames);
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to reorder groups:', err);
+      setRuleGroups(previousOrder);
+      ruleOrderRef.current = previousRuleOrder;
+      setError(err.message || 'Failed to reorder groups');
+      return { success: false, message: err.message || 'Failed to reorder groups' };
+    }
+  }, [ruleGroups]);
+
   const value = useMemo(() => ({
     rules,
     originalRules,
@@ -288,6 +354,7 @@ export function RulesProvider({ children }) {
     createGroup,
     deleteGroup,
     renameGroup,
+    reorderGroups,
     refreshRules: loadRules,
   }), [
     rules,
@@ -309,6 +376,7 @@ export function RulesProvider({ children }) {
     createGroup,
     deleteGroup,
     renameGroup,
+    reorderGroups,
     loadRules,
   ]);
 
@@ -329,6 +397,48 @@ function getEditorGroupName(ruleGroups, preferredName) {
 function getEditorGroupText(ruleGroups, groupName) {
   const target = ruleGroups.find((group) => group.name === groupName);
   return target?.data || '';
+}
+
+function normalizeRuleOrder(order, ruleGroups) {
+  const groupNames = ruleGroups.map((item) => item.name);
+  const baseOrder = Array.isArray(order) ? order : [];
+  const unique = new Set();
+  const normalized = [];
+
+  baseOrder.forEach((name) => {
+    if (typeof name !== 'string' || !groupNames.includes(name) || unique.has(name)) {
+      return;
+    }
+    unique.add(name);
+    normalized.push(name);
+  });
+
+  groupNames.forEach((name) => {
+    if (!unique.has(name)) {
+      unique.add(name);
+      normalized.push(name);
+    }
+  });
+
+  return normalized;
+}
+
+function applyRuleOrder(ruleGroups, order) {
+  if (!ruleGroups.length) {
+    return ruleGroups;
+  }
+  const normalizedOrder = normalizeRuleOrder(order, ruleGroups);
+  const indexMap = new Map(normalizedOrder.map((name, index) => [name, index]));
+  return [...ruleGroups].sort((a, b) => {
+    const aIndex = indexMap.has(a.name) ? indexMap.get(a.name) : Number.MAX_SAFE_INTEGER;
+    const bIndex = indexMap.has(b.name) ? indexMap.get(b.name) : Number.MAX_SAFE_INTEGER;
+    return aIndex - bIndex;
+  });
+}
+
+function isMissingIpcHandler(error, channel) {
+  const message = error?.message || '';
+  return message.includes(`No handler registered for '${channel}'`);
 }
 
 /**
