@@ -5,7 +5,7 @@ const RulesContext = createContext({
   originalRules: '',
   ruleGroups: [],
   activeGroupNames: [],
-  activeEditorGroupName: 'Default',
+  activeEditorGroupName: '',
   isDirty: false,
   isEnabled: true,
   isLoading: false,
@@ -28,7 +28,7 @@ export function RulesProvider({ children }) {
   const [originalRules, setOriginalRules] = useState('');
   const [ruleGroups, setRuleGroups] = useState([]);
   const [activeGroupNames, setActiveGroupNames] = useState([]);
-  const [activeEditorGroupName, setActiveEditorGroupName] = useState('Default');
+  const [activeEditorGroupName, setActiveEditorGroupName] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -195,9 +195,6 @@ export function RulesProvider({ children }) {
     if (!trimmedName) {
       return { success: false, message: 'Name cannot be empty' };
     }
-    if (/^default$/i.test(trimmedName)) {
-      return { success: false, message: 'Cannot create Default group' };
-    }
     if (ruleGroups.some((g) => g.name === trimmedName)) {
       return { success: false, message: 'Group already exists' };
     }
@@ -218,20 +215,17 @@ export function RulesProvider({ children }) {
       return { success: false, message: 'Invalid name' };
     }
     const trimmedName = name.trim();
-    if (/^default$/i.test(trimmedName)) {
-      return { success: false, message: 'Cannot delete Default group' };
-    }
 
     try {
       setError(null);
       await window.electron.deleteRulesGroup(trimmedName);
-      // If deleted group was being edited, switch to Default
+      // If deleted group was being edited, switch to the first available group
       if (activeEditorGroupName === trimmedName) {
-        setActiveEditorGroupName('Default');
-        const defaultGroup = ruleGroups.find((g) => g.isDefault) || ruleGroups[0];
-        if (defaultGroup) {
-          setOriginalRules(defaultGroup.data || '');
-          setRulesState(defaultGroup.data || '');
+        const remainingGroup = ruleGroups.find((g) => g.name !== trimmedName);
+        if (remainingGroup) {
+          setActiveEditorGroupName(remainingGroup.name);
+          setOriginalRules(remainingGroup.data || '');
+          setRulesState(remainingGroup.data || '');
         }
       }
       setIsDirty(false);
@@ -251,12 +245,6 @@ export function RulesProvider({ children }) {
     const trimmedNewName = newName.trim();
     if (!trimmedNewName) {
       return { success: false, message: 'New name cannot be empty' };
-    }
-    if (/^default$/i.test(trimmedName)) {
-      return { success: false, message: 'Cannot rename Default group' };
-    }
-    if (/^default$/i.test(trimmedNewName)) {
-      return { success: false, message: 'Cannot rename to Default' };
     }
     if (trimmedName === trimmedNewName) {
       return { success: true };
@@ -335,11 +323,7 @@ function getEditorGroupName(ruleGroups, preferredName) {
   if (preferredName && ruleGroups.some((group) => group.name === preferredName)) {
     return preferredName;
   }
-  const defaultGroup = ruleGroups.find((group) => group.isDefault);
-  if (defaultGroup) {
-    return defaultGroup.name;
-  }
-  return ruleGroups[0]?.name || 'Default';
+  return ruleGroups[0]?.name || '';
 }
 
 function getEditorGroupText(ruleGroups, groupName) {
@@ -375,14 +359,6 @@ function normalizeRulesData(rulesData) {
     return {
       ...fallback,
       text: rulesData,
-      ruleGroups: [{
-        name: 'Default',
-        data: rulesData,
-        selected: true,
-        isDefault: true,
-        priority: 1,
-      }],
-      activeGroupNames: ['Default'],
     };
   }
 
@@ -394,34 +370,14 @@ function normalizeRulesData(rulesData) {
       name: item.name,
       data: typeof item.data === 'string' ? item.data : '',
       selected: !!item.selected,
-      isDefault: /^default$/i.test(item.name),
       priority: index + 1,
     }));
 
-  // Whistle uses `defalutRules` in its payload (typo kept for compatibility).
-  const defaultText = typeof rulesData.defalutRules === 'string'
-    ? rulesData.defalutRules
-    : (typeof rulesData.defaultRules === 'string' ? rulesData.defaultRules : '');
-  const defaultGroup = ruleGroups.find((item) => item.isDefault);
-  if (defaultText && defaultGroup && defaultGroup.data !== defaultText) {
-    defaultGroup.data = defaultText;
-  }
-
-  if (!ruleGroups.length) {
-    ruleGroups.push({
-      name: 'Default',
-      data: defaultText,
-      selected: true,
-      isDefault: true,
-      priority: 1,
-    });
-  }
-
   const activeGroupNames = ruleGroups.filter((item) => item.selected).map((item) => item.name);
-  const editorGroup = ruleGroups.find((item) => item.isDefault);
+  const editorGroup = ruleGroups[0];
   const text = editorGroup && typeof editorGroup.data === 'string'
     ? editorGroup.data
-    : defaultText;
+    : '';
 
   return {
     text: typeof text === 'string' ? text : '',
