@@ -38,6 +38,7 @@ function RuleGroupItem({
   handleContextDelete,
   onDragStart,
   onDragEnd,
+  onDragCancel,
 }) {
   const dragControls = useDragControls();
 
@@ -47,9 +48,15 @@ function RuleGroupItem({
       dragListener={false}
       dragControls={dragControls}
       className="relative group"
-      whileDrag={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)', zIndex: 50 }}
+      whileDrag={{
+        borderRadius: '8px',
+        scale: 1.02,
+        // boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)',
+        zIndex: 50,
+      }}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragCancel={onDragCancel}
     >
       <ContextMenu>
         <ContextMenu.Trigger asChild>
@@ -67,21 +74,21 @@ function RuleGroupItem({
             whileTap={{ scale: 0.99 }}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
+              <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 select-none ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
               {rank ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white select-none">
                   #
                   {rank}
                 </span>
               ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 select-none">
                   Off
                 </span>
               )}
             </div>
             <div className="mt-1 flex items-center gap-1.5">
               {isActive && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white select-none">
                   Active
                 </span>
               )}
@@ -144,6 +151,7 @@ function Rules() {
   const [localRuleGroups, setLocalRuleGroups] = useState(ruleGroups);
   const [isReordering, setIsReordering] = useState(false);
   const latestOrderRef = useRef(ruleGroups);
+  const dragSettledRef = useRef(false);
 
   // Prompt and confirm hooks
   const [showPrompt, promptElement] = usePrompt();
@@ -207,12 +215,21 @@ function Rules() {
   }, []);
 
   const handleDragStart = useCallback(() => {
+    dragSettledRef.current = false;
     setIsReordering(true);
   }, []);
 
   const handleDragEnd = useCallback(async () => {
-    const result = await reorderGroups(latestOrderRef.current);
+    dragSettledRef.current = true;
     setIsReordering(false);
+
+    let result;
+    try {
+      result = await reorderGroups(latestOrderRef.current);
+    } catch (err) {
+      result = { success: false, message: err?.message || 'Failed to reorder groups' };
+    }
+
     if (!result.success) {
       // Show error via prompt
       await showPrompt({
@@ -222,6 +239,44 @@ function Rules() {
       });
     }
   }, [reorderGroups, showPrompt]);
+  const handleDragCancel = useCallback(() => {
+    dragSettledRef.current = true;
+    setIsReordering(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isReordering) {
+      return undefined;
+    }
+
+    let fallbackTimer = null;
+    const stopReordering = () => {
+      if (fallbackTimer !== null) {
+        return;
+      }
+
+      // Defer fallback cleanup to avoid racing Framer's drop/reorder callbacks.
+      fallbackTimer = window.setTimeout(() => {
+        fallbackTimer = null;
+        if (!dragSettledRef.current) {
+          setIsReordering(false);
+        }
+      }, 0);
+    };
+
+    window.addEventListener('pointerup', stopReordering, true);
+    window.addEventListener('pointercancel', stopReordering, true);
+    window.addEventListener('blur', stopReordering);
+
+    return () => {
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+      }
+      window.removeEventListener('pointerup', stopReordering, true);
+      window.removeEventListener('pointercancel', stopReordering, true);
+      window.removeEventListener('blur', stopReordering);
+    };
+  }, [isReordering]);
 
   const handleGroupDoubleClick = useCallback((group) => {
     if (!group?.name) {
@@ -434,6 +489,7 @@ function Rules() {
                     handleContextDelete={handleContextDelete}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
                   />
                 );
               })}
