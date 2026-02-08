@@ -313,7 +313,7 @@ export default function Settings() {
               {/* Proxy Section */}
               {activeCategory === 'proxy' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Proxy Configuration
                     </h2>
@@ -432,7 +432,7 @@ export default function Settings() {
                   </section>
 
                   {/* Storage Section */}
-                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Storage
                     </h2>
@@ -459,7 +459,7 @@ export default function Settings() {
               {/* App Section */}
               {activeCategory === 'app' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Appearance
                     </h2>
@@ -483,7 +483,7 @@ export default function Settings() {
                     </div>
                   </section>
 
-                  <section className=" bg-white/70 dark:bg-zinc-900/60 p-5">
+                  <section className=" bg-white/70 dark:bg-zinc-900/60">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Behavior
                     </h2>
