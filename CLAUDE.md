@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Whistle Client is the official desktop client for [Whistle](https://github.com/avwo/whistle), a cross-platform network debugging proxy tool. Built with Electron, it provides a GUI for the powerful Whistle proxy server.
+Prokcy is a cross-platform desktop network debugging proxy tool. Built with Electron, it provides a modern GUI for the powerful Whistle proxy server.
 
 ## Development Commands
 

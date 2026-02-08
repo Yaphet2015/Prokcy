@@ -447,7 +447,7 @@ export default function Settings() {
                       <div className="flex-1">
                         <span className="text-sm text-zinc-900 dark:text-zinc-100">Use whistle's default storage directory</span>
                         <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                          By default, Whistle Client uses a separate storage directory (~/.whistle_client/).
+                          By default, Prokcy uses a separate storage directory (~/.whistle_client/).
                           Enable this to share settings with the CLI version of Whistle.
                         </p>
                       </div>
@@ -500,7 +500,7 @@ export default function Settings() {
                         <div className="flex-1">
                           <span className="text-sm text-zinc-900 dark:text-zinc-100">Start at login</span>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                            Automatically launch Whistle Client when you log in to your computer.
+                            Automatically launch Prokcy when you log in to your computer.
                           </p>
                         </div>
                       </label>
@@ -517,7 +517,7 @@ export default function Settings() {
                         <div className="flex-1">
                           <span className="text-sm text-zinc-900 dark:text-zinc-100">Hide icon in Dock</span>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                            Remove the Whistle Client icon from your macOS Dock. Access it from the menu bar instead.
+                            Remove the Prokcy icon from your macOS Dock. Access it from the menu bar instead.
                           </p>
                         </div>
                       </label>
