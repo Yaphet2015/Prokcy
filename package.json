@@ -1,9 +1,9 @@
 {
-  "name": "Whistle",
+  "name": "prokcy",
   "version": "1.5.5",
-  "description": "Whistle Web Debugging Proxy",
+  "description": "Prokcy Desktop Proxy Client",
   "main": "./lib/index.js",
-  "author": "avenwu <avwu@qq.com>",
+  "author": "Yaphet",
   "scripts": {
     "start": "electron ./lib",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
@@ -20,18 +20,18 @@
     "lintfix": "npm run lint"
   },
   "build": {
-    "productName": "Whistle",
-    "appId": "whistle.client",
+    "productName": "Prokcy",
+    "appId": "com.yaphet.prokcy",
     "asar": false,
     "artifactName": "${productName}-v${version}-${os}-${arch}.${ext}",
-    "copyright": "avenwu",
+    "copyright": "Yaphet",
     "compression": "normal",
     "extends": null,
     "publish": [
       {
         "provider": "github",
-        "owner": "avwo",
-        "repo": "whistle-client",
+        "owner": "Yaphet2015",
+        "repo": "Prokcy",
         "releaseType": "draft"
       }
     ],

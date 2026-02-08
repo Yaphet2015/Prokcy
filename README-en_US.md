@@ -1,13 +1,13 @@
-# Whistle Client
+# Prokcy
 
 [中文](./README.md) · English
 
-[Whistle](https://github.com/avwo/whistle) is a powerful cross-platform network packet capture and debugging tool. This client is the official desktop version and supports the following operating systems:
+Prokcy is a cross-platform desktop network proxy and debugging application. It supports the following operating systems:
 - macOS（Apple Silicon / Intel）
 - Windows
 - Linux（Fedora / Ubuntu）
 
-> If the system you are using does not support the Whistle Client (such as a server without a graphical interface or a special device), you can use the Whistle: https://github.com/avwo/whistle
+> If your environment has no GUI (for example, servers or special devices), use the command-line proxy mode instead.
 
 # Installation
 Please select the corresponding installation steps according to your operating system.
@@ -18,21 +18,21 @@ Please select the corresponding installation steps according to your operating s
 ##### 1. Select the correct installation package
 
 Select the corresponding version according to your Mac processor type:
-- Apple Silicon chip (M1/M2/M3 series) → Download ARM 64-bit version: [Whistle-vx.y.z-mac-arm64.dmg](https://github.com/avwo/whistle-client/releases)
-- Intel/AMD chip → Download x86_64 version: [Whistle-vx.y.z-mac-x64.dmg](https://github.com/avwo/whistle-client/releases)
+- Apple Silicon chip (M1/M2/M3 series) → Download ARM 64-bit version: [Prokcy-vx.y.z-mac-arm64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
+- Intel/AMD chip → Download x86_64 version: [Prokcy-vx.y.z-mac-x64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
 
 ##### 2. Installation steps
 
 1. After downloading, double-click the downloaded `.dmg` file
 
-2. Drag the Whistle icon to the Applications folder
+2. Drag the Prokcy icon to the Applications folder
 
     <img width="520" alt="install mac client" src="https://github.com/user-attachments/assets/ef60276a-520c-4f4c-8612-10bdac2df30a" />
 3. If the following situations occur:
 
    - "Application already exists" → Select "Overwrite"
 
-   - Unable to overwrite → Please exit the running Whistle client first
+   - Unable to overwrite → Please exit the running Prokcy first
 
 ##### 3. Security Tips
 
@@ -40,7 +40,7 @@ Some enterprise security software may give false positives. Suggestions:
 
 - Select "Allow" when running for the first time
 
-- If there is continuous interception, please contact the IT department to add Whistle to the whitelist
+- If there is continuous interception, please contact the IT department to add Prokcy to the whitelist
 
 </details>
 
@@ -51,9 +51,9 @@ Some enterprise security software may give false positives. Suggestions:
 
 Choose the appropriate version according to your permission requirements:
 
-- [Recommended] Standard Edition (Administrator permissions required): [Whistle-vx.y.z-win-x64.exe](https://github.com/avwo/whistle-client/releases)
+- [Recommended] Standard Edition (Administrator permissions required): [Prokcy-vx.y.z-win-x64.exe](https://github.com/Yaphet2015/Prokcy/releases)
     > Supports full functionality, including pseudo-protocols (whistle://client)
-- User version (no administrator privileges required): [Whistle-user-installer-vx.y.z-win-x64.exe](https://github.com/avwo/whistle-client/releases)
+- User version (no administrator privileges required): [Prokcy-user-installer-vx.y.z-win-x64.exe](https://github.com/Yaphet2015/Prokcy/releases)
     > Functional limitations: pseudo-protocol calls are not supported
 
 ##### 2. Run the installer
@@ -73,8 +73,8 @@ After double-clicking the downloaded installation package, you may see the follo
 This client currently supports two Linux distributions: Fedora and Ubuntu.
 
 Download the installation package:
-- Intel/AMD 64-bit (x86_64): [Whistle-vx.y.z-linux-x86_64.AppImage](https://github.com/avwo/whistle-client/releases)
-- ARM 64-bit (arm64): [Whistle-vx.y.z-linux-arm64.AppImage](https://github.com/avwo/whistle-client/releases)
+- Intel/AMD 64-bit (x86_64): [Prokcy-vx.y.z-linux-x86_64.AppImage](https://github.com/Yaphet2015/Prokcy/releases)
+- ARM 64-bit (arm64): [Prokcy-vx.y.z-linux-arm64.AppImage](https://github.com/Yaphet2015/Prokcy/releases)
 
 Installation method reference: https://itsfoss.com/cant-run-appimage-ubuntu/
 </details>
@@ -83,11 +83,11 @@ Installation method reference: https://itsfoss.com/cant-run-appimage-ubuntu/
 
 ### Start the client
 After installation, please start it in the following way:
-1. Click the Whistle icon on the desktop
-2. Or find Whistle through the system application menu
+1. Click the Prokcy icon on the desktop
+2. Or find Prokcy through the system application menu
 
 After starting, please follow the steps below to complete the necessary initial settings (must be done when running for the first time):
-1. Open the `Whistle` menu item at the top of the client
+1. Open the `Prokcy` menu item at the top of the client
 2. Click `Install Root CA`: Install the system root certificate for parsing HTTPS Request
 3. Enable `Set As System Proxy`: Set the system proxy to capture the system's web requests
 
@@ -99,7 +99,7 @@ After starting, please follow the steps below to complete the necessary initial 
 2. `Install Root CA`: Install the root certificate
 3. `Check Update`: Check if there is a new version
 4. `Set As System Proxy`: Set the system proxy
-5. `Start At Login`: Whether to automatically start the Whistle client at startup
+5. `Start At Login`: Whether to automatically start the Prokcy at startup
 6. `Restart`: Restart the client
 7. `Quit`: Exit the client
 
@@ -152,7 +152,7 @@ w2 install whistle.script whistle.inspect
 #### 1. Enable the client to set the system proxy. Some applications (such as Outlook, Word, etc.) may have network connection exceptions
 Check whether there is the following `captureError` exception request in the packet capture interface:
 
-<img width="900" alt="image" src="https://github.com/avwo/whistle/assets/11450939/513ab963-a1a3-447a-ba84-147273451f78">
+<img width="900" alt="image" src="https://github.com/Yaphet2015/Prokcy/assets/11450939/513ab963-a1a3-447a-ba84-147273451f78">
 
 Configure the domain name with such exceptions to the `Bypass List` rule of `Proxy Settings`:
 
@@ -160,12 +160,12 @@ Configure the domain name with such exceptions to the `Bypass List` rule of `Pro
 
 #### 2. How to update the client?
 
-- Check for new versions: Click the Whistle menu in the upper left corner → Check Update → Follow the prompts to complete the update
+- Check for new versions: Click the Prokcy menu in the upper left corner → Check Update → Follow the prompts to complete the update
 
-- Manually download updates: Visit [GitHub Releases](https://github.com/avwo/whistle-client/releases) to download the latest version and reinstall according to the above document
+- Manually download updates: Visit [GitHub Releases](https://github.com/Yaphet2015/Prokcy/releases) to download the latest version and reinstall according to the above document
 
 #### 3. How to synchronize previous data?
-By default, the Whistle client uses an independent storage directory. If you want to continue using the directory of the command line version, you can switch back to the default directory of the command line through `Use whistle's default storage directory` in `Proxy Settings`:
+By default, the Prokcy uses an independent storage directory. If you want to continue using the directory of the command line version, you can switch back to the default directory of the command line through `Use whistle's default storage directory` in `Proxy Settings`:
 
 <img width="470" alt="image" src="https://github.com/user-attachments/assets/ef6805d0-e05e-48bf-adbc-88677fd22b0c" />
 
@@ -178,4 +178,3 @@ See the official guide for usage and examples: https://wproxy.org/docs/getting-s
 # License
 
 [MIT — see the LICENSE file](./LICENSE)
-
