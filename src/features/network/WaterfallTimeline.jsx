@@ -197,7 +197,7 @@ function WaterfallBar({
               }}
               title={`${phase.type}: ${formatTime(phase.duration)}`}
             >
-              {isHovered && phaseWidthPercent > 3 && (
+              {isHovered && (
                 <div className="flex flex-col items-center justify-center text-[9px] font-medium text-white">
                   <span className="uppercase leading-tight">{phase.type}</span>
                   <span className="leading-tight opacity-90">{formatTime(phase.duration)}</span>
