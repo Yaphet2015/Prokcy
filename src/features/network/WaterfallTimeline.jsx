@@ -155,7 +155,7 @@ function calculateCompressedTimeline(requests) {
 /**
  * Waterfall bar component with compressed timeline
  */
-function WaterfallBar({ request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd }) {
+function WaterfallBar({ request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd, requestId }) {
   const phases = getRequestPhases(request);
 
   // Calculate position and width as percentages
@@ -164,9 +164,11 @@ function WaterfallBar({ request, compressedPosition, duration, compressedDuratio
   const widthPercent = isHovered ? 100 : Math.max((duration / compressedDuration) * 100, MIN_BAR_WIDTH_PERCENT / compressedDuration * 100);
 
   return (
-    <div className={`${isHovered ? 'w-96' : 'w-48'} h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out`}
-         onMouseEnter={onHoverStart}
-         onMouseLeave={onHoverEnd}
+    <div
+      className={`${isHovered ? 'w-96' : 'w-48'} h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out`}
+      data-request-id={requestId}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
     >
       <div
         className="absolute inset-y-0 flex"
@@ -218,7 +220,9 @@ export default function WaterfallTimeline() {
   const [hoveredRequestId, setHoveredRequestId] = useState(null);
 
   // Memoized hover handlers to prevent unnecessary re-renders
-  const handleHoverStart = useCallback((requestId) => {
+  // Read requestId from data attribute to avoid inline functions
+  const handleHoverStart = useCallback((event) => {
+    const requestId = event.currentTarget.dataset.requestId;
     setHoveredRequestId(requestId);
   }, []);
 
@@ -418,8 +422,9 @@ export default function WaterfallTimeline() {
                       duration={pos.duration}
                       compressedDuration={timelineState.compressedDuration}
                       isHovered={hoveredRequestId === request.id}
-                      onHoverStart={() => handleHoverStart(request.id)}
+                      onHoverStart={handleHoverStart}
                       onHoverEnd={handleHoverEnd}
+                      requestId={request.id}
                     />
                   ) : (
                     <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
