@@ -170,11 +170,6 @@ function WaterfallBar({
   return (
     <div
       className={`w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out ${isHovered ? 'z-10' : ''}`}
-      style={{
-        transform: isHovered ? 'scaleX(2)' : 'scaleX(1)',
-        transformOrigin: 'right',
-        willChange: isHovered ? 'transform' : 'auto',
-      }}
       data-request-id={requestId}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
