@@ -2,11 +2,8 @@ import { useMemo } from 'react';
 import { usePrompt } from '../../shared/ui/Modal';
 import { useConfirm } from '../../shared/ui/ConfirmDialog';
 import { useRules } from '../../shared/context/RulesContext';
-import { RulesToolbar } from './components/RulesToolbar';
-import { RulesSidebar } from './components/RulesSidebar';
-import { RulesEditor } from './components/RulesEditor';
-import { useRuleGroupActions } from './hooks/useRuleGroupActions';
-import { useRuleGroupsDragDrop } from './hooks/useRuleGroupsDragDrop';
+import { RulesToolbar, RulesSidebar, RulesEditor } from './components';
+import { useRuleGroupActions, useRuleGroupsDragDrop } from './hooks';
 
 function Rules() {
   // Get rules state and operations from context
