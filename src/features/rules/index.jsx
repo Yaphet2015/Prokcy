@@ -8,9 +8,9 @@ import {
   useMemo,
 } from 'react';
 import { Reorder, useDragControls, motion } from 'framer-motion';
-import { Button, ContextMenu } from '@pikoloo/darwin-ui';
+import { Button } from '@pikoloo/darwin-ui';
 import {
-  RotateCcw, Save, Power, Plus, Pencil, Trash2, FilePlus, GripVertical,
+  RotateCcw, Save, Power, Plus,
 } from 'lucide-react';
 import { useRules } from '../../shared/context/RulesContext';
 import { useTheme } from '../../shared/context/ThemeContext';
@@ -18,110 +18,13 @@ import { usePrompt } from '../../shared/ui/Modal';
 import { useConfirm } from '../../shared/ui/ConfirmDialog';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
+import { RuleGroupItem, DraggableRuleGroupItem } from './components/RuleGroupItem';
 
 // Import hook directly (cannot be lazy-loaded)
 import { useMonacoSave } from '../../shared/ui/MonacoEditor';
 
 // Lazy load Monaco to avoid large bundle
 const MonacoEditor = lazy(() => import('../../shared/ui/MonacoEditor').then(module => ({ default: module.default })));
-
-// Draggable rule group item component
-function RuleGroupItem({
-  group,
-  isActive,
-  isEditorGroup,
-  rank,
-  setActiveEditorGroup,
-  handleGroupDoubleClick,
-  handleContextCreate,
-  handleContextRename,
-  handleContextDelete,
-  onDragStart,
-  onDragEnd,
-  onDragCancel,
-}) {
-  const dragControls = useDragControls();
-
-  return (
-    <Reorder.Item
-      value={group}
-      dragListener={false}
-      dragControls={dragControls}
-      className="relative group"
-      whileDrag={{
-        borderRadius: '8px',
-        scale: 1.02,
-        // boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)',
-        zIndex: 50,
-      }}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragCancel={onDragCancel}
-    >
-      <ContextMenu>
-        <ContextMenu.Trigger asChild>
-          <motion.button
-            type="button"
-            onClick={() => setActiveEditorGroup(group.name)}
-            onDoubleClick={() => handleGroupDoubleClick(group)}
-            className={`w-full px-3 py-2 rounded-lg border transition-all text-left pr-10 ${
-              isEditorGroup
-                ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
-                : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
-            }`}
-            title="Click to open in editor. Double-click to toggle active state. Right-click for more options."
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className={`text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 select-none ${!rank ? 'opacity-50' : ''}`}>{group.name}</span>
-              {rank ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500 text-white select-none">
-                  #
-                  {rank}
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 select-none">
-                  Off
-                </span>
-              )}
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              {isActive && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/85 text-white select-none">
-                  Active
-                </span>
-              )}
-            </div>
-          </motion.button>
-        </ContextMenu.Trigger>
-        <ContextMenu.Content>
-          <ContextMenu.Item onSelect={handleContextCreate}>
-            <FilePlus className="w-4 h-4 mr-2" />
-            Create New Group
-          </ContextMenu.Item>
-          <ContextMenu.Item onSelect={() => handleContextRename(group)}>
-            <Pencil className="w-4 h-4 mr-2" />
-            Rename
-          </ContextMenu.Item>
-          <ContextMenu.Item destructive onSelect={() => handleContextDelete(group)}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu>
-      {/* Drag handle - separate so button clicks still work */}
-      <motion.div
-        className="absolute right-2 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 transition-opacity z-10 opacity-60 hover:opacity-100"
-        onPointerDown={(e) => dragControls.start(e)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <GripVertical className="w-4 h-4 text-zinc-400" />
-      </motion.div>
-    </Reorder.Item>
-  );
-}
 
 function Rules() {
   const {
@@ -434,25 +337,41 @@ function Rules() {
               className="flex-1 overflow-y-auto p-2 space-y-1"
             >
               {localRuleGroups.map((group) => {
+                const dragControls = useDragControls();
                 const isActive = activeGroupNames.includes(group.name);
                 const isEditorGroup = group.name === activeEditorGroupName;
                 const rank = activePriorityIndex[group.name];
+                
                 return (
-                  <RuleGroupItem
+                  <Reorder.Item
                     key={group.name}
-                    group={group}
-                    isActive={isActive}
-                    isEditorGroup={isEditorGroup}
-                    rank={rank}
-                    setActiveEditorGroup={setActiveEditorGroup}
-                    handleGroupDoubleClick={handleGroupDoubleClick}
-                    handleContextCreate={handleCreateGroup}
-                    handleContextRename={handleContextRename}
-                    handleContextDelete={handleContextDelete}
+                    value={group}
+                    dragListener={false}
+                    dragControls={dragControls}
+                    className="relative group"
+                    whileDrag={{
+                      borderRadius: '8px',
+                      scale: 1.02,
+                      zIndex: 50,
+                    }}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onDragCancel={handleDragCancel}
-                  />
+                  >
+                    <DraggableRuleGroupItem dragControls={dragControls}>
+                      <RuleGroupItem
+                        group={group}
+                        isActive={isActive}
+                        isEditorGroup={isEditorGroup}
+                        rank={rank}
+                        onSelect={() => setActiveEditorGroup(group.name)}
+                        onDoubleClick={() => handleGroupDoubleClick(group)}
+                        onCreate={handleCreateGroup}
+                        onRename={() => handleContextRename(group)}
+                        onDelete={() => handleContextDelete(group)}
+                      />
+                    </DraggableRuleGroupItem>
+                  </Reorder.Item>
                 );
               })}
             </Reorder.Group>
