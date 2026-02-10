@@ -408,6 +408,9 @@ export default function WaterfallTimeline() {
                       compressedPosition={pos.compressedPosition}
                       duration={pos.duration}
                       compressedDuration={timelineState.compressedDuration}
+                      isHovered={hoveredRequestId === request.id}
+                      onHoverStart={() => setHoveredRequestId(request.id)}
+                      onHoverEnd={() => setHoveredRequestId(null)}
                     />
                   ) : (
                     <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
