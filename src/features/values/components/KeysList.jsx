@@ -102,11 +102,11 @@ const KeysList = forwardRef(({
               autoComplete="off"
             />
             <div className="flex gap-2 mt-2">
-              <Button size="xs" variant="primary" onClick={handleNewKeyConfirm}>
+              <Button size="sm" variant="primary" onClick={handleNewKeyConfirm}>
                 Add
               </Button>
               <Button
-                size="xs"
+                size="sm"
                 variant="ghost"
                 onClick={() => {
                   setIsCreating(false);

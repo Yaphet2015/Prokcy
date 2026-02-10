@@ -239,12 +239,6 @@ export default function Settings() {
           {message && !error && (
             <span className="text-xs text-emerald-500">{message}</span>
           )}
-          {!error && !message && isDirty && (
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Unsaved changes</span>
-          )}
-          {!error && !message && !isDirty && (
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">All saved</span>
-          )}
 
           {/* Action buttons */}
           <Button

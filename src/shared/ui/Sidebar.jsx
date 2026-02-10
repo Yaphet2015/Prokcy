@@ -33,16 +33,16 @@ export default function Sidebar({
       style={{ width: `${width}px` }}
     >
       {/* Header */}
-      {/* <div className="h-12 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+      <div className="h-12 flex items-center px-4 border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         {!isCollapsed && (
           <span className="font-semibold text-zinc-900 dark:text-zinc-100">
             Prokcy
           </span>
         )}
-      </div> */}
+      </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-x-hidden overflow-y-auto">
+      <nav className="flex-1 px-2 space-y-1 overflow-x-hidden overflow-y-auto">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
