@@ -217,6 +217,15 @@ export default function WaterfallTimeline() {
   });
   const [hoveredRequestId, setHoveredRequestId] = useState(null);
 
+  // Memoized hover handlers to prevent unnecessary re-renders
+  const handleHoverStart = useCallback((requestId) => {
+    setHoveredRequestId(requestId);
+  }, []);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredRequestId(null);
+  }, []);
+
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
     if (!searchQuery) return requests;
@@ -409,8 +418,8 @@ export default function WaterfallTimeline() {
                       duration={pos.duration}
                       compressedDuration={timelineState.compressedDuration}
                       isHovered={hoveredRequestId === request.id}
-                      onHoverStart={() => setHoveredRequestId(request.id)}
-                      onHoverEnd={() => setHoveredRequestId(null)}
+                      onHoverStart={() => handleHoverStart(request.id)}
+                      onHoverEnd={handleHoverEnd}
                     />
                   ) : (
                     <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
