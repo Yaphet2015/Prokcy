@@ -58,6 +58,14 @@ body {
   margin: 0;
 }
 
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

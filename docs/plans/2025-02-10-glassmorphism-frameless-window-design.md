@@ -259,6 +259,33 @@ src/shared/ui/
 
 ### GlassPanel Component
 
+---
+
+## 2026-02-10 Implementation Update
+
+### Final scope shipped
+
+- Native frame is hidden for the main app window via `frame: false` in `lib/window.js`.
+- A renderer-driven custom titlebar is used across platforms for consistency.
+- The top chrome is implemented in `src/shared/ui/WindowTitlebar.jsx` and mounted from `src/App.jsx`.
+- Window control actions are bridged over IPC (`window:minimize`, `window:toggle-maximize`, `window:close`, `window:is-maximized`).
+
+### Event synchronization
+
+- Main process sends maximize state updates to renderer using `window-maximize-changed`.
+- Renderer subscribes via preload API to keep maximize/restore icon state correct.
+
+### Dragging model
+
+- Titlebar container uses `-webkit-app-region: drag`.
+- Interactive controls use `-webkit-app-region: no-drag`.
+- CSS utilities are provided in `src/index.css` as `.app-drag` and `.app-no-drag`.
+
+### Notes
+
+- This implementation keeps existing close-to-tray behavior unchanged (`win.close()` still maps to hide by default in current lifecycle).
+- Existing settings modal behavior remains unchanged.
+
 ```jsx
 // src/shared/ui/Glass/GlassPanel.jsx
 import React from 'react';

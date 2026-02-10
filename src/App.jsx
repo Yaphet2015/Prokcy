@@ -2,6 +2,7 @@ import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 import Sidebar from './shared/ui/Sidebar';
+import WindowTitlebar from './shared/ui/WindowTitlebar';
 import Network from './features/network';
 import Rules from './features/rules';
 import Values from './features/values';
@@ -145,19 +146,23 @@ function App() {
   }, [isResizingSidebar]);
 
   return (
-    <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
-      <Sidebar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
-        width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
-        onResizeStart={handleSidebarResizeStart}
-      />
+    <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
+      <WindowTitlebar activeView={activeView} />
 
-      <main className="flex-1 overflow-hidden w-full">
-        <ActiveComponent />
-      </main>
+      <div className="min-h-0 flex-1 flex">
+        <Sidebar
+          activeView={activeView}
+          onViewChange={setActiveView}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+          width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
+          onResizeStart={handleSidebarResizeStart}
+        />
+
+        <main className="flex-1 overflow-hidden w-full">
+          <ActiveComponent />
+        </main>
+      </div>
     </div>
   );
 }
