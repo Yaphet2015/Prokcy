@@ -54,7 +54,7 @@ src/
 
 ### App Shell
 
-A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `360px`). If users drag below `200px` and hold there for more than `1500ms`, the sidebar auto-collapses, and the collapsed rail remains draggable to expand back into resizable mode.
+A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `360px`). If users drag below `200px` and hold there for more than `300ms`, the sidebar auto-collapses without ending the active drag. While keeping the mouse pressed, dragging back to `>=200px` auto-expands the sidebar and continues the same resize interaction.
 
 **Navigation Items:**
 - Network (waterfall icon)
@@ -161,7 +161,7 @@ System font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif
 - **Buttons:** `h-9 px-5 rounded-lg font-medium text-sm` with hover/active states
 - **Inputs:** `h-9 px-3 rounded-lg bg-tahoe-bg/50 border` with focus states
 - **Scrollbars:** Custom thin (8px) with transparent tracks
-- **Sidebar:** default `w-60` equivalent width with draggable resize handle, constrained to `200px-360px`, with auto-collapse when held below `200px` for `300ms`, plus `glass-tahoe border-r`
+- **Sidebar:** default `w-60` equivalent width with draggable resize handle, constrained to `200px-360px`, with auto-collapse when held below `200px` for `300ms`, and continuous drag (no forced release/re-grab) across collapse/expand transitions, plus `glass-tahoe border-r`
 
 ## API Layer & State
 
