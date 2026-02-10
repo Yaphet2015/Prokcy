@@ -3,137 +3,117 @@
  */
 let isTahoeThemesRegistered = false;
 
-// Dark theme colors
-const tahoeDark = {
-  background: '#1e1e1e',
-  foreground: '#ffffff',
-  accent: '#0a84ff',
-  border: 'rgba(255,255,255,0.1)',
-  hover: 'rgba(255,255,255,0.05)',
-  subtle: '#86868b',
-
-  // Syntax colors
-  keyword: '#ff6b6b',
-  string: '#98c379',
-  number: '#d19a66',
-  comment: '#5c6370',
-  operator: '#56b6c2',
-  function: '#61afef',
-  variable: '#e06c75',
-  type: '#c5a6f4',
-};
-
-// Light theme colors
-const tahoeLight = {
-  background: '#ffffff',
-  foreground: '#1d1d1f',
-  accent: '#007aff',
-  border: 'rgba(0,0,0,0.08)',
-  hover: 'rgba(0,0,0,0.03)',
-  subtle: '#86868b',
-
-  // Syntax colors
-  keyword: '#af3a3a',
-  string: '#50a14f',
-  number: '#b16100',
-  comment: '#a0a1a7',
-  operator: '#56b6c2',
-  function: '#4078f2',
-  variable: '#d73a49',
-  type: '#8a2be2',
-};
+const THEME_COLORS = {
+  dark: {
+    background: '#1e1e1e',
+    foreground: '#ffffff',
+    accent: '#0a84ff',
+    border: 'rgba(255,255,255,0.1)',
+    hover: 'rgba(255,255,255,0.05)',
+    subtle: '#86868b',
+    keyword: '#ff6b6b',
+    string: '#98c379',
+    number: '#d19a66',
+    comment: '#5c6370',
+    operator: '#56b6c2',
+    function: '#61afef',
+    variable: '#e06c75',
+    type: '#c5a6f4',
+  },
+  light: {
+    background: '#ffffff',
+    foreground: '#1d1d1f',
+    accent: '#007aff',
+    border: 'rgba(0,0,0,0.08)',
+    hover: 'rgba(0,0,0,0.03)',
+    subtle: '#86868b',
+    keyword: '#af3a3a',
+    string: '#50a14f',
+    number: '#b16100',
+    comment: '#a0a1a7',
+    operator: '#56b6c2',
+    function: '#4078f2',
+    variable: '#d73a49',
+    type: '#8a2be2',
+  },
+} as const;
 
 /**
  * Register Tahoe themes with Monaco
  */
-export function registerTahoeThemes(monaco) {
+export function registerTahoeThemes(monaco: any): void {
   if (!monaco || isTahoeThemesRegistered) {
     return;
   }
+
+  // Common syntax highlighting rules for both themes
+  const createSyntaxRules = (colors: typeof THEME_COLORS.dark) => [
+    { token: 'comment', foreground: colors.comment, fontStyle: 'italic' },
+    { token: 'comment.doc', foreground: colors.comment, fontStyle: 'italic' },
+    { token: 'keyword', foreground: colors.keyword },
+    { token: 'keyword.operator', foreground: colors.operator },
+    { token: 'string', foreground: colors.string },
+    { token: 'string.value', foreground: colors.string },
+    { token: 'number', foreground: colors.number },
+    { token: 'number.hex', foreground: colors.number },
+    { token: 'type', foreground: colors.type },
+    { token: 'function', foreground: colors.function },
+    { token: 'function.call', foreground: colors.function },
+    { token: 'variable', foreground: colors.variable },
+    { token: 'variable.predefined', foreground: colors.variable },
+    { token: 'operator', foreground: colors.operator },
+    { token: 'tag', foreground: colors.variable },
+    { token: 'tag.name', foreground: colors.variable },
+    { token: 'tag.attribute.name', foreground: colors.function },
+    { token: 'tag.attribute.value', foreground: colors.string },
+    { token: 'regexp', foreground: colors.string },
+    { token: 'constant', foreground: colors.number },
+    { token: 'identifier', foreground: colors.foreground },
+  ];
+
+  // Common editor colors
+  const createEditorColors = (colors: typeof THEME_COLORS.dark) => ({
+    'editor.background': colors.background,
+    'editor.foreground': colors.foreground,
+    'editorLineNumber.foreground': colors.subtle,
+    'editorLineNumber.activeForeground': colors.accent,
+    'editor.selectionBackground': colors.accent + '40',
+    'editor.inactiveSelectionBackground': colors.accent + '20',
+    'editorCursor.foreground': colors.accent,
+    'editor.lineHighlightBackground': colors.hover,
+    'editorIndentGuide.background': colors.border,
+    'editorIndentGuide.activeBackground': colors.subtle + '40',
+    'editorWhitespace.foreground': colors.border,
+    'editorBracketMatch.background': colors.accent + '20',
+    'editorBracketMatch.border': colors.accent,
+    'editorGutter.background': colors.background,
+    'editorWidget.background': colors.background,
+    'editorWidget.border': colors.border,
+    'editorWidget.foreground': colors.foreground,
+  });
 
   // Register dark theme
   monaco.editor.defineTheme('tahoe-dark', {
     base: 'vs-dark',
     inherit: true,
-    rules: [
-      // Comments
-      { token: 'comment', foreground: tahoeDark.comment, fontStyle: 'italic' },
-      { token: 'comment.doc', foreground: tahoeDark.comment, fontStyle: 'italic' },
-
-      // Keywords
-      { token: 'keyword', foreground: tahoeDark.keyword },
-      { token: 'keyword.operator', foreground: tahoeDark.operator },
-
-      // Strings
-      { token: 'string', foreground: tahoeDark.string },
-      { token: 'string.value', foreground: tahoeDark.string },
-
-      // Numbers
-      { token: 'number', foreground: tahoeDark.number },
-      { token: 'number.hex', foreground: tahoeDark.number },
-
-      // Types
-      { token: 'type', foreground: tahoeDark.type },
-
-      // Functions
-      { token: 'function', foreground: tahoeDark.function },
-      { token: 'function.call', foreground: tahoeDark.function },
-
-      // Variables
-      { token: 'variable', foreground: tahoeDark.variable },
-      { token: 'variable.predefined', foreground: tahoeDark.variable },
-
-      // Operators
-      { token: 'operator', foreground: tahoeDark.operator },
-
-      // Tags
-      { token: 'tag', foreground: tahoeDark.variable },
-      { token: 'tag.name', foreground: tahoeDark.variable },
-      { token: 'tag.attribute.name', foreground: tahoeDark.function },
-      { token: 'tag.attribute.value', foreground: tahoeDark.string },
-
-      // RegEx
-      { token: 'regexp', foreground: tahoeDark.string },
-
-      // Constants
-      { token: 'constant', foreground: tahoeDark.number },
-
-      // Identifiers
-      { token: 'identifier', foreground: tahoeDark.foreground },
-    ],
+    rules: createSyntaxRules(THEME_COLORS.dark),
     colors: {
-      'editor.background': tahoeDark.background,
-      'editor.foreground': tahoeDark.foreground,
-      'editorLineNumber.foreground': tahoeDark.subtle,
-      'editorLineNumber.activeForeground': tahoeDark.accent,
-      'editor.selectionBackground': tahoeDark.accent + '40',
-      'editor.inactiveSelectionBackground': tahoeDark.accent + '20',
-      'editorCursor.foreground': tahoeDark.accent,
-      'editor.lineHighlightBackground': tahoeDark.hover,
-      'editorIndentGuide.background': tahoeDark.border,
-      'editorIndentGuide.activeBackground': tahoeDark.subtle + '40',
-      'editorWhitespace.foreground': tahoeDark.border,
-      'editorBracketMatch.background': tahoeDark.accent + '20',
-      'editorBracketMatch.border': tahoeDark.accent,
-      'editorGutter.background': tahoeDark.background,
-      'editorWidget.background': tahoeDark.background,
-      'editorWidget.border': tahoeDark.border,
-      'editorWidget.foreground': tahoeDark.foreground,
-      'activityBar.background': tahoeDark.background,
-      'activityBar.foreground': tahoeDark.foreground,
-      'sideBar.background': tahoeDark.background,
-      'sideBar.foreground': tahoeDark.foreground,
-      'sideBar.border': tahoeDark.border,
-      'statusBar.background': tahoeDark.background,
-      'statusBar.foreground': tahoeDark.foreground,
-      'statusBar.border': tahoeDark.border,
-      'titleBar.activeBackground': tahoeDark.background,
-      'titleBar.activeForeground': tahoeDark.foreground,
-      'menu.background': tahoeDark.background,
-      'menu.foreground': tahoeDark.foreground,
-      'menu.border': tahoeDark.border,
-      'menu.selectionBackground': tahoeDark.hover,
-      'menu.selectionForeground': tahoeDark.foreground,
+      ...createEditorColors(THEME_COLORS.dark),
+      'activityBar.background': THEME_COLORS.dark.background,
+      'activityBar.foreground': THEME_COLORS.dark.foreground,
+      'sideBar.background': THEME_COLORS.dark.background,
+      'sideBar.foreground': THEME_COLORS.dark.foreground,
+      'sideBar.border': THEME_COLORS.dark.border,
+      'statusBar.background': THEME_COLORS.dark.background,
+      'statusBar.foreground': THEME_COLORS.dark.foreground,
+      'statusBar.border': THEME_COLORS.dark.border,
+      'titleBar.activeBackground': THEME_COLORS.dark.background,
+      'titleBar.activeForeground': THEME_COLORS.dark.foreground,
+      'menu.background': THEME_COLORS.dark.background,
+      'menu.foreground': THEME_COLORS.dark.foreground,
+      'menu.border': THEME_COLORS.dark.border,
+      'menu.selectionBackground': THEME_COLORS.dark.hover,
+      'menu.selectionForeground': THEME_COLORS.dark.foreground,
     },
   });
 
@@ -141,71 +121,8 @@ export function registerTahoeThemes(monaco) {
   monaco.editor.defineTheme('tahoe-light', {
     base: 'vs',
     inherit: true,
-    rules: [
-      // Comments
-      { token: 'comment', foreground: tahoeLight.comment, fontStyle: 'italic' },
-      { token: 'comment.doc', foreground: tahoeLight.comment, fontStyle: 'italic' },
-
-      // Keywords
-      { token: 'keyword', foreground: tahoeLight.keyword },
-      { token: 'keyword.operator', foreground: tahoeLight.operator },
-
-      // Strings
-      { token: 'string', foreground: tahoeLight.string },
-      { token: 'string.value', foreground: tahoeLight.string },
-
-      // Numbers
-      { token: 'number', foreground: tahoeLight.number },
-      { token: 'number.hex', foreground: tahoeLight.number },
-
-      // Types
-      { token: 'type', foreground: tahoeLight.type },
-
-      // Functions
-      { token: 'function', foreground: tahoeLight.function },
-      { token: 'function.call', foreground: tahoeLight.function },
-
-      // Variables
-      { token: 'variable', foreground: tahoeLight.variable },
-      { token: 'variable.predefined', foreground: tahoeLight.variable },
-
-      // Operators
-      { token: 'operator', foreground: tahoeLight.operator },
-
-      // Tags
-      { token: 'tag', foreground: tahoeLight.variable },
-      { token: 'tag.name', foreground: tahoeLight.variable },
-      { token: 'tag.attribute.name', foreground: tahoeLight.function },
-      { token: 'tag.attribute.value', foreground: tahoeLight.string },
-
-      // RegEx
-      { token: 'regexp', foreground: tahoeLight.string },
-
-      // Constants
-      { token: 'constant', foreground: tahoeLight.number },
-
-      // Identifiers
-      { token: 'identifier', foreground: tahoeLight.foreground },
-    ],
-    colors: {
-      'editor.background': tahoeLight.background,
-      'editor.foreground': tahoeLight.foreground,
-      'editorLineNumber.foreground': tahoeLight.subtle,
-      'editorLineNumber.activeForeground': tahoeLight.accent,
-      'editor.selectionBackground': tahoeLight.accent + '40',
-      'editor.inactiveSelectionBackground': tahoeLight.accent + '20',
-      'editorCursor.foreground': tahoeLight.accent,
-      'editor.lineHighlightBackground': tahoeLight.hover,
-      'editorIndentGuide.background': tahoeLight.border,
-      'editorIndentGuide.activeBackground': tahoeLight.subtle + '40',
-      'editorWhitespace.foreground': tahoeLight.border,
-      'editorBracketMatch.background': tahoeLight.accent + '20',
-      'editorBracketMatch.border': tahoeLight.accent,
-      'editorGutter.background': tahoeLight.background,
-      'editorWidget.background': tahoeLight.background,
-      'editorWidget.border': tahoeLight.border,
-      'editorWidget.foreground': tahoeLight.foreground,
-    },
+    rules: createSyntaxRules(THEME_COLORS.light),
+    colors: createEditorColors(THEME_COLORS.light),
   });
 
   isTahoeThemesRegistered = true;
@@ -214,6 +131,6 @@ export function registerTahoeThemes(monaco) {
 /**
  * Get the theme ID based on system preference
  */
-export function getThemeId(isDark) {
+export function getThemeId(isDark: boolean): string {
   return isDark ? 'tahoe-dark' : 'tahoe-light';
 }
