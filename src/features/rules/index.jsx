@@ -154,8 +154,8 @@ function Rules() {
   const dragSettledRef = useRef(false);
 
   // Prompt and confirm hooks
-  const [showPrompt, promptElement] = usePrompt();
-  const [showConfirm, confirmElement] = useConfirm();
+  const prompt = usePrompt();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!isReordering) {
@@ -165,33 +165,16 @@ function Rules() {
   }, [ruleGroups, isReordering]);
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
-  const handleMonacoSave = useCallback(() => {
+  useMonacoSave(useCallback(() => {
     if (isDirty) {
       saveRules();
     }
-  }, [isDirty, saveRules]);
-
-  useMonacoSave(handleMonacoSave);
+  }, [isDirty, saveRules]));
 
   // Update Monaco theme when system theme changes
   useEffect(() => {
     setMonacoTheme(getThemeId(isDark));
   }, [isDark]);
-
-  // Keyboard shortcut for save (Cmd/Ctrl+S)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        if (isDirty) {
-          saveRules();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDirty, saveRules]);
 
   // Register Monaco language and themes before editor mounts
   const handleBeforeMount = useCallback((monaco) => {
@@ -199,14 +182,12 @@ function Rules() {
     initWhistleLanguage(monaco);
   }, []);
 
-  const activePriority = useMemo(
-    () => localRuleGroups.filter((group) => group.selected).map((group) => group.name),
-    [localRuleGroups],
-  );
-  const activePriorityIndex = useMemo(
-    () => Object.fromEntries(activePriority.map((name, idx) => [name, idx + 1])),
-    [activePriority],
-  );
+  const activePriorityIndex = useMemo(() => {
+    const selectedGroups = localRuleGroups.filter((group) => group.selected);
+    return Object.fromEntries(
+      selectedGroups.map((group, idx) => [group.name, idx + 1])
+    );
+  }, [localRuleGroups]);
 
   // Handle drag-and-drop reordering
   const handleReorder = useCallback((newOrder) => {
@@ -223,39 +204,39 @@ function Rules() {
     dragSettledRef.current = true;
     setIsReordering(false);
 
-    let result;
-    try {
-      result = await reorderGroups(latestOrderRef.current);
-    } catch (err) {
-      result = { success: false, message: err?.message || 'Failed to reorder groups' };
-    }
+    const result = await reorderGroups(latestOrderRef.current).catch((err) => ({
+      success: false,
+      message: err?.message || 'Failed to reorder groups',
+    }));
 
     if (!result.success) {
-      // Show error via prompt
-      await showPrompt({
+      await prompt({
         title: 'Error',
         message: result.message || 'Failed to reorder groups',
         defaultValue: '',
       });
     }
-  }, [reorderGroups, showPrompt]);
+  }, [reorderGroups, prompt]);
+
   const handleDragCancel = useCallback(() => {
     dragSettledRef.current = true;
     setIsReordering(false);
   }, []);
 
+  // Fallback cleanup for drag operations that don't properly end
   useEffect(() => {
     if (!isReordering) {
       return undefined;
     }
 
     let fallbackTimer = null;
+
     const stopReordering = () => {
       if (fallbackTimer !== null) {
         return;
       }
 
-      // Defer fallback cleanup to avoid racing Framer's drop/reorder callbacks.
+      // Defer to avoid racing with Framer's drop/reorder callbacks
       fallbackTimer = window.setTimeout(() => {
         fallbackTimer = null;
         if (!dragSettledRef.current) {
@@ -279,107 +260,82 @@ function Rules() {
   }, [isReordering]);
 
   const handleGroupDoubleClick = useCallback((group) => {
-    if (!group?.name) {
-      return;
+    if (group?.name) {
+      setRuleGroupSelection(group.name);
     }
-    setRuleGroupSelection(group.name);
   }, [setRuleGroupSelection]);
 
   // Generate a unique name for new groups
   const generateNewGroupName = useCallback(() => {
-    const baseName = 'New Group';
+    const existingNames = new Set(ruleGroups.map((g) => g.name.toLowerCase()));
     let counter = 1;
-    let newName = baseName;
+    let newName = 'New Group';
 
-    while (ruleGroups.some((g) => g.name.toLowerCase() === newName.toLowerCase())) {
+    while (existingNames.has(newName.toLowerCase())) {
       counter += 1;
-      newName = `${baseName} ${counter}`;
+      newName = `New Group ${counter}`;
     }
 
     return newName;
   }, [ruleGroups]);
 
-  // Handle create group from sidebar button
+  // Handle create group from sidebar button or context menu
   const handleCreateGroup = useCallback(async () => {
     const defaultName = generateNewGroupName();
-    const name = await showPrompt({
+    const name = await prompt({
       title: 'Create New Group',
       message: 'Enter a name for the new rules group:',
       defaultValue: defaultName,
     });
 
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       return;
     }
 
     const result = await createGroup(name.trim());
     if (!result.success) {
-      // Show error via prompt
-      await showPrompt({
+      await prompt({
         title: 'Error',
         message: result.message || 'Failed to create group',
         defaultValue: '',
       });
     }
-  }, [generateNewGroupName, showPrompt, createGroup]);
-
-  // Handle create from context menu
-  const handleContextCreate = useCallback(async () => {
-    const defaultName = generateNewGroupName();
-    const name = await showPrompt({
-      title: 'Create New Group',
-      message: 'Enter a name for the new rules group:',
-      defaultValue: defaultName,
-    });
-
-    if (!name || !name.trim()) {
-      return;
-    }
-
-    const result = await createGroup(name.trim());
-    if (!result.success) {
-      await showPrompt({
-        title: 'Error',
-        message: result.message || 'Failed to create group',
-        defaultValue: '',
-      });
-    }
-  }, [generateNewGroupName, showPrompt, createGroup]);
+  }, [generateNewGroupName, prompt, createGroup]);
 
   // Handle rename from context menu
   const handleContextRename = useCallback(async (group) => {
     if (!group) return;
 
-    const name = await showPrompt({
+    const name = await prompt({
       title: 'Rename Group',
       message: `Enter a new name for "${group.name}":`,
       defaultValue: group.name,
     });
 
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       return;
     }
 
     const trimmedName = name.trim();
     if (trimmedName.toLowerCase() === group.name.toLowerCase()) {
-      return; // No change
+      return;
     }
 
     const result = await renameGroup(group.name, trimmedName);
     if (!result.success) {
-      await showPrompt({
+      await prompt({
         title: 'Error',
         message: result.message || 'Failed to rename group',
         defaultValue: '',
       });
     }
-  }, [showPrompt, renameGroup]);
+  }, [prompt, renameGroup]);
 
   // Handle delete from context menu
   const handleContextDelete = useCallback(async (group) => {
     if (!group) return;
 
-    const confirmed = await showConfirm({
+    const confirmed = await confirm({
       title: 'Delete Group',
       message: `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
       confirmText: 'Delete',
@@ -393,18 +349,18 @@ function Rules() {
 
     const result = await deleteGroup(group.name);
     if (!result.success) {
-      await showPrompt({
+      await prompt({
         title: 'Error',
         message: result.message || 'Failed to delete group',
         defaultValue: '',
       });
     }
-  }, [showConfirm, showPrompt, deleteGroup]);
+  }, [confirm, prompt, deleteGroup]);
 
   return (
     <>
-      {promptElement}
-      {confirmElement}
+      {prompt}
+      {confirm}
 
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
 
@@ -490,7 +446,7 @@ function Rules() {
                     rank={rank}
                     setActiveEditorGroup={setActiveEditorGroup}
                     handleGroupDoubleClick={handleGroupDoubleClick}
-                    handleContextCreate={handleContextCreate}
+                    handleContextCreate={handleCreateGroup}
                     handleContextRename={handleContextRename}
                     handleContextDelete={handleContextDelete}
                     onDragStart={handleDragStart}

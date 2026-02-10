@@ -1,6 +1,6 @@
 let isWhistleLanguageRegistered = false;
 
-const WHISTLE_PROTOCOLS = [
+const WHISTLE_PROTOCOLS: readonly string[] = [
   '301',
   '302',
   'attachment',
@@ -99,7 +99,7 @@ const WHISTLE_PROTOCOLS = [
   'xtpl',
 ];
 
-const EXTRA_PROTOCOLS = [
+const EXTRA_PROTOCOLS: readonly string[] = [
   'clientId',
   'dns',
   'params',
@@ -112,7 +112,7 @@ const EXTRA_PROTOCOLS = [
   'wu',
 ];
 
-const PROTOCOL_DOCS: Record<string, string> = {
+const PROTOCOL_DOCS: Readonly<Record<string, string>> = {
   'http-proxy': 'Forward to HTTP proxy',
   'xhttp-proxy': 'Forward to HTTP proxy without DNS resolve',
   'https-proxy': 'Forward to HTTPS proxy',
@@ -133,11 +133,11 @@ const PROTOCOL_DOCS: Record<string, string> = {
   'style': 'Apply custom styles to network request rows (bg-color, text-color, border, font-weight)',
 };
 
-const PROTOCOL_SUGGESTIONS = [...new Set([...WHISTLE_PROTOCOLS, ...EXTRA_PROTOCOLS])]
+const PROTOCOL_SUGGESTIONS = Array.from(new Set([...WHISTLE_PROTOCOLS, ...EXTRA_PROTOCOLS]))
   .sort((a, b) => a.localeCompare(b))
   .map((name) => ({
     label: `${name}://`,
-    documentation: PROTOCOL_DOCS[name] || 'Whistle protocol',
+    documentation: PROTOCOL_DOCS[name] ?? 'Whistle protocol',
   }));
 
 /**
@@ -156,7 +156,7 @@ const PROTOCOL_SUGGESTIONS = [...new Set([...WHISTLE_PROTOCOLS, ...EXTRA_PROTOCO
 /**
  * Register Whistle language with Monaco Editor
  */
-export function registerWhistleLanguage(monaco) {
+export function registerWhistleLanguage(monaco: any): void {
   if (!monaco || isWhistleLanguageRegistered) {
     return;
   }
@@ -248,9 +248,8 @@ export function registerWhistleLanguage(monaco) {
   monaco.languages.registerCompletionItemProvider('whistle', {
     triggerCharacters: [' ', ':', '/'],
     provideCompletionItems: (model, position) => {
-      // Get the current word being typed
       const word = model.getWordUntilPosition(position);
-      const currentWord = word.word || '';
+      const currentWord = word.word ?? '';
 
       const range = {
         startLineNumber: position.lineNumber,
@@ -259,23 +258,15 @@ export function registerWhistleLanguage(monaco) {
         endColumn: word.endColumn,
       };
 
-      // Filter and convert to suggestions
       const suggestions = PROTOCOL_SUGGESTIONS
-        .filter(p => {
-          // If user typed something, filter protocols that start with it
-          if (currentWord) {
-            return p.label.toLowerCase().startsWith(currentWord.toLowerCase());
-          }
-          return true;
-        })
-        .map(p => ({
+        .filter((p) => !currentWord || p.label.toLowerCase().startsWith(currentWord.toLowerCase()))
+        .map((p) => ({
           label: p.label,
           kind: monaco.languages.CompletionItemKind.Function,
           insertText: p.label,
           range,
           documentation: p.documentation,
           detail: p.documentation,
-          // Sort prefix matches first
           sortText: p.label.startsWith(currentWord) ? '0' : '1',
         }));
 
@@ -290,17 +281,17 @@ export function registerWhistleLanguage(monaco) {
       if (!word) return;
 
       const hoverText = getHoverText(word.word);
-      if (hoverText) {
-        return {
-          range: new monaco.Range(
-            position.lineNumber,
-            word.startColumn,
-            position.lineNumber,
-            word.endColumn
-          ),
-          contents: [{ value: hoverText }],
-        };
-      }
+      if (!hoverText) return;
+
+      return {
+        range: new monaco.Range(
+          position.lineNumber,
+          word.startColumn,
+          position.lineNumber,
+          word.endColumn
+        ),
+        contents: [{ value: hoverText }],
+      };
     },
   });
 
@@ -310,8 +301,8 @@ export function registerWhistleLanguage(monaco) {
 /**
  * Get hover documentation for a word
  */
-function getHoverText(word) {
-  const docs = {
+function getHoverText(word: string): string | undefined {
+  const docs: Readonly<Record<string, string>> = {
     'reqHeaders': 'Modify request headers before forwarding\n\nExample: `www.example.com reqHeaders://custom`',
     'resHeaders': 'Modify response headers\n\nExample: `www.example.com resHeaders://custom`',
     'replace': 'Replace response content\n\nExample: `www.example.com replace://custom`',
@@ -326,12 +317,12 @@ function getHoverText(word) {
     'style': 'Apply custom styles to network request rows\n\nProperties: bg-color, text-color, border-left, font-weight\n\nExample: `api.test.com style://font-weight:bold,bg-color:#ecfdf5`',
   };
 
-  return docs[word] || null;
+  return docs[word];
 }
 
 /**
  * Initialize Whistle language with Monaco
  */
-export function initWhistleLanguage(monaco) {
+export function initWhistleLanguage(monaco: any): void {
   registerWhistleLanguage(monaco);
 }
