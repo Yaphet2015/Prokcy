@@ -203,6 +203,7 @@ export default function WaterfallTimeline() {
     compressedDuration: 1000,
     requestPositions: [],
   });
+  const [hoveredRequestId, setHoveredRequestId] = useState(null);
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
