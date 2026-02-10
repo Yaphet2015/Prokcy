@@ -1,4 +1,6 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import {
+  useMemo, useState, useEffect, useCallback, useRef,
+} from 'react';
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
 import { getRequestStyles } from '../../shared/utils/styleParser';
@@ -155,7 +157,9 @@ function calculateCompressedTimeline(requests) {
 /**
  * Waterfall bar component with compressed timeline
  */
-function WaterfallBar({ request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd, requestId }) {
+function WaterfallBar({
+  request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd, requestId,
+}) {
   const phases = getRequestPhases(request);
 
   // Calculate position and width as percentages
@@ -165,7 +169,7 @@ function WaterfallBar({ request, compressedPosition, duration, compressedDuratio
 
   return (
     <div
-      className={`${isHovered ? 'w-96' : 'w-48'} h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out`}
+      className={`w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out ${isHovered ? 'z-10' : ''}`}
       data-request-id={requestId}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
@@ -222,7 +226,7 @@ export default function WaterfallTimeline() {
   // Memoized hover handlers to prevent unnecessary re-renders
   // Read requestId from data attribute to avoid inline functions
   const handleHoverStart = useCallback((event) => {
-    const requestId = event.currentTarget.dataset.requestId;
+    const { requestId } = event.currentTarget.dataset;
     setHoveredRequestId(requestId);
   }, []);
 
@@ -255,7 +259,7 @@ export default function WaterfallTimeline() {
     }
 
     const container = listRef.current;
-    const scrollTop = container.scrollTop;
+    const { scrollTop } = container;
     const viewHeight = container.clientHeight;
 
     const firstVisibleIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT));
