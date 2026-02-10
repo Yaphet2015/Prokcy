@@ -5,6 +5,7 @@ const { EventEmitter } = require('node:events');
 const {
   toggleMaximize,
   bindMaximizeStateEvents,
+  hideNativeWindowButtons,
 } = require('../../lib/window-controls');
 
 test('toggleMaximize maximizes when window is not maximized', () => {
@@ -43,4 +44,16 @@ test('bindMaximizeStateEvents emits maximize state changes', () => {
   win.emit('unmaximize');
 
   assert.deepEqual(events, [true, false]);
+});
+
+test('hideNativeWindowButtons hides native controls on macOS only', () => {
+  const calls = [];
+  const win = {
+    setWindowButtonVisibility: (visible) => calls.push(visible),
+  };
+
+  hideNativeWindowButtons(win, 'darwin');
+  hideNativeWindowButtons(win, 'win32');
+
+  assert.deepEqual(calls, [false]);
 });

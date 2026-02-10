@@ -266,8 +266,8 @@ src/shared/ui/
 ### Final scope shipped
 
 - Native frame is hidden for the main app window via `frame: false` in `lib/window.js`.
-- A renderer-driven custom titlebar is used across platforms for consistency.
-- The top chrome is implemented in `src/shared/ui/WindowTitlebar.jsx` and mounted from `src/App.jsx`.
+- A renderer-driven custom window chrome is used across platforms for consistency.
+- Window controls are implemented in `src/shared/ui/Sidebar.jsx`, and the content header is implemented in `src/shared/ui/ContentHeader.jsx`.
 - Window control actions are bridged over IPC (`window:minimize`, `window:toggle-maximize`, `window:close`, `window:is-maximized`).
 
 ### Event synchronization
@@ -285,6 +285,29 @@ src/shared/ui/
 
 - This implementation keeps existing close-to-tray behavior unchanged (`win.close()` still maps to hide by default in current lifecycle).
 - Existing settings modal behavior remains unchanged.
+
+## 2026-02-10 Layout Revision (Sidebar/Content Split)
+
+### Requested adjustment applied
+
+- Removed full-width global titlebar composition.
+- Final shell layout is now two-pane:
+  - Left: full-height sidebar (navigation + custom window controls)
+  - Right: content region with its own header
+
+### Window controls placement and style
+
+- Custom controls were moved to the top-left of the sidebar.
+- Control style now mimics native traffic lights:
+  - close: red
+  - minimize: yellow
+  - maximize/restore: green
+- On macOS, native window buttons are explicitly hidden via `setWindowButtonVisibility(false)` to avoid duplicate controls.
+
+### Header scope
+
+- Header now belongs only to the right content pane and no longer spans across the sidebar.
+- Header still provides window drag behavior and double-click maximize/restore.
 
 ```jsx
 // src/shared/ui/Glass/GlassPanel.jsx

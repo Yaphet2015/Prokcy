@@ -32,13 +32,28 @@ export default function Sidebar({
       `}
       style={{ width: `${width}px` }}
     >
-      {/* Header */}
-      <div className="h-12 flex items-center px-4 border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
-        <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-center relative">
-          <span className={`${isCollapsed ? 'bg-gradient-to-r from-0% to-60% from-zinc-900 dark:from-zinc-100 to-transparent bg-clip-text text-transparent' : ''}`}>
-            Prokcy
-          </span>
-        </span>
+      {/* Window controls */}
+      <div className="app-drag h-12 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+        <div className="app-no-drag flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Close window"
+            onClick={() => window.electron?.closeWindow?.()}
+            className="h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
+          />
+          <button
+            type="button"
+            aria-label="Minimize window"
+            onClick={() => window.electron?.minimizeWindow?.()}
+            className="h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
+          />
+          <button
+            type="button"
+            aria-label="Toggle maximize window"
+            onClick={() => window.electron?.toggleMaximizeWindow?.()}
+            className="h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
+          />
+        </div>
       </div>
 
       {/* Navigation */}
