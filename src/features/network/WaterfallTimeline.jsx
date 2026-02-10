@@ -182,14 +182,22 @@ function WaterfallBar({ request, compressedPosition, duration, compressedDuratio
           return (
             <div
               key={idx}
-              className="h-full first:rounded-l last:rounded-r"
+              className="h-full first:rounded-l last:rounded-r relative flex items-center justify-center overflow-hidden"
               style={{
                 backgroundColor: phase.color,
                 width: `${phaseWidthPercent}%`,
                 marginLeft: idx > 0 ? undefined : `${phaseOffsetPercent}%`,
+                minWidth: isHovered ? '20px' : undefined,
               }}
               title={`${phase.type}: ${formatTime(phase.duration)}`}
-            />
+            >
+              {isHovered && phaseWidthPercent > 3 && (
+                <div className="flex flex-col items-center justify-center text-[9px] font-medium text-white">
+                  <span className="uppercase leading-tight">{phase.type}</span>
+                  <span className="leading-tight opacity-90">{formatTime(phase.duration)}</span>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
