@@ -1,6 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const electronApi = {
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  isWindowMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  onWindowMaximizeChanged: (callback) => {
+    const listener = (event, isMaximized) => callback(isMaximized);
+    ipcRenderer.on('window-maximize-changed', listener);
+    return () => ipcRenderer.removeListener('window-maximize-changed', listener);
+  },
   getTheme: () => ipcRenderer.invoke('get-theme'),
   onThemeChanged: (callback) => {
     const listener = (event, theme) => callback(theme);
