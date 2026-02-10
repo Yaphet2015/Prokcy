@@ -1,11 +1,7 @@
-import {
-  useCallback,
-  useMemo,
-} from 'react';
-import { useRules } from '../../shared/context/RulesContext';
+import { useMemo } from 'react';
 import { usePrompt } from '../../shared/ui/Modal';
 import { useConfirm } from '../../shared/ui/ConfirmDialog';
-import { RuleGroupItem, DraggableRuleGroupItem } from './components/RuleGroupItem';
+import { useRules } from '../../shared/context/RulesContext';
 import { RulesToolbar } from './components/RulesToolbar';
 import { RulesSidebar } from './components/RulesSidebar';
 import { RulesEditor } from './components/RulesEditor';
@@ -13,11 +9,11 @@ import { useRuleGroupActions } from './hooks/useRuleGroupActions';
 import { useRuleGroupsDragDrop } from './hooks/useRuleGroupsDragDrop';
 
 function Rules() {
+  // Get rules state and operations from context
   const {
     rules,
     setRules,
     saveRules,
-    // revertRules,
     toggleEnabled,
     reorderGroups,
     ruleGroups,
@@ -30,16 +26,15 @@ function Rules() {
     error,
   } = useRules();
 
-  // Prompt and confirm hooks
+  // Dialog hooks
   const prompt = usePrompt();
   const confirm = useConfirm();
 
-  // Rule group actions
+  // Custom hooks for complex logic
   const actions = useRuleGroupActions({ prompt, confirm });
-
-  // Drag-and-drop hook
   const dragDrop = useRuleGroupsDragDrop({ ruleGroups, reorderGroups, prompt });
 
+  // Compute priority ranks for active groups
   const activePriorityIndex = useMemo(() => {
     const selectedGroups = dragDrop.localRuleGroups.filter((group) => group.selected);
     return Object.fromEntries(
@@ -53,8 +48,6 @@ function Rules() {
       {confirm}
 
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-
-        {/* Main Toolbar - Global status */}
         <RulesToolbar
           isEnabled={isEnabled}
           isDirty={isDirty}
@@ -64,7 +57,6 @@ function Rules() {
           onSave={saveRules}
         />
 
-        {/* Editor */}
         <div className="flex-1 overflow-hidden flex">
           <RulesSidebar
             localRuleGroups={dragDrop.localRuleGroups}
@@ -96,5 +88,7 @@ function Rules() {
     </>
   );
 }
+
+Rules.displayName = 'Rules';
 
 export default Rules;
