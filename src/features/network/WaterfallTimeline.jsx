@@ -155,15 +155,19 @@ function calculateCompressedTimeline(requests) {
 /**
  * Waterfall bar component with compressed timeline
  */
-function WaterfallBar({ request, compressedPosition, duration, compressedDuration }) {
+function WaterfallBar({ request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd }) {
   const phases = getRequestPhases(request);
 
   // Calculate position and width as percentages
-  const leftPercent = (compressedPosition / compressedDuration) * 100;
-  const widthPercent = Math.max((duration / compressedDuration) * 100, MIN_BAR_WIDTH_PERCENT / compressedDuration * 100);
+  // When hovered, expand to full width; otherwise use compressed positioning
+  const leftPercent = isHovered ? 0 : (compressedPosition / compressedDuration) * 100;
+  const widthPercent = isHovered ? 100 : Math.max((duration / compressedDuration) * 100, MIN_BAR_WIDTH_PERCENT / compressedDuration * 100);
 
   return (
-    <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative">
+    <div className={`${isHovered ? 'w-96' : 'w-48'} h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out`}
+         onMouseEnter={onHoverStart}
+         onMouseLeave={onHoverEnd}
+    >
       <div
         className="absolute inset-y-0 flex"
         style={{
