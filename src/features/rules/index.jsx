@@ -18,6 +18,7 @@ import { useConfirm } from '../../shared/ui/ConfirmDialog';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
 import { RuleGroupItem, DraggableRuleGroupItem } from './components/RuleGroupItem';
+import { RulesToolbar } from './components/RulesToolbar';
 import { useRuleGroupActions } from './hooks/useRuleGroupActions';
 import { useRuleGroupsDragDrop } from './hooks/useRuleGroupsDragDrop';
 
@@ -91,46 +92,14 @@ function Rules() {
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
 
         {/* Main Toolbar - Global status */}
-        <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
-          <div className="flex flex-col">
-            <div className="flex gap-2 items-center line">
-              <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Rules</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 justify-start">
-            {/* Global enable/disable */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleEnabled}
-              leftIcon={<Power color={isEnabled ? 'green' : 'red'} className="w-4 h-4" />}
-              title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
-            >
-              {isEnabled ? 'Enabled' : 'Disabled'}
-            </Button>
-          </div>
-
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-3">
-            {/* Error message */}
-            {error && (
-              <span className="text-xs text-red-500">{error}</span>
-            )}
-
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={saveRules}
-              disabled={!isDirty || isSaving}
-              leftIcon={<Save className="w-4 h-4" />}
-              title="Save rules (Cmd+S)"
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </div>
+        <RulesToolbar
+          isEnabled={isEnabled}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          error={error}
+          onToggleEnabled={toggleEnabled}
+          onSave={saveRules}
+        />
 
         {/* Editor */}
         <div className="flex-1 overflow-hidden flex">
