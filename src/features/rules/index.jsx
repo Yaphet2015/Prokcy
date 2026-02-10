@@ -19,6 +19,7 @@ import { useConfirm } from '../../shared/ui/ConfirmDialog';
 import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
 import { RuleGroupItem, DraggableRuleGroupItem } from './components/RuleGroupItem';
+import { useRuleGroupActions } from './hooks/useRuleGroupActions';
 
 // Import hook directly (cannot be lazy-loaded)
 import { useMonacoSave } from '../../shared/ui/MonacoEditor';
@@ -33,11 +34,6 @@ function Rules() {
     saveRules,
     // revertRules,
     toggleEnabled,
-    setActiveEditorGroup,
-    setRuleGroupSelection,
-    createGroup,
-    deleteGroup,
-    renameGroup,
     reorderGroups,
     ruleGroups,
     activeGroupNames,
@@ -59,6 +55,9 @@ function Rules() {
   // Prompt and confirm hooks
   const prompt = usePrompt();
   const confirm = useConfirm();
+
+  // Rule group actions
+  const actions = useRuleGroupActions({ prompt, confirm });
 
   useEffect(() => {
     if (!isReordering) {
@@ -162,104 +161,6 @@ function Rules() {
     };
   }, [isReordering]);
 
-  const handleGroupDoubleClick = useCallback((group) => {
-    if (group?.name) {
-      setRuleGroupSelection(group.name);
-    }
-  }, [setRuleGroupSelection]);
-
-  // Generate a unique name for new groups
-  const generateNewGroupName = useCallback(() => {
-    const existingNames = new Set(ruleGroups.map((g) => g.name.toLowerCase()));
-    let counter = 1;
-    let newName = 'New Group';
-
-    while (existingNames.has(newName.toLowerCase())) {
-      counter += 1;
-      newName = `New Group ${counter}`;
-    }
-
-    return newName;
-  }, [ruleGroups]);
-
-  // Handle create group from sidebar button or context menu
-  const handleCreateGroup = useCallback(async () => {
-    const defaultName = generateNewGroupName();
-    const name = await prompt({
-      title: 'Create New Group',
-      message: 'Enter a name for the new rules group:',
-      defaultValue: defaultName,
-    });
-
-    if (!name?.trim()) {
-      return;
-    }
-
-    const result = await createGroup(name.trim());
-    if (!result.success) {
-      await prompt({
-        title: 'Error',
-        message: result.message || 'Failed to create group',
-        defaultValue: '',
-      });
-    }
-  }, [generateNewGroupName, prompt, createGroup]);
-
-  // Handle rename from context menu
-  const handleContextRename = useCallback(async (group) => {
-    if (!group) return;
-
-    const name = await prompt({
-      title: 'Rename Group',
-      message: `Enter a new name for "${group.name}":`,
-      defaultValue: group.name,
-    });
-
-    if (!name?.trim()) {
-      return;
-    }
-
-    const trimmedName = name.trim();
-    if (trimmedName.toLowerCase() === group.name.toLowerCase()) {
-      return;
-    }
-
-    const result = await renameGroup(group.name, trimmedName);
-    if (!result.success) {
-      await prompt({
-        title: 'Error',
-        message: result.message || 'Failed to rename group',
-        defaultValue: '',
-      });
-    }
-  }, [prompt, renameGroup]);
-
-  // Handle delete from context menu
-  const handleContextDelete = useCallback(async (group) => {
-    if (!group) return;
-
-    const confirmed = await confirm({
-      title: 'Delete Group',
-      message: `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      variant: 'destructive',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const result = await deleteGroup(group.name);
-    if (!result.success) {
-      await prompt({
-        title: 'Error',
-        message: result.message || 'Failed to delete group',
-        defaultValue: '',
-      });
-    }
-  }, [confirm, prompt, deleteGroup]);
-
   return (
     <>
       {prompt}
@@ -321,7 +222,7 @@ function Rules() {
                 <Button
                   variant="ghost"
                   size="xs"
-                  onClick={handleCreateGroup}
+                  onClick={actions.handleCreateGroup}
                   leftIcon={<Plus className="w-3.5 h-3.5" />}
                   title="Create new group"
                 >
@@ -364,11 +265,11 @@ function Rules() {
                         isActive={isActive}
                         isEditorGroup={isEditorGroup}
                         rank={rank}
-                        onSelect={() => setActiveEditorGroup(group.name)}
-                        onDoubleClick={() => handleGroupDoubleClick(group)}
-                        onCreate={handleCreateGroup}
-                        onRename={() => handleContextRename(group)}
-                        onDelete={() => handleContextDelete(group)}
+                        onSelect={() => actions.setActiveEditorGroup(group.name)}
+                        onDoubleClick={() => actions.handleGroupDoubleClick(group)}
+                        onCreate={actions.handleCreateGroup}
+                        onRename={() => actions.handleRenameGroup(group)}
+                        onDelete={() => actions.handleDeleteGroup(group)}
                       />
                     </DraggableRuleGroupItem>
                   </Reorder.Item>
