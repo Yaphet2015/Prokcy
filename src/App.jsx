@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import {
+  useCallback, useEffect, useRef, useState,
+} from 'react';
 import Sidebar from './shared/ui/Sidebar';
 import Network from './features/network';
 import Rules from './features/rules';
@@ -23,10 +25,36 @@ const viewAliases = {
   Settings: 'settings',
 };
 
+const SIDEBAR_COLLAPSED_WIDTH = 56;
+const SIDEBAR_DEFAULT_WIDTH = 240;
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 360;
+const SIDEBAR_COLLAPSE_HOLD_MS = 300;
+
 function App() {
   const [activeView, setActiveView] = useState('network');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const resizeStartRef = useRef({ x: 0, width: SIDEBAR_DEFAULT_WIDTH });
+  const collapseHoldTimeoutRef = useRef(null);
   const ActiveComponent = views[activeView] || views.network;
+
+  const handleSidebarResizeStart = useCallback((event) => {
+    event.preventDefault();
+    const initialWidth = isSidebarCollapsed ? SIDEBAR_MIN_WIDTH : sidebarWidth;
+
+    if (isSidebarCollapsed) {
+      setIsSidebarCollapsed(false);
+      setSidebarWidth(SIDEBAR_MIN_WIDTH);
+    }
+
+    resizeStartRef.current = {
+      x: event.clientX,
+      width: initialWidth,
+    };
+    setIsResizingSidebar(true);
+  }, [isSidebarCollapsed, sidebarWidth]);
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -62,6 +90,60 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isResizingSidebar) {
+      return undefined;
+    }
+
+    const clearCollapseTimer = () => {
+      if (collapseHoldTimeoutRef.current) {
+        clearTimeout(collapseHoldTimeoutRef.current);
+        collapseHoldTimeoutRef.current = null;
+      }
+    };
+
+    const handleMouseMove = (event) => {
+      const deltaX = event.clientX - resizeStartRef.current.x;
+      const rawNextWidth = resizeStartRef.current.width + deltaX;
+
+      if (rawNextWidth < SIDEBAR_MIN_WIDTH) {
+        if (!collapseHoldTimeoutRef.current) {
+          collapseHoldTimeoutRef.current = setTimeout(() => {
+            setIsSidebarCollapsed(true);
+            setIsResizingSidebar(false);
+            collapseHoldTimeoutRef.current = null;
+          }, SIDEBAR_COLLAPSE_HOLD_MS);
+        }
+      } else {
+        clearCollapseTimer();
+      }
+
+      const nextWidth = Math.min(
+        SIDEBAR_MAX_WIDTH,
+        Math.max(SIDEBAR_MIN_WIDTH, rawNextWidth),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const stopResizing = () => {
+      clearCollapseTimer();
+      setIsResizingSidebar(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopResizing);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      clearCollapseTimer();
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopResizing);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizingSidebar]);
+
   return (
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
       <Sidebar
@@ -69,6 +151,8 @@ function App() {
         onViewChange={setActiveView}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
+        onResizeStart={handleSidebarResizeStart}
       />
 
       <main className="flex-1 overflow-hidden w-full">

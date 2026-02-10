@@ -13,19 +13,24 @@ const navigationItems = [
 ];
 
 export default function Sidebar({
-  activeView, onViewChange, isCollapsed, onToggleCollapse,
+  activeView,
+  onViewChange,
+  isCollapsed,
+  onToggleCollapse,
+  width,
+  onResizeStart,
 }) {
   const { isSystemProxy } = useService();
   const isSystemProxyEnabled = isSystemProxy === 'enabled';
   return (
     <aside
       className={`
-        h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
+        relative h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
         bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
-        transition-all duration-200 justify-between
+        transition-[width] duration-200 justify-between
         overflow-x-hidden
-        ${isCollapsed ? 'w-14' : 'w-60'}
       `}
+      style={{ width: `${width}px` }}
     >
       {/* Header */}
       {/* <div className="h-12 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
@@ -105,6 +110,18 @@ export default function Sidebar({
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        aria-label="Resize sidebar"
+        onMouseDown={onResizeStart}
+        className="
+          absolute top-0 -right-1 h-full w-2 cursor-col-resize
+          bg-transparent border-none p-0
+          hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50
+          focus:outline-none
+        "
+      />
     </aside>
   );
 }
