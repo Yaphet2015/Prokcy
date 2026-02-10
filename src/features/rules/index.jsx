@@ -407,23 +407,29 @@ function Rules() {
       {confirmElement}
 
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+
         {/* Main Toolbar - Global status */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
           <div className="flex flex-col">
             <div className="flex gap-2 items-center line">
               <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Rules</h1>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                (
-                {isEnabled ? 'Enabled' : 'Disabled'}
-                )
-              </span>
             </div>
-
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Active order:
-              {activePriority.length ? activePriority.join(' → ') : 'None'}
-            </p>
           </div>
+
+          <div className="flex items-center gap-3 justify-start">
+            {/* Global enable/disable */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleEnabled}
+              leftIcon={<Power color={isEnabled ? 'green' : 'red'} className="w-4 h-4" />}
+              title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
+            >
+              {isEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex-1" />
 
           <div className="flex items-center gap-3">
             {/* Error message */}
@@ -431,15 +437,15 @@ function Rules() {
               <span className="text-xs text-red-500">{error}</span>
             )}
 
-            {/* Global enable/disable */}
             <Button
-              variant={isEnabled ? 'ghost' : 'secondary'}
+              variant="primary"
               size="sm"
-              onClick={toggleEnabled}
-              leftIcon={<Power color={isEnabled ? 'red' : 'green'} className="w-4 h-4" />}
-              title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
+              onClick={saveRules}
+              disabled={!isDirty || isSaving}
+              leftIcon={<Save className="w-4 h-4" />}
+              title="Save rules (Cmd+S)"
             >
-              {isEnabled ? 'Disable All' : 'Enable All'}
+              {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
@@ -497,43 +503,6 @@ function Rules() {
           </aside>
 
           <div className="flex-1 overflow-hidden relative">
-            {/* Editor Header - Absolute positioned at top right */}
-            <div className="absolute top-2 right-5 z-10 flex items-center gap-2">
-              {/* Status indicator */}
-              {/* {isSaving && (
-                <span className="text-xs text-blue-500 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Saving...</span>
-              )} */}
-              {/* {!isSaving && isDirty && (
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Unsaved changes</span>
-              )}
-              {!isSaving && !isDirty && (
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-2 py-1 rounded">Saved</span>
-              )} */}
-
-              {/* Action buttons */}
-              {/* <Button
-                variant="ghost"
-                size="sm"
-                onClick={revertRules}
-                disabled={!isDirty || isSaving}
-                leftIcon={<RotateCcw className="w-4 h-4" />}
-                title="Revert changes (Esc)"
-              >
-                Revert
-              </Button> */}
-
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={saveRules}
-                disabled={!isDirty || isSaving}
-                leftIcon={<Save className="w-4 h-4" />}
-                title="Save rules (Cmd+S)"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            </div>
-
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
