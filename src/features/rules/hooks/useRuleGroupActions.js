@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useRules } from '../../shared/context/RulesContext';
+import { useRules } from '../../../shared/context/RulesContext';
 
 export function useRuleGroupActions({ prompt, confirm }) {
   const {

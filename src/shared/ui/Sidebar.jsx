@@ -3,7 +3,7 @@ import {
   ChevronLeft, ChevronRight, Activity, FileText, Key, Settings,
 } from 'lucide-react';
 import ServiceToggle from './ServiceToggle';
-import { useService } from '../context/ServiceContext';
+// import { useService } from '../context/ServiceContext';
 
 const navigationItems = [
   { id: 'network', label: 'Network', icon: Activity },
@@ -20,8 +20,8 @@ export default function Sidebar({
   width,
   onResizeStart,
 }) {
-  const { isSystemProxy } = useService();
-  const isSystemProxyEnabled = isSystemProxy === 'enabled';
+  // const { isSystemProxy } = useService();
+  // const isSystemProxyEnabled = isSystemProxy === 'enabled';
   return (
     <aside
       className={`
@@ -34,11 +34,11 @@ export default function Sidebar({
     >
       {/* Header */}
       <div className="h-12 flex items-center px-4 border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
-        {!isCollapsed && (
-          <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+        <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-center relative">
+          <span className={`${isCollapsed ? 'bg-gradient-to-r from-0% to-60% from-zinc-900 dark:from-zinc-100 to-transparent bg-clip-text text-transparent' : ''}`}>
             Prokcy
           </span>
-        )}
+        </span>
       </div>
 
       {/* Navigation */}
@@ -68,7 +68,7 @@ export default function Sidebar({
       </nav>
 
       {/* Footer - Service Toggle & Collapse */}
-      <div className="p-3 border-t border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+      <div className="p-2 border-t border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         {isCollapsed ? (
           <div className="flex flex-col gap-3 items-center">
             {/* <ServiceToggle /> */}
@@ -83,7 +83,7 @@ export default function Sidebar({
             </Button.Icon>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button.Icon
               variant="ghost"
               size="sm"
@@ -93,17 +93,19 @@ export default function Sidebar({
             >
               <ChevronLeft className="w-4 h-4" />
             </Button.Icon>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+            <div className="h-4 ml-[-6px] w-px bg-zinc-200 dark:bg-zinc-700" />
+
             <div className="flex items-center justify-between flex-1">
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 text-nowrap">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 text-nowrap">
                   Proxy Service
                 </span>
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400  text-nowrap">
+                {/* <span className="text-[10px] text-zinc-500 dark:text-zinc-400  text-nowrap">
                   with system proxy
                   {' '}
                   {isSystemProxyEnabled ? 'on' : 'off'}
-                </span>
+                </span> */}
               </div>
               <ServiceToggle />
             </div>
