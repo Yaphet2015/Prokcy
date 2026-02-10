@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useDragControls, Reorder } from 'framer-motion';
 import { ContextMenu } from '@pikoloo/darwin-ui';
 import { FilePlus, Pencil, Trash2, GripVertical } from 'lucide-react';
 
@@ -72,7 +72,7 @@ export function RuleGroupItem({
 
 RuleGroupItem.displayName = 'RuleGroupItem';
 
-// Draggable wrapper component
+// Draggable wrapper component - receives dragControls from ReorderableGroupItem
 export function DraggableRuleGroupItem({ children, dragControls }) {
   return (
     <div className="relative group">
@@ -90,3 +90,17 @@ export function DraggableRuleGroupItem({ children, dragControls }) {
 }
 
 DraggableRuleGroupItem.displayName = 'DraggableRuleGroupItem';
+
+// Wrapper component that creates dragControls per item and connects them
+// This solves the issue where sharing a single dragControls across items breaks DnD
+export function ReorderableGroupItem({ children, ...reorderItemProps }) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item dragControls={dragControls} {...reorderItemProps}>
+      <DraggableRuleGroupItem dragControls={dragControls}>
+        {children}
+      </DraggableRuleGroupItem>
+    </Reorder.Item>
+  );
+}

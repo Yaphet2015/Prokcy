@@ -1,7 +1,7 @@
-import { Reorder, useDragControls } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import { Button } from '@pikoloo/darwin-ui';
 import { Plus } from 'lucide-react';
-import { RuleGroupItem, DraggableRuleGroupItem } from './RuleGroupItem';
+import { RuleGroupItem, ReorderableGroupItem } from './RuleGroupItem';
 
 export function RulesSidebar({
   localRuleGroups,
@@ -18,8 +18,6 @@ export function RulesSidebar({
   onDragEnd,
   onDragCancel,
 }) {
-  const dragControls = useDragControls();
-
   return (
     <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md flex flex-col">
       <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
@@ -50,11 +48,10 @@ export function RulesSidebar({
           const isEditorGroup = group.name === activeEditorGroupName;
           const rank = activePriorityIndex[group.name];
           return (
-            <Reorder.Item
+            <ReorderableGroupItem
               key={group.name}
               value={group}
               dragListener={false}
-              dragControls={dragControls}
               className="relative group"
               whileDrag={{
                 borderRadius: '8px',
@@ -65,20 +62,18 @@ export function RulesSidebar({
               onDragEnd={onDragEnd}
               onDragCancel={onDragCancel}
             >
-              <DraggableRuleGroupItem dragControls={dragControls}>
-                <RuleGroupItem
-                  group={group}
-                  isActive={isActive}
-                  isEditorGroup={isEditorGroup}
-                  rank={rank}
-                  onSelect={() => onSetActiveEditorGroup(group.name)}
-                  onDoubleClick={() => onGroupDoubleClick(group)}
-                  onCreate={onCreateGroup}
-                  onRename={() => onContextRename(group)}
-                  onDelete={() => onContextDelete(group)}
-                />
-              </DraggableRuleGroupItem>
-            </Reorder.Item>
+              <RuleGroupItem
+                group={group}
+                isActive={isActive}
+                isEditorGroup={isEditorGroup}
+                rank={rank}
+                onSelect={() => onSetActiveEditorGroup(group.name)}
+                onDoubleClick={() => onGroupDoubleClick(group)}
+                onCreate={onCreateGroup}
+                onRename={() => onContextRename(group)}
+                onDelete={() => onContextDelete(group)}
+              />
+            </ReorderableGroupItem>
           );
         })}
       </Reorder.Group>
