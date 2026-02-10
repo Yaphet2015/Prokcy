@@ -169,7 +169,7 @@ function WaterfallBar({
 
   return (
     <div
-      className={`w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative transition-all duration-200 ease-out ${isHovered ? 'z-10' : ''}`}
+      className={`w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded overflow-hidden relative ${isHovered ? 'z-10' : ''}`}
       data-request-id={requestId}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
@@ -179,6 +179,7 @@ function WaterfallBar({
         style={{
           left: `${leftPercent}%`,
           width: `${Math.max(widthPercent, 0.5)}%`,
+          transition: 'left 200ms ease-out, width 200ms ease-out',
         }}
       >
         {phases.map((phase, idx) => {
