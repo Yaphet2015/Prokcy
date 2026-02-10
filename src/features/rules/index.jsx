@@ -3,7 +3,6 @@ import {
   Suspense,
   useEffect,
   useState,
-  useRef,
   useCallback,
   useMemo,
 } from 'react';
@@ -20,6 +19,7 @@ import { registerTahoeThemes, getThemeId } from './monaco-themes';
 import { initWhistleLanguage } from './whistle-language';
 import { RuleGroupItem, DraggableRuleGroupItem } from './components/RuleGroupItem';
 import { useRuleGroupActions } from './hooks/useRuleGroupActions';
+import { useRuleGroupsDragDrop } from './hooks/useRuleGroupsDragDrop';
 
 // Import hook directly (cannot be lazy-loaded)
 import { useMonacoSave } from '../../shared/ui/MonacoEditor';
@@ -47,10 +47,6 @@ function Rules() {
 
   const { isDark } = useTheme();
   const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
-  const [localRuleGroups, setLocalRuleGroups] = useState(ruleGroups);
-  const [isReordering, setIsReordering] = useState(false);
-  const latestOrderRef = useRef(ruleGroups);
-  const dragSettledRef = useRef(false);
 
   // Prompt and confirm hooks
   const prompt = usePrompt();
@@ -59,12 +55,8 @@ function Rules() {
   // Rule group actions
   const actions = useRuleGroupActions({ prompt, confirm });
 
-  useEffect(() => {
-    if (!isReordering) {
-      setLocalRuleGroups(ruleGroups);
-      latestOrderRef.current = ruleGroups;
-    }
-  }, [ruleGroups, isReordering]);
+  // Drag-and-drop hook
+  const dragDrop = useRuleGroupsDragDrop({ ruleGroups, reorderGroups, prompt });
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
   useMonacoSave(useCallback(() => {
@@ -85,81 +77,11 @@ function Rules() {
   }, []);
 
   const activePriorityIndex = useMemo(() => {
-    const selectedGroups = localRuleGroups.filter((group) => group.selected);
+    const selectedGroups = dragDrop.localRuleGroups.filter((group) => group.selected);
     return Object.fromEntries(
       selectedGroups.map((group, idx) => [group.name, idx + 1])
     );
-  }, [localRuleGroups]);
-
-  // Handle drag-and-drop reordering
-  const handleReorder = useCallback((newOrder) => {
-    setLocalRuleGroups(newOrder);
-    latestOrderRef.current = newOrder;
-  }, []);
-
-  const handleDragStart = useCallback(() => {
-    dragSettledRef.current = false;
-    setIsReordering(true);
-  }, []);
-
-  const handleDragEnd = useCallback(async () => {
-    dragSettledRef.current = true;
-    setIsReordering(false);
-
-    const result = await reorderGroups(latestOrderRef.current).catch((err) => ({
-      success: false,
-      message: err?.message || 'Failed to reorder groups',
-    }));
-
-    if (!result.success) {
-      await prompt({
-        title: 'Error',
-        message: result.message || 'Failed to reorder groups',
-        defaultValue: '',
-      });
-    }
-  }, [reorderGroups, prompt]);
-
-  const handleDragCancel = useCallback(() => {
-    dragSettledRef.current = true;
-    setIsReordering(false);
-  }, []);
-
-  // Fallback cleanup for drag operations that don't properly end
-  useEffect(() => {
-    if (!isReordering) {
-      return undefined;
-    }
-
-    let fallbackTimer = null;
-
-    const stopReordering = () => {
-      if (fallbackTimer !== null) {
-        return;
-      }
-
-      // Defer to avoid racing with Framer's drop/reorder callbacks
-      fallbackTimer = window.setTimeout(() => {
-        fallbackTimer = null;
-        if (!dragSettledRef.current) {
-          setIsReordering(false);
-        }
-      }, 0);
-    };
-
-    window.addEventListener('pointerup', stopReordering, true);
-    window.addEventListener('pointercancel', stopReordering, true);
-    window.addEventListener('blur', stopReordering);
-
-    return () => {
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-      }
-      window.removeEventListener('pointerup', stopReordering, true);
-      window.removeEventListener('pointercancel', stopReordering, true);
-      window.removeEventListener('blur', stopReordering);
-    };
-  }, [isReordering]);
+  }, [dragDrop.localRuleGroups]);
 
   return (
     <>
@@ -233,11 +155,11 @@ function Rules() {
 
             <Reorder.Group
               axis="y"
-              values={localRuleGroups}
-              onReorder={handleReorder}
+              values={dragDrop.localRuleGroups}
+              onReorder={dragDrop.handleReorder}
               className="flex-1 overflow-y-auto p-2 space-y-1"
             >
-              {localRuleGroups.map((group) => {
+              {dragDrop.localRuleGroups.map((group) => {
                 const dragControls = useDragControls();
                 const isActive = activeGroupNames.includes(group.name);
                 const isEditorGroup = group.name === activeEditorGroupName;
@@ -255,9 +177,9 @@ function Rules() {
                       scale: 1.02,
                       zIndex: 50,
                     }}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDragCancel={handleDragCancel}
+                    onDragStart={dragDrop.handleDragStart}
+                    onDragEnd={dragDrop.handleDragEnd}
+                    onDragCancel={dragDrop.handleDragCancel}
                   >
                     <DraggableRuleGroupItem dragControls={dragControls}>
                       <RuleGroupItem
