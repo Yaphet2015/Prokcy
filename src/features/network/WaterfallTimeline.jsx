@@ -193,7 +193,7 @@ function WaterfallBar({
                 backgroundColor: phase.color,
                 width: `${phaseWidthPercent}%`,
                 marginLeft: idx > 0 ? undefined : `${phaseOffsetPercent}%`,
-                minWidth: isHovered ? '20px' : undefined,
+                minWidth: isHovered ? '30px' : undefined,
               }}
               title={`${phase.type}: ${formatTime(phase.duration)}`}
             >
