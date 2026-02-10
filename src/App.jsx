@@ -7,6 +7,10 @@ import Network from './features/network';
 import Rules from './features/rules';
 import Values from './features/values';
 import Settings from './features/settings';
+import {
+  getSidebarDragMetrics,
+  getSidebarCollapseTransition,
+} from './shared/utils/sidebarResizeState.mjs';
 
 const views = {
   network: Network,
@@ -104,26 +108,35 @@ function App() {
     };
 
     const handleMouseMove = (event) => {
-      const deltaX = event.clientX - resizeStartRef.current.x;
-      const rawNextWidth = resizeStartRef.current.width + deltaX;
+      const { rawNextWidth, clampedNextWidth } = getSidebarDragMetrics({
+        startX: resizeStartRef.current.x,
+        startWidth: resizeStartRef.current.width,
+        currentX: event.clientX,
+        minWidth: SIDEBAR_MIN_WIDTH,
+        maxWidth: SIDEBAR_MAX_WIDTH,
+      });
+      const { shouldCollapse, shouldExpand } = getSidebarCollapseTransition({
+        rawNextWidth,
+        minWidth: SIDEBAR_MIN_WIDTH,
+        isCollapsed: isSidebarCollapsed,
+      });
 
-      if (rawNextWidth < SIDEBAR_MIN_WIDTH) {
-        if (!collapseHoldTimeoutRef.current) {
-          collapseHoldTimeoutRef.current = setTimeout(() => {
-            setIsSidebarCollapsed(true);
-            setIsResizingSidebar(false);
-            collapseHoldTimeoutRef.current = null;
-          }, SIDEBAR_COLLAPSE_HOLD_MS);
-        }
-      } else {
+      if (shouldCollapse && !collapseHoldTimeoutRef.current) {
+        collapseHoldTimeoutRef.current = setTimeout(() => {
+          setIsSidebarCollapsed(true);
+          collapseHoldTimeoutRef.current = null;
+        }, SIDEBAR_COLLAPSE_HOLD_MS);
+      }
+
+      if (rawNextWidth >= SIDEBAR_MIN_WIDTH) {
         clearCollapseTimer();
       }
 
-      const nextWidth = Math.min(
-        SIDEBAR_MAX_WIDTH,
-        Math.max(SIDEBAR_MIN_WIDTH, rawNextWidth),
-      );
-      setSidebarWidth(nextWidth);
+      if (shouldExpand) {
+        setIsSidebarCollapsed(false);
+      }
+
+      setSidebarWidth(clampedNextWidth);
     };
 
     const stopResizing = () => {
@@ -143,7 +156,7 @@ function App() {
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
     };
-  }, [isResizingSidebar]);
+  }, [isResizingSidebar, isSidebarCollapsed]);
 
   return (
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
