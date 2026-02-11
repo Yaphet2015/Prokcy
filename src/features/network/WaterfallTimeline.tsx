@@ -1,8 +1,6 @@
 import {
   useMemo, useState, useCallback, memo, useEffect, useRef,
 } from 'react';
-import type { ChangeEvent } from 'react';
-import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork, type NormalizedRequest } from '../../shared/context/NetworkContext';
 import { getRequestStyles } from '../../shared/utils/styleParser';
 import { createDebouncedHoverState } from './utils/debouncedHoverState.mjs';
@@ -263,9 +261,9 @@ const WaterfallBar = memo(({
   );
 });
 
-export default function WaterfallTimeline(): React.JSX.Element {
+export default function WaterfallTimeline() {
   const {
-    requests, selectedRequest, selectRequest, searchQuery, setSearchQuery, clearRequests,
+    requests, selectedRequest, selectRequest, searchQuery,
   } = useNetwork();
 
   const [hoveredRequestId, setHoveredRequestId] = useState<string | null>(null);
@@ -295,7 +293,7 @@ export default function WaterfallTimeline(): React.JSX.Element {
 
   const updateTimelineForRange = useCallback((
     visibleRange: { start: number; end: number },
-    requestsForTimeline: NormalizedRequest[] = filteredRequests
+    requestsForTimeline: NormalizedRequest[] = filteredRequests,
   ) => {
     if (requestsForTimeline.length === 0) {
       setTimelineData((prev) => (prev.positionMap.size === 0 && prev.compressedDuration === 1000
@@ -441,31 +439,6 @@ export default function WaterfallTimeline(): React.JSX.Element {
 
   return (
     <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
-      {/* Header */}
-      <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Network Requests</h2>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearRequests}
-            disabled={requests.length === 0}
-          >
-            Clear
-          </Button>
-          <Input
-            placeholder="Filter requests..."
-            value={searchQuery}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            size="sm"
-            className="w-64"
-          />
-        </div>
-      </div>
-
       {/* Timing Legend */}
       <div className="h-8 flex items-center gap-4 px-4 border-b border-zinc-200/30 dark:border-zinc-800/30 shrink-0">
         {(Object.entries(TIMING_COLORS) as [string, string][]).map(([key, color]) => (

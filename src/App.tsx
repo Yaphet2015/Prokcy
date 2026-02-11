@@ -2,7 +2,7 @@ import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 import Sidebar from './shared/ui/Sidebar';
-import ContentHeader from './shared/ui/ContentHeader';
+// import ContentHeader from './shared/ui/ContentHeader';
 import Network from './features/network';
 import Rules from './features/rules';
 import Values from './features/values';
@@ -14,7 +14,11 @@ import {
 import type { ViewType } from './types/ui';
 
 // View components mapping
-type ViewComponent = React.ComponentType;
+interface ViewProps {
+  isSidebarCollapsed: boolean;
+}
+
+type ViewComponent = React.ComponentType<ViewProps>;
 
 const VIEWS: Record<ViewType, ViewComponent> = {
   network: Network,
@@ -178,7 +182,7 @@ function App(): React.JSX.Element {
       <div className="min-w-0 min-h-0 flex-1 flex flex-col">
         {/* <ContentHeader activeView={activeView} /> */}
         <main className="min-h-0 flex-1 overflow-hidden w-full">
-          <ActiveComponent />
+          <ActiveComponent isSidebarCollapsed={isSidebarCollapsed} />
         </main>
       </div>
     </div>

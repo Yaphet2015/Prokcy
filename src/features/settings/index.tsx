@@ -5,7 +5,8 @@ import type { ChangeEvent } from 'react';
 import {
   Button, Checkbox, Input, Select,
 } from '@pikoloo/darwin-ui';
-import { Settings as SettingsIcon, RotateCcw, Save } from 'lucide-react';
+import { RotateCcw, Save, Settings as SettingsIcon } from 'lucide-react';
+import ContentHeader from '../../shared/ui/ContentHeader';
 
 // Types
 interface SettingsForm {
@@ -44,12 +45,6 @@ interface PreferencesPayload {
 interface SettingsPayload {
   proxy: ProxyPayload;
   preferences: PreferencesPayload;
-}
-
-interface SettingsResponse {
-  success?: boolean;
-  message?: string;
-  settings?: SettingsForm;
 }
 
 // Settings categories for sidebar navigation
@@ -160,7 +155,7 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
   };
 };
 
-export default function Settings(): React.JSX.Element {
+export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
   const [activeCategory, setActiveCategory] = useState<string>('proxy');
   const [form, setForm] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [savedForm, setSavedForm] = useState<SettingsForm>(DEFAULT_SETTINGS);
@@ -285,47 +280,60 @@ export default function Settings(): React.JSX.Element {
     }
   };
 
+  // Handle keyboard shortcuts (Cmd+S or Ctrl+S to save)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd+S (macOS) or Ctrl+S (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault(); // Prevent browser's default save dialog
+        if (isDirty && !loading && !saving) {
+          handleSave();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDirty, loading, saving]);
+
   return (
     <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Main Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shrink-0">
-        <div className="flex items-center gap-2">
-          <SettingsIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
-          <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Settings</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Status/Feedback */}
-          {error && (
-            <span className="text-xs text-red-500">{error}</span>
-          )}
-          {message && !error && (
-            <span className="text-xs text-emerald-500">{message}</span>
-          )}
-
-          {/* Action buttons */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={loadSettings}
-            disabled={loading || saving}
-            leftIcon={<RotateCcw className="w-4 h-4" />}
-            title="Reload settings"
-          >
-            Reload
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleSave}
-            disabled={!isDirty || loading || saving}
-            leftIcon={<Save className="w-4 h-4" />}
-            title="Save settings"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
-        </div>
-      </div>
+      {/* Header */}
+      <ContentHeader
+        viewName="settings"
+        isSidebarCollapsed={isSidebarCollapsed}
+        icon={<SettingsIcon className="w-4 h-4" />}
+        statusMessage={(
+          <>
+            {error && <span className="text-xs text-red-500">{error}</span>}
+            {message && !error && <span className="text-xs text-emerald-500">{message}</span>}
+          </>
+        )}
+        rightActions={(
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadSettings}
+              disabled={loading || saving}
+              leftIcon={<RotateCcw className="w-4 h-4" />}
+              title="Reload settings"
+            >
+              Reload
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              disabled={!isDirty || loading || saving}
+              leftIcon={<Save className="w-4 h-4" />}
+              title="Save settings"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </>
+        )}
+      />
 
       {/* Main content area with sidebar */}
       <div className="flex-1 overflow-hidden flex">
