@@ -33,8 +33,8 @@ const viewAliases = {
 const SIDEBAR_COLLAPSED_WIDTH = 56;
 const SIDEBAR_DEFAULT_WIDTH = 240;
 const SIDEBAR_MIN_WIDTH = 200;
-const SIDEBAR_MAX_WIDTH = 360;
-const SIDEBAR_COLLAPSE_HOLD_MS = 300;
+const SIDEBAR_MAX_WIDTH = 300;
+const SIDEBAR_COLLAPSE_HOLD_MS = 0;
 
 function App() {
   const [activeView, setActiveView] = useState('network');

@@ -240,3 +240,18 @@ git commit -m "test: verify WaterfallBar hover expansion functionality"
 git add docs/plans/
 git commit -m "chore: cleanup plans after hover expansion implementation"
 ```
+
+---
+
+## 2026-02-10 Update: Debounced Hover Status
+
+### Behavior update
+- Waterfall phase-bar hover reset (mouse leave) is debounced by `1000ms`.
+- Hover enter expands immediately.
+- Hover leave schedules collapse after 1 second.
+- New hover events cancel any previous pending hover-state update.
+
+### Implementation notes
+- Added utility: `src/features/network/utils/debouncedHoverState.mjs`
+- Updated timeline wiring: `src/features/network/WaterfallTimeline.jsx`
+- Added tests: `tests/debounced-hover-state.test.mjs`
