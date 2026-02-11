@@ -4,6 +4,7 @@ import {
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
 import { getRequestStyles } from '../../shared/utils/styleParser';
+import { createDebouncedHoverState } from './utils/debouncedHoverState.mjs';
 
 // Timing phase colors according to design spec
 const TIMING_COLORS = {
@@ -22,6 +23,7 @@ const MIN_BAR_WIDTH_PERCENT = 2;
 
 // Compression factor for idle gaps (higher = more compression)
 const GAP_COMPRESSION_FACTOR = 0.15;
+const HOVER_DEBOUNCE_MS = 500;
 
 // Timing phases for a request bar
 function getRequestPhases(request) {
@@ -223,17 +225,25 @@ export default function WaterfallTimeline() {
     requestPositions: [],
   });
   const [hoveredRequestId, setHoveredRequestId] = useState(null);
+  const debouncedHoverState = useMemo(
+    () => createDebouncedHoverState(setHoveredRequestId, HOVER_DEBOUNCE_MS),
+    [],
+  );
+
+  useEffect(() => () => {
+    debouncedHoverState.cancel();
+  }, [debouncedHoverState]);
 
   // Memoized hover handlers to prevent unnecessary re-renders
   // Read requestId from data attribute to avoid inline functions
   const handleHoverStart = useCallback((event) => {
     const { requestId } = event.currentTarget.dataset;
-    setHoveredRequestId(requestId);
-  }, []);
+    debouncedHoverState.setNow(requestId);
+  }, [debouncedHoverState]);
 
   const handleHoverEnd = useCallback(() => {
-    setHoveredRequestId(null);
-  }, []);
+    debouncedHoverState.schedule(null);
+  }, [debouncedHoverState]);
 
   // Filter requests by search query
   const filteredRequests = useMemo(() => {
