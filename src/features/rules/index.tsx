@@ -52,6 +52,7 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
           isSidebarCollapsed={isSidebarCollapsed}
           leftActions={(
             <Button
+              className="hover:dark:text-zinc-950"
               variant="ghost"
               size="sm"
               onClick={toggleEnabled}

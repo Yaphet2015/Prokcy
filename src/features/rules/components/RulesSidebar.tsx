@@ -47,8 +47,9 @@ export function RulesSidebar({
             Groups
           </h2>
           <Button
+            className="hover:dark:text-zinc-950"
             variant="ghost"
-            size="xs"
+            size="sm"
             onClick={onCreateGroup}
             leftIcon={<Plus className="w-3.5 h-3.5" />}
             title="Create new group"

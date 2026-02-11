@@ -310,7 +310,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         )}
         rightActions={(
           <>
-            <Button
+            {/* <Button
               variant="secondary"
               size="sm"
               onClick={loadSettings}
@@ -319,7 +319,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               title="Reload settings"
             >
               Reload
-            </Button>
+            </Button> */}
             <Button
               variant="primary"
               size="sm"
