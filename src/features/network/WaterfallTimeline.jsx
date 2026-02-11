@@ -1,10 +1,11 @@
 import {
-  useMemo, useState, useEffect, useCallback, useRef,
+  useMemo, useState, useCallback, memo,
 } from 'react';
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
 import { getRequestStyles } from '../../shared/utils/styleParser';
 import { createDebouncedHoverState } from './utils/debouncedHoverState.mjs';
+import { VirtualList } from '../../shared/ui/VirtualList';
 
 // Timing phase colors according to design spec
 const TIMING_COLORS = {
@@ -158,10 +159,11 @@ function calculateCompressedTimeline(requests) {
 
 /**
  * Waterfall bar component with compressed timeline
+ * Memoized to prevent unnecessary re-renders (rerender-memo)
  */
-function WaterfallBar({
+const WaterfallBar = memo(({
   request, compressedPosition, duration, compressedDuration, isHovered, onHoverStart, onHoverEnd, requestId,
-}) {
+}) => {
   const phases = getRequestPhases(request);
 
   // Calculate position and width as percentages
@@ -212,30 +214,43 @@ function WaterfallBar({
       </div>
     </div>
   );
-}
+});
 
 export default function WaterfallTimeline() {
   const {
     requests, selectedRequest, selectRequest, searchQuery, setSearchQuery, clearRequests,
   } = useNetwork();
 
-  const listRef = useRef(null);
-  const [timelineState, setTimelineState] = useState({
-    compressedDuration: 1000,
-    requestPositions: [],
-  });
   const [hoveredRequestId, setHoveredRequestId] = useState(null);
   const debouncedHoverState = useMemo(
     () => createDebouncedHoverState(setHoveredRequestId, HOVER_DEBOUNCE_MS),
     [],
   );
 
-  useEffect(() => () => {
-    debouncedHoverState.cancel();
-  }, [debouncedHoverState]);
+  // Filter requests by search query (js-index-maps: build Map for repeated lookups)
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery) return requests;
+    const query = searchQuery.toLowerCase();
+    return requests.filter((req) => req.url?.toLowerCase().includes(query)
+      || req.method?.toLowerCase().includes(query)
+      || req.status?.toString().includes(query));
+  }, [requests, searchQuery]);
 
-  // Memoized hover handlers to prevent unnecessary re-renders
-  // Read requestId from data attribute to avoid inline functions
+  // Calculate compressed timeline for all filtered requests
+  // This is memoized and only recalculated when filtered requests change
+  const timelineData = useMemo(() => {
+    if (filteredRequests.length === 0) {
+      return { compressedDuration: 1000, positionMap: new Map() };
+    }
+    const { compressedDuration, requestPositions } = calculateCompressedTimeline(filteredRequests);
+    const positionMap = new Map();
+    for (const pos of requestPositions) {
+      positionMap.set(pos.request.id, pos);
+    }
+    return { compressedDuration, positionMap };
+  }, [filteredRequests]);
+
+  // Memoized hover handlers (rerender-defer-reads: stable callbacks)
   const handleHoverStart = useCallback((event) => {
     const { requestId } = event.currentTarget.dataset;
     debouncedHoverState.setNow(requestId);
@@ -245,76 +260,79 @@ export default function WaterfallTimeline() {
     debouncedHoverState.schedule(null);
   }, [debouncedHoverState]);
 
-  // Filter requests by search query
-  const filteredRequests = useMemo(() => {
-    if (!searchQuery) return requests;
-    const query = searchQuery.toLowerCase();
-    return requests.filter((req) => req.url?.toLowerCase().includes(query)
-      || req.method?.toLowerCase().includes(query)
-      || req.status?.toString().includes(query));
-  }, [requests, searchQuery]);
+  // Render individual request row (called by VirtualList)
+  const renderRequestRow = useCallback((request) => {
+    const isSelected = selectedRequest?.id === request.id;
+    const pos = timelineData.positionMap.get(request.id);
 
-  // Create a position map for quick lookup
-  const positionMap = useMemo(() => {
-    const map = new Map();
-    for (const pos of timelineState.requestPositions) {
-      map.set(pos.request.id, pos);
-    }
-    return map;
-  }, [timelineState.requestPositions]);
+    return (
+      <div
+        onClick={() => selectRequest(request)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectRequest(request);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        className={`
+          group flex items-center gap-3 px-4 py-2.5 cursor-pointer
+          transition-colors duration-150
+          ${isSelected ? 'bg-blue-500/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}
+        `}
+        style={getRequestStyles(request)}
+      >
+        {/* Method Indicator */}
+        <span className="text-xs w-12 text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
+          {getMethodIcon(request.method)}
+        </span>
 
-  // Update compressed timeline based on visible requests
-  const updateTimeline = useCallback(() => {
-    if (!listRef.current || filteredRequests.length === 0) {
-      return;
-    }
+        {/* Status Code */}
+        <span
+          className={`text-xs font-mono w-12 ${getStatusColor(request.status)}`}
+        >
+          {request.status || '-'}
+        </span>
 
-    const container = listRef.current;
-    const { scrollTop } = container;
-    const viewHeight = container.clientHeight;
+        {/* URL */}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm truncate ${isSelected
+            ? 'text-blue-500' : 'text-zinc-900 dark:text-zinc-100'
+          }`}
+          >
+            {request.url}
+          </p>
+        </div>
 
-    const firstVisibleIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT));
-    const lastVisibleIndex = Math.min(
-      filteredRequests.length - 1,
-      Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT),
+        {/* Size */}
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
+          {request.size ? `${(request.size / 1024).toFixed(1)}KB` : '-'}
+        </span>
+
+        {/* Timing */}
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
+          {formatTime(request.timings?.total)}
+        </span>
+
+        {/* Waterfall Bar - with compressed idle gaps */}
+        {pos ? (
+          <WaterfallBar
+            request={request}
+            compressedPosition={pos.compressedPosition}
+            duration={pos.duration}
+            compressedDuration={timelineData.compressedDuration}
+            isHovered={hoveredRequestId === request.id}
+            onHoverStart={handleHoverStart}
+            onHoverEnd={handleHoverEnd}
+            requestId={request.id}
+          />
+        ) : (
+          <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
+        )}
+      </div>
     );
-
-    // Include some buffer before and after for smoother scrolling
-    const buffer = 5;
-    const startIndex = Math.max(0, firstVisibleIndex - buffer);
-    const endIndex = Math.min(filteredRequests.length - 1, lastVisibleIndex + buffer);
-
-    const visibleRequests = filteredRequests.slice(startIndex, endIndex + 1);
-
-    if (visibleRequests.length === 0) {
-      return;
-    }
-
-    const timeline = calculateCompressedTimeline(visibleRequests);
-    setTimelineState(timeline);
-  }, [filteredRequests]);
-
-  // Update timeline on scroll
-  useEffect(() => {
-    const container = listRef.current;
-    if (!container) {
-      return undefined;
-    }
-
-    const handleScroll = () => {
-      requestAnimationFrame(updateTimeline);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [updateTimeline]);
-
-  // Update timeline when filtered requests change
-  useEffect(() => {
-    updateTimeline();
-  }, [updateTimeline]);
+  }, [selectedRequest, selectRequest, timelineData, hoveredRequestId, handleHoverStart, handleHoverEnd]);
 
   return (
     <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
@@ -322,11 +340,11 @@ export default function WaterfallTimeline() {
       <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Network Requests</h2>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {/* <span className="text-xs text-zinc-500 dark:text-zinc-400">
             {filteredRequests.length}
             {' '}
             {filteredRequests.length === 1 ? 'request' : 'requests'}
-          </span>
+          </span> */}
         </div>
 
         <div className="flex items-center gap-2">
@@ -361,95 +379,23 @@ export default function WaterfallTimeline() {
         ))}
       </div>
 
-      {/* Request List */}
-      <div
-        ref={listRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
-      >
-        {filteredRequests.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {searchQuery ? 'No requests match your filter' : 'No network requests captured yet'}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-zinc-200/30 dark:divide-zinc-800/30">
-            {filteredRequests.map((request) => {
-              const isSelected = selectedRequest?.id === request.id;
-              const pos = positionMap.get(request.id);
-
-              return (
-                <div
-                  key={request.id}
-                  onClick={() => selectRequest(request)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      selectRequest(request);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  className={`
-                    group flex items-center gap-3 px-4 py-2.5 cursor-pointer
-                    transition-colors duration-150
-                    ${isSelected ? 'bg-blue-500/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}
-                  `}
-                  style={getRequestStyles(request)}
-                >
-                  {/* Method Indicator */}
-                  <span className="text-xs w-12 text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
-                    {getMethodIcon(request.method)}
-                  </span>
-
-                  {/* Status Code */}
-                  <span
-                    className={`text-xs font-mono w-12 ${getStatusColor(request.status)}`}
-                  >
-                    {request.status || '-'}
-                  </span>
-
-                  {/* URL */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm truncate ${isSelected
-                      ? 'text-blue-500' : 'text-zinc-900 dark:text-zinc-100'
-                    }`}
-                    >
-                      {request.url}
-                    </p>
-                  </div>
-
-                  {/* Size */}
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
-                    {request.size ? `${(request.size / 1024).toFixed(1)}KB` : '-'}
-                  </span>
-
-                  {/* Timing */}
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
-                    {formatTime(request.timings?.total)}
-                  </span>
-
-                  {/* Waterfall Bar - with compressed idle gaps */}
-                  {pos ? (
-                    <WaterfallBar
-                      request={request}
-                      compressedPosition={pos.compressedPosition}
-                      duration={pos.duration}
-                      compressedDuration={timelineState.compressedDuration}
-                      isHovered={hoveredRequestId === request.id}
-                      onHoverStart={handleHoverStart}
-                      onHoverEnd={handleHoverEnd}
-                      requestId={request.id}
-                    />
-                  ) : (
-                    <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Request List with Virtual Scrolling */}
+      {filteredRequests.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {searchQuery ? 'No requests match your filter' : 'No network requests captured yet'}
+          </p>
+        </div>
+      ) : (
+        <VirtualList
+          items={filteredRequests}
+          itemHeight={ROW_HEIGHT}
+          renderItem={renderRequestRow}
+          itemKey="id"
+          overscan={5}
+          className="flex-1"
+        />
+      )}
     </div>
   );
 }
