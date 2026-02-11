@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add hover expansion to WaterfallBar components showing phase labels and timing values.
+**Goal:** Add hover expansion to WaterfallBar components showing phase labels and timing values, with debounced hover collapse and stable viewport-synced timeline behavior while scrolling.
 
-**Architecture:** Add hover state tracking to parent WaterfallTimeline component, pass hover props to each WaterfallBar, conditionally render expanded view with labels and times.
+**Architecture:** Add hover state tracking to parent WaterfallTimeline component, pass hover props to each WaterfallBar, conditionally render expanded view with labels and times, debounce hover-leave reset via a shared utility, and keep timeline scaling tied to the current visible virtualized range.
 
-**Tech Stack:** React hooks (useState), CSS transitions, existing WaterfallTimeline.jsx component
+**Tech Stack:** React hooks (`useState`), CSS transitions, existing `WaterfallTimeline.jsx` component, shared debounce utility, virtual list visible-range notifications
 
 ---
 
@@ -22,6 +22,8 @@ Add state variable after line 205 (after `timelineState`):
 ```javascript
 const [hoveredRequestId, setHoveredRequestId] = useState(null);
 ```
+
+Also wire hover-state updates through a debounced helper so mouse leave schedules collapse after `500ms`, while mouse enter remains immediate and cancels pending resets.
 
 **Step 2: Test basic app still runs**
 
@@ -145,13 +147,18 @@ Replace the WaterfallBar rendering block (lines 392-401):
                       duration={pos.duration}
                       compressedDuration={timelineState.compressedDuration}
                       isHovered={hoveredRequestId === request.id}
-                      onHoverStart={() => setHoveredRequestId(request.id)}
-                      onHoverEnd={() => setHoveredRequestId(null)}
+                      onHoverStart={() => updateHoveredRequestId(request.id)}
+                      onHoverEnd={() => updateHoveredRequestId(null)}
                     />
                   ) : (
                     <div className="w-48 h-5 bg-zinc-100 dark:bg-zinc-900/50 rounded" />
                   )}
 ```
+
+Where `updateHoveredRequestId` uses the debounced-hover utility:
+- Enter: applies immediately
+- Leave: debounced by `500ms`
+- Any new hover event cancels pending updates
 
 **Step 5: Test hover functionality**
 
@@ -196,6 +203,10 @@ Manual test:
 4. Verify: all phases show labels + times
 5. Move mouse quickly between bars
 6. Verify: smooth transitions, no flickering
+7. Move cursor off a bar and count 500ms
+8. Verify: hovered bar collapses only after debounce interval
+9. Re-enter a bar before debounce completes
+10. Verify: pending collapse is canceled
 
 **Step 3: Test with filtered requests**
 
@@ -222,7 +233,35 @@ git commit -m "test: verify WaterfallBar hover expansion functionality"
 
 ---
 
-### Task 6: Documentation cleanup
+### Task 6: Preserve timeline stability with viewport-synced recalculation
+
+**Files:**
+- Modify: `src/features/network/WaterfallTimeline.jsx`
+- Modify: `src/shared/ui/VirtualList.jsx`
+
+**Step 1: Keep timeline visible and synced to viewport**
+
+Ensure timeline recalculation uses the current visible range and remains consistent while scrolling through virtualized rows.
+
+**Step 2: Recompute immediately on live request updates**
+
+When request data changes, recompute timeline mapping for the current viewport range instead of falling back to top-of-list assumptions.
+
+**Step 3: Reduce duplicate visible-range churn**
+
+Update `VirtualList` to suppress duplicate visible-range notifications so timeline recalculation is triggered only when the visible range actually changes.
+
+**Step 4: Validate behavior**
+
+Manual test:
+1. Scroll through long request lists
+2. Verify timeline remains visible and stable
+3. Trigger live request updates while mid-scroll
+4. Verify timeline mapping updates immediately for the current viewport
+
+---
+
+### Task 7: Documentation cleanup
 
 **Files:**
 - Create: (optional) Update README if needed
@@ -240,18 +279,3 @@ git commit -m "test: verify WaterfallBar hover expansion functionality"
 git add docs/plans/
 git commit -m "chore: cleanup plans after hover expansion implementation"
 ```
-
----
-
-## 2026-02-10 Update: Debounced Hover Status
-
-### Behavior update
-- Waterfall phase-bar hover reset (mouse leave) is debounced by `1000ms`.
-- Hover enter expands immediately.
-- Hover leave schedules collapse after 1 second.
-- New hover events cancel any previous pending hover-state update.
-
-### Implementation notes
-- Added utility: `src/features/network/utils/debouncedHoverState.mjs`
-- Updated timeline wiring: `src/features/network/WaterfallTimeline.jsx`
-- Added tests: `tests/debounced-hover-state.test.mjs`

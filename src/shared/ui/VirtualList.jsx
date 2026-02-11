@@ -17,6 +17,7 @@ import {
  * @param {string} itemKey - Key property to use for each item (default: 'id')
  * @param {number} overscan - Number of extra items to render outside viewport (default: 5)
  * @param {Function} onScroll - Optional scroll callback
+ * @param {Function} onVisibleRangeChange - Optional callback when visible range changes: ({ start, end }) => void
  * @param {string} className - Optional className for the container
  * @param {Object} style - Optional inline styles for the container
  */
@@ -27,10 +28,12 @@ export function VirtualList({
   itemKey = 'id',
   overscan = 5,
   onScroll,
+  onVisibleRangeChange,
   className = '',
   style = {},
 }) {
   const containerRef = useRef(null);
+  const lastNotifiedRangeRef = useRef({ start: -1, end: -1 });
   // Use state for scroll position to trigger re-renders on scroll
   const [scrollTop, setScrollTop] = useState(0);
   // Track container height to avoid 0 height on initial render
@@ -99,6 +102,17 @@ export function VirtualList({
       container.removeEventListener('scroll', handleScroll);
     };
   }, [handleScroll]);
+
+  // Notify parent when visible range changes (use effect to avoid call during render)
+  useEffect(() => {
+    if (!onVisibleRangeChange) return;
+    const previous = lastNotifiedRangeRef.current;
+    if (previous.start === visibleRange.start && previous.end === visibleRange.end) {
+      return;
+    }
+    lastNotifiedRangeRef.current = visibleRange;
+    onVisibleRangeChange(visibleRange);
+  }, [visibleRange, onVisibleRangeChange]);
 
   // Memoize visible items to prevent unnecessary re-renders
   const visibleItems = useMemo(() => {
