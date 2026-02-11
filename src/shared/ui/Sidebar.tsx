@@ -40,7 +40,8 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        relative h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
+        relative h-full flex flex-col
+        ${!isCollapsed ? 'border-r border-zinc-200 dark:border-zinc-800' : ''}
         bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
         transition-[width] duration-200 justify-between
         overflow-x-visible z-9999

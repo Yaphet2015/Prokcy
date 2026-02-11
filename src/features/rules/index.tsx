@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
+import { Button } from '@pikoloo/darwin-ui';
+import { Power, Save } from 'lucide-react';
 import { usePrompt } from '../../shared/ui/Modal';
 import { useConfirm } from '../../shared/ui/ConfirmDialog';
+import ContentHeader from '../../shared/ui/ContentHeader';
 import { useRules } from '../../shared/context/RulesContext';
-import { RulesToolbar, RulesSidebar, RulesEditor } from './components';
+import { RulesSidebar, RulesEditor } from './components';
 import { useRuleGroupActions, useRuleGroupsDragDrop } from './hooks';
 
-function Rules(): React.JSX.Element {
+function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
   // Get rules state and operations from context
   const {
     rules,
@@ -44,13 +47,33 @@ function Rules(): React.JSX.Element {
       {promptElement}
       {confirmElement}
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        <RulesToolbar
-          isEnabled={isEnabled}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          error={error}
-          onToggleEnabled={toggleEnabled}
-          onSave={saveRules}
+        <ContentHeader
+          viewName="rules"
+          isSidebarCollapsed={isSidebarCollapsed}
+          leftActions={(
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleEnabled}
+              leftIcon={<Power color={isEnabled ? 'green' : 'red'} className="w-4 h-4" />}
+              title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
+            >
+              {isEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          )}
+          statusMessage={error && <span className="text-xs text-red-500">{error}</span>}
+          rightActions={(
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={saveRules}
+              disabled={!isDirty || isSaving}
+              leftIcon={<Save className="w-4 h-4" />}
+              title="Save rules (Cmd+S)"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+          )}
         />
         <div className="flex-1 overflow-hidden flex">
           <RulesSidebar

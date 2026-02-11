@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Button } from '@pikoloo/darwin-ui';
 import { Plus } from 'lucide-react';
 import { useValues } from '../../shared/context/ValuesContext';
+import ContentHeader from '../../shared/ui/ContentHeader';
 import KeysList, { type KeysListHandle } from './components/KeysList';
 import ValueEditor from './components/ValueEditor';
 import Modal, { usePrompt } from '../../shared/ui/Modal';
@@ -13,7 +14,7 @@ interface ValuesRenameEventDetail {
   newKey: string;
 }
 
-export default function Values(): React.JSX.Element {
+export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
   const {
     values,
     selectedKey,
@@ -167,13 +168,17 @@ export default function Values(): React.JSX.Element {
       {promptElement}
       {confirmElement}
       <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        {/* Status bar */}
-        <div className="blur-xl">
-          <div className="flex items-center gap-3 absolute right-4 top-1/2 -translate-y-1/2">
-            {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
-            {error && <span className="text-xs text-red-500">{error}</span>}
-          </div>
-        </div>
+        {/* Header */}
+        <ContentHeader
+          viewName="values"
+          isSidebarCollapsed={isSidebarCollapsed}
+          statusMessage={(
+            <>
+              {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
+              {error && <span className="text-xs text-red-500">{error}</span>}
+            </>
+          )}
+        />
 
         {/* Two-column layout */}
         <div className="flex-1 overflow-hidden flex">
