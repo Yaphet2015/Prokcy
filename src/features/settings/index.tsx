@@ -302,7 +302,6 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       <ContentHeader
         viewName="settings"
         isSidebarCollapsed={isSidebarCollapsed}
-        icon={<SettingsIcon className="w-4 h-4" />}
         statusMessage={(
           <>
             {error && <span className="text-xs text-red-500">{error}</span>}
@@ -376,14 +375,14 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {/* Proxy Section */}
               {activeCategory === 'proxy' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="bg-white/70 dark:bg-zinc-900/60">
+                  <section>
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Proxy Configuration
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {/* Whistle Port */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Whistle Port</span>
                         <Input
                           type="number"
@@ -392,10 +391,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           disabled={loading}
                           placeholder="8888"
                         />
-                      </label>
+                      </div>
 
                       {/* Socks Port */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Socks Port</span>
                         <Input
                           type="number"
@@ -404,10 +403,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           disabled={loading}
                           placeholder="Optional"
                         />
-                      </label>
+                      </div>
 
                       {/* Bound Host */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Bound Host</span>
                         <Input
                           value={form.host}
@@ -415,10 +414,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           disabled={loading}
                           placeholder="e.g., 127.0.0.1"
                         />
-                      </label>
+                      </div>
 
                       {/* Max HTTP Header Size */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Max HTTP Header Size</span>
                         <Select
                           value={form.maxHttpHeaderSize}
@@ -426,10 +425,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           options={HEADER_SIZE_OPTIONS}
                           disabled={loading}
                         />
-                      </label>
+                      </div>
 
                       {/* Request List Limit */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Request List Limit</span>
                         <Input
                           type="number"
@@ -449,10 +448,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           {' '}
                           {MAX_REQUEST_LIST_LIMIT}
                         </p>
-                      </label>
+                      </div>
 
                       {/* Proxy Username */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Username</span>
                         <Input
                           value={form.username}
@@ -460,10 +459,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           disabled={loading}
                           placeholder="Optional authentication"
                         />
-                      </label>
+                      </div>
 
                       {/* Proxy Password */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Proxy Password</span>
                         <Input
                           type="password"
@@ -472,10 +471,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           disabled={loading}
                           placeholder="Optional authentication"
                         />
-                      </label>
+                      </div>
 
                       {/* Bypass List - full width */}
-                      <label className="space-y-1.5 md:col-span-2">
+                      <div className="space-y-1.5 md:col-span-2">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Bypass List</span>
                         <textarea
                           value={form.bypass}
@@ -485,7 +484,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           placeholder="One host per line, e.g., localhost, 127.0.0.1"
                           className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                         />
-                      </label>
+                      </div>
                     </div>
                   </section>
                 </div>
@@ -494,25 +493,23 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {/* App Section */}
               {activeCategory === 'app' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="bg-white/70 dark:bg-zinc-900/60">
+                  <section>
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Storage
                     </h2>
 
-                    <label className="flex items-start gap-3 cursor-pointer">
+                    <div className="flex flex-col gap-2">
                       <Checkbox
                         checked={form.useDefaultStorage}
                         onChange={(checked) => updateField('useDefaultStorage', checked)}
                         disabled={loading}
+                        label="Use whistle's default storage directory"
                       />
-                      <div className="flex-1">
-                        <span className="text-sm text-zinc-900 dark:text-zinc-100">Use whistle's default storage directory</span>
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                          By default, Prokcy uses a separate storage directory (~/.whistle_client/).
-                          Enable this to share settings with the CLI version of Whistle.
-                        </p>
-                      </div>
-                    </label>
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                        By default, Prokcy uses a separate storage directory (~/.whistle_client/).
+                        Enable this to share settings with the CLI version of Whistle.
+                      </p>
+                    </div>
                   </section>
                 </div>
               )}
@@ -520,14 +517,14 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {/* Appearance Section */}
               {activeCategory === 'app' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="bg-white/70 dark:bg-zinc-900/60">
+                  <section className="mt-4">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Appearance
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {/* Theme */}
-                      <label className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
                         <Select
                           value={form.themeMode}
@@ -535,7 +532,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           options={THEME_OPTIONS}
                           disabled={loading}
                         />
-                      </label>
+                      </div>
                     </div>
                   </section>
                 </div>
@@ -544,41 +541,37 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {/* Behavior Section */}
               {activeCategory === 'app' && (
                 <div className="max-w-3xl space-y-6">
-                  <section className="bg-white/70 dark:bg-zinc-900/60">
+                  <section className="mt-4">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
                       Behavior
                     </h2>
 
                     <div className="space-y-4">
                       {/* Start at login */}
-                      <label className="flex items-start gap-3 cursor-pointer">
+                      <div className="flex flex-col gap-2">
                         <Checkbox
                           checked={form.startAtLogin}
                           onChange={(checked) => updateField('startAtLogin', checked)}
                           disabled={loading}
+                          label="Start at login"
                         />
-                        <div className="flex-1">
-                          <span className="text-sm text-zinc-900 dark:text-zinc-100">Start at login</span>
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                            Automatically launch Prokcy when you log in to your computer.
-                          </p>
-                        </div>
-                      </label>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                          Automatically launch Prokcy when you log in to your computer.
+                        </p>
+                      </div>
 
                       {/* Hide from Dock */}
-                      <label className="flex items-start gap-3 cursor-pointer">
+                      <div className="flex flex-col gap-2">
                         <Checkbox
                           checked={form.hideFromDock}
                           onChange={(checked) => updateField('hideFromDock', checked)}
                           disabled={loading}
+                          label="Hide icon in Dock"
                         />
-                        <div className="flex-1">
-                          <span className="text-sm text-zinc-900 dark:text-zinc-100">Hide icon in Dock</span>
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                            Remove the Prokcy icon from your macOS Dock. Access it from the menu bar instead.
-                          </p>
-                        </div>
-                      </label>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                          Remove the Prokcy icon from your macOS Dock. Access it from the menu bar instead.
+                        </p>
+                      </div>
                     </div>
                   </section>
                 </div>
