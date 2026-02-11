@@ -1,5 +1,5 @@
 import {
-  useMemo, useState, useCallback, memo,
+  useMemo, useState, useCallback, memo, useEffect, useRef,
 } from 'react';
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { useNetwork } from '../../shared/context/NetworkContext';
@@ -222,6 +222,13 @@ export default function WaterfallTimeline() {
   } = useNetwork();
 
   const [hoveredRequestId, setHoveredRequestId] = useState(null);
+  // Timeline data is now state-based to update on scroll
+  const [timelineData, setTimelineData] = useState({
+    compressedDuration: 1000,
+    positionMap: new Map(),
+  });
+  const visibleRangeRef = useRef({ start: 0, end: 0 });
+
   const debouncedHoverState = useMemo(
     () => createDebouncedHoverState(setHoveredRequestId, HOVER_DEBOUNCE_MS),
     [],
@@ -236,19 +243,63 @@ export default function WaterfallTimeline() {
       || req.status?.toString().includes(query));
   }, [requests, searchQuery]);
 
-  // Calculate compressed timeline for all filtered requests
-  // This is memoized and only recalculated when filtered requests change
-  const timelineData = useMemo(() => {
-    if (filteredRequests.length === 0) {
-      return { compressedDuration: 1000, positionMap: new Map() };
+  const updateTimelineForRange = useCallback((visibleRange, requestsForTimeline = filteredRequests) => {
+    if (requestsForTimeline.length === 0) {
+      setTimelineData((prev) => (prev.positionMap.size === 0 && prev.compressedDuration === 1000
+        ? prev
+        : { compressedDuration: 1000, positionMap: new Map() }));
+      return;
     }
-    const { compressedDuration, requestPositions } = calculateCompressedTimeline(filteredRequests);
+
+    const clampedStart = Math.max(0, Math.min(visibleRange.start, requestsForTimeline.length));
+    const minEnd = Math.min(requestsForTimeline.length, clampedStart + 1);
+    const clampedEnd = Math.max(minEnd, Math.min(visibleRange.end, requestsForTimeline.length));
+    const visibleRequests = requestsForTimeline.slice(clampedStart, clampedEnd);
+    const { compressedDuration, requestPositions } = calculateCompressedTimeline(visibleRequests);
+
     const positionMap = new Map();
     for (const pos of requestPositions) {
       positionMap.set(pos.request.id, pos);
     }
-    return { compressedDuration, positionMap };
+
+    setTimelineData((prev) => {
+      if (prev.compressedDuration === compressedDuration && prev.positionMap.size === positionMap.size) {
+        let isEqual = true;
+        for (const [requestId, nextPos] of positionMap.entries()) {
+          const prevPos = prev.positionMap.get(requestId);
+          if (!prevPos
+            || prevPos.compressedPosition !== nextPos.compressedPosition
+            || prevPos.duration !== nextPos.duration) {
+            isEqual = false;
+            break;
+          }
+        }
+        if (isEqual) return prev;
+      }
+
+      return { compressedDuration, positionMap };
+    });
   }, [filteredRequests]);
+
+  // Recalculate timeline when visible range changes.
+  const handleVisibleRangeChange = useCallback((visibleRange) => {
+    visibleRangeRef.current = visibleRange;
+    updateTimelineForRange(visibleRange);
+  }, [updateTimelineForRange]);
+
+  // Recalculate timeline for the current viewport whenever the underlying request set changes.
+  useEffect(() => {
+    const currentRange = visibleRangeRef.current;
+    if (currentRange.end <= currentRange.start) {
+      const fallbackEnd = Math.min(filteredRequests.length, 20);
+      const fallbackRange = { start: 0, end: fallbackEnd };
+      visibleRangeRef.current = fallbackRange;
+      updateTimelineForRange(fallbackRange, filteredRequests);
+      return;
+    }
+
+    updateTimelineForRange(currentRange, filteredRequests);
+  }, [filteredRequests, updateTimelineForRange]);
 
   // Memoized hover handlers (rerender-defer-reads: stable callbacks)
   const handleHoverStart = useCallback((event) => {
@@ -393,6 +444,7 @@ export default function WaterfallTimeline() {
           renderItem={renderRequestRow}
           itemKey="id"
           overscan={5}
+          onVisibleRangeChange={handleVisibleRangeChange}
           className="flex-1"
         />
       )}
