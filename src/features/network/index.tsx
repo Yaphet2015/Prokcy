@@ -21,6 +21,7 @@ export default function Network(props: {
         isSidebarCollapsed={isSidebarCollapsed}
         rightActions={(
           <Button
+            className="hover:dark:text-zinc-950"
             variant="ghost"
             size="sm"
             onClick={clearRequests}
