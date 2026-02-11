@@ -13,13 +13,6 @@ interface ContentHeaderProps {
   activeView: ViewType;
 }
 
-// Electron window API for maximize toggle
-interface ElectronWindowMaximize {
-  electron?: {
-    toggleMaximizeWindow?: () => void;
-  };
-}
-
 export default function ContentHeader({ activeView }: ContentHeaderProps): React.JSX.Element {
   return (
     <header
@@ -28,7 +21,7 @@ export default function ContentHeader({ activeView }: ContentHeaderProps): React
         px-4 border-b border-zinc-200/70 dark:border-zinc-800/70
         bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
       "
-      onDoubleClick={() => (window as unknown as ElectronWindowMaximize).electron?.toggleMaximizeWindow?.()}
+      onDoubleClick={() => window.electron?.toggleMaximizeWindow?.()}
     >
       <div className="min-w-0 flex items-center gap-3">
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">

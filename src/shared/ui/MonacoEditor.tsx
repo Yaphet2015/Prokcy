@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import * as monacoNs from 'monaco-editor';
 import { registerWhistleLanguage } from '../../features/rules/whistle-language';
 
-// Force local Monaco instance to avoid CDN/Node path resolution issues in desktop runtimes.
-loader.config({ monaco: window.monaco });
+// Use local Monaco instance to avoid CDN fetch issues in Electron desktop runtime.
+// The loader.config({ monaco }) tells @monaco-editor/react to use the bundled
+// monaco-editor package instead of fetching from CDN (which fails in Electron).
+loader.config({ monaco: monacoNs });
 
 /**
  * Suppress Monaco's internal 'productService' error that occurs in Electron.
@@ -88,7 +91,7 @@ interface MonacoEditorProps {
   language?: string;
   theme?: string;
   loading?: boolean;
-  beforeMount?: (monaco: typeof window.monaco) => void;
+  beforeMount?: (monaco: typeof monacoNs) => void;
   options?: MonacoEditorOptions;
 }
 
@@ -106,7 +109,7 @@ export default function MonacoEditor({
 }: MonacoEditorProps): React.JSX.Element {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  const handleBeforeMount = (monaco: typeof window.monaco) => {
+  const handleBeforeMount = (monaco: typeof monacoNs) => {
     // Register Whistle language if using Monaco
     if (language === 'whistle') {
       registerWhistleLanguage(monaco);
@@ -117,7 +120,7 @@ export default function MonacoEditor({
 
   const handleEditorDidMount = (
     editor: editor.IStandaloneCodeEditor,
-    monaco: typeof window.monaco
+    monaco: typeof monacoNs
   ) => {
     editorRef.current = editor;
 

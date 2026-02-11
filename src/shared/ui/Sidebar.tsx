@@ -29,15 +29,6 @@ interface SidebarProps {
   onResizeStart: (event: React.MouseEvent) => void;
 }
 
-// Electron window API for window controls
-interface ElectronWindowControls {
-  electron?: {
-    closeWindow?: () => void;
-    minimizeWindow?: () => void;
-    toggleMaximizeWindow?: () => void;
-  };
-}
-
 export default function Sidebar({
   activeView,
   onViewChange,
@@ -52,29 +43,29 @@ export default function Sidebar({
         relative h-full flex flex-col border-r border-zinc-200 dark:border-zinc-800
         bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
         transition-[width] duration-200 justify-between
-        overflow-x-hidden
+        overflow-x-visible z-9999
       `}
       style={{ width: `${width}px` }}
     >
       {/* Window controls */}
-      <div className="app-drag h-12 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
-        <div className="app-no-drag flex items-center gap-2">
+      <div className="app-drag h-12 flex items-center px-4 shrink-0 bg-white dark:bg-zinc-900">
+        <div className="app-no-drag flex items-center gap-2 ">
           <button
             type="button"
             aria-label="Close window"
-            onClick={() => (window as unknown as ElectronWindowControls).electron?.closeWindow?.()}
+            onClick={() => window.electron?.closeWindow?.()}
             className="h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
           />
           <button
             type="button"
             aria-label="Minimize window"
-            onClick={() => (window as unknown as ElectronWindowControls).electron?.minimizeWindow?.()}
+            onClick={() => window.electron?.minimizeWindow?.()}
             className="h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
           />
           <button
             type="button"
             aria-label="Toggle maximize window"
-            onClick={() => (window as unknown as ElectronWindowControls).electron?.toggleMaximizeWindow?.()}
+            onClick={() => window.electron?.toggleMaximizeWindow?.()}
             className="h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
           />
         </div>

@@ -20,17 +20,10 @@ interface ThemeProviderProps {
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
   const [isDark, setIsDark] = useState(false);
 
-  // Extend Window interface for electron API
-  interface ElectronWindowTheme {
-    getTheme?: () => Promise<{ isDark?: boolean }>;
-    onThemeChanged?: (callback: (theme: { isDark?: boolean }) => void) => () => void;
-  }
-
   useEffect(() => {
     // Get initial theme
-    const electronWin = window as unknown as ElectronWindowTheme;
-    if (electronWin.electron?.getTheme) {
-      electronWin.electron.getTheme()
+    if (window.electron?.getTheme) {
+      window.electron.getTheme()
         .then((theme) => setIsDark(!!theme?.isDark))
         .catch((err) => {
           console.error('Failed to get initial theme:', err);
@@ -39,8 +32,8 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     }
 
     let unsubscribe: (() => void) | undefined;
-    if (electronWin.electron?.onThemeChanged) {
-      unsubscribe = electronWin.electron.onThemeChanged((theme) => {
+    if (window.electron?.onThemeChanged) {
+      unsubscribe = window.electron.onThemeChanged((theme) => {
         setIsDark(!!theme?.isDark);
       });
     }

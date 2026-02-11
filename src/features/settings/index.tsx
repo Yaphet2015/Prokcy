@@ -2,7 +2,9 @@ import {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
 import type { ChangeEvent } from 'react';
-import { Button, Input } from '@pikoloo/darwin-ui';
+import {
+  Button, Checkbox, Input, Select,
+} from '@pikoloo/darwin-ui';
 import { Settings as SettingsIcon, RotateCcw, Save } from 'lucide-react';
 
 // Types
@@ -48,14 +50,6 @@ interface SettingsResponse {
   success?: boolean;
   message?: string;
   settings?: SettingsForm;
-}
-
-// Electron window API for settings
-interface ElectronWindowSettings {
-  electron?: {
-    getSettings?: () => Promise<SettingsForm>;
-    updateSettings?: (payload: SettingsPayload) => Promise<SettingsResponse>;
-  };
 }
 
 // Settings categories for sidebar navigation
@@ -179,15 +173,14 @@ export default function Settings(): React.JSX.Element {
     setLoading(true);
     setError('');
 
-    const electronWin = window as unknown as ElectronWindowSettings;
-    if (!electronWin.electron?.getSettings) {
+    if (!window.electron?.getSettings) {
       setError('Settings API unavailable. Please restart the app.');
       setLoading(false);
       return;
     }
 
     try {
-      const settings = await electronWin.electron.getSettings();
+      const settings = await window.electron.getSettings();
       const next = normalizeSettings(settings);
       setForm(next);
       setSavedForm(next);
@@ -248,8 +241,7 @@ export default function Settings(): React.JSX.Element {
       return;
     }
 
-    const electronWin = window as unknown as ElectronWindowSettings;
-    if (!electronWin.electron?.updateSettings) {
+    if (!window.electron?.updateSettings) {
       setError('Settings API unavailable. Please restart the app.');
       return;
     }
@@ -278,7 +270,7 @@ export default function Settings(): React.JSX.Element {
     };
 
     try {
-      const result = await electronWin.electron.updateSettings(payload);
+      const result = await window.electron.updateSettings(payload);
       if (!result?.success) {
         throw new Error(result?.message || 'Failed to save settings');
       }
@@ -420,18 +412,12 @@ export default function Settings(): React.JSX.Element {
                       {/* Max HTTP Header Size */}
                       <label className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Max HTTP Header Size</span>
-                        <select
+                        <Select
                           value={form.maxHttpHeaderSize}
-                          onChange={(e: ChangeEvent<HTMLSelectElement>) => updateField('maxHttpHeaderSize', e.target.value)}
+                          onChange={(e) => updateField('maxHttpHeaderSize', e.target.value)}
+                          options={HEADER_SIZE_OPTIONS}
                           disabled={loading}
-                          className="w-full h-9 px-3 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        >
-                          {HEADER_SIZE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </label>
 
                       {/* Request List Limit */}
@@ -506,12 +492,10 @@ export default function Settings(): React.JSX.Element {
                     </h2>
 
                     <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={form.useDefaultStorage}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('useDefaultStorage', e.target.checked)}
+                        onChange={(checked) => updateField('useDefaultStorage', checked)}
                         disabled={loading}
-                        className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
                       />
                       <div className="flex-1">
                         <span className="text-sm text-zinc-900 dark:text-zinc-100">Use whistle's default storage directory</span>
@@ -537,18 +521,12 @@ export default function Settings(): React.JSX.Element {
                       {/* Theme */}
                       <label className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
-                        <select
+                        <Select
                           value={form.themeMode}
-                          onChange={(e: ChangeEvent<HTMLSelectElement>) => updateField('themeMode', e.target.value)}
+                          onChange={(e) => updateField('themeMode', e.target.value)}
+                          options={THEME_OPTIONS}
                           disabled={loading}
-                          className="w-full h-9 px-3 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        >
-                          {THEME_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </label>
                     </div>
                   </section>
@@ -566,12 +544,10 @@ export default function Settings(): React.JSX.Element {
                     <div className="space-y-4">
                       {/* Start at login */}
                       <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={form.startAtLogin}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('startAtLogin', e.target.checked)}
+                          onChange={(checked) => updateField('startAtLogin', checked)}
                           disabled={loading}
-                          className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
                         />
                         <div className="flex-1">
                           <span className="text-sm text-zinc-900 dark:text-zinc-100">Start at login</span>
@@ -583,12 +559,10 @@ export default function Settings(): React.JSX.Element {
 
                       {/* Hide from Dock */}
                       <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={form.hideFromDock}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('hideFromDock', e.target.checked)}
+                          onChange={(checked) => updateField('hideFromDock', checked)}
                           disabled={loading}
-                          className="mt-0.5 w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
                         />
                         <div className="flex-1">
                           <span className="text-sm text-zinc-900 dark:text-zinc-100">Hide icon in Dock</span>
