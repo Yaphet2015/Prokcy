@@ -50,12 +50,13 @@ export default function ContentHeader({
       px-4 border-b border-zinc-200/70 dark:border-zinc-800/70
       bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
       ${isSidebarCollapsed ? 'pl-8' : ''}
+      transition-[pl] duration-200
     `}
     >
       {/* Left section: Icon + Title */}
       <div className="min-w-0 flex items-center gap-3">
         {icon && <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>}
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 pointer-none select-none">
           {displayTitle}
         </span>
         {leftActions}

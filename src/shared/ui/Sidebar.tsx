@@ -41,15 +41,17 @@ export default function Sidebar({
     <aside
       className={`
         relative h-full flex flex-col
-        ${!isCollapsed ? 'border-r border-zinc-200 dark:border-zinc-800' : ''}
-        bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl
+        ${!isCollapsed ? 'border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
         transition-[width] duration-200 justify-between
         overflow-x-visible z-9999
       `}
       style={{ width: `${width}px` }}
     >
       {/* Window controls */}
-      <div className="app-drag h-12 flex items-center px-4 shrink-0 bg-white dark:bg-zinc-900">
+      <div className={`app-drag h-12 flex items-center px-4 shrink-0 transition-[bakckground-color] duration-200 ${
+        isCollapsed ? 'bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70' : 'bg-white dark:bg-zinc-900'
+      }`}
+      >
         <div className="app-no-drag flex items-center gap-2 ">
           <button
             type="button"
@@ -142,13 +144,16 @@ export default function Sidebar({
         type="button"
         aria-label="Resize sidebar"
         onMouseDown={onResizeStart}
-        className="
-          absolute top-0 -right-1 h-full w-2 cursor-col-resize
-          bg-transparent border-none p-0
-          hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50
-          focus:outline-none
-        "
-      />
+        className={`
+          absolute top-0 -right-1 h-full w-2 cursor-col-resize p-0 overflow-hidden
+          flex items-center justify-center
+        `}
+      >
+        <div className={`h-full hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 focus:outline-none ${
+          isCollapsed ? 'translate-y-12 bg-zinc-800 w-px' : 'border-none bg-transparent'
+        }`}
+        />
+      </button>
     </aside>
   );
 }
