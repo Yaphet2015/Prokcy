@@ -176,7 +176,7 @@ function App(): React.JSX.Element {
       />
 
       <div className="min-w-0 min-h-0 flex-1 flex flex-col">
-        <ContentHeader activeView={activeView} />
+        {/* <ContentHeader activeView={activeView} /> */}
         <main className="min-h-0 flex-1 overflow-hidden w-full">
           <ActiveComponent />
         </main>

@@ -60,22 +60,6 @@ interface NetworkContextValue {
   refreshRequests: () => Promise<void>;
 }
 
-// Electron API interface
-interface ElectronWindowNetwork {
-  electron?: {
-    getNetworkData?: (params: Record<string, string>) => Promise<unknown>;
-    getRuntimeConfig?: () => Promise<{
-      running?: boolean;
-      host?: string;
-      port?: string;
-      username?: string;
-      password?: string;
-    }>;
-    getSettings?: () => Promise<{ requestListLimit?: number }>;
-    onServiceStatusChanged?: (callback: (status: { running?: boolean }) => void) => () => void;
-  };
-}
-
 // Constants
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = '8888';
@@ -272,8 +256,8 @@ async function getRuntimeConfig(): Promise<{
   username: string;
   password: string;
 }> {
-  const electronWin = window as unknown as ElectronWindowNetwork;
-  if (!electronWin.electron?.getRuntimeConfig) {
+  // electronWin removed - using window.electron directly
+  if (!window.electron?.getRuntimeConfig) {
     return {
       running: false,
       host: DEFAULT_HOST,
@@ -284,7 +268,7 @@ async function getRuntimeConfig(): Promise<{
   }
 
   try {
-    const config = await electronWin.electron.getRuntimeConfig();
+    const config = await window.electron.getRuntimeConfig();
     return {
       running: !!config?.running,
       host: toStringValue(config?.host, DEFAULT_HOST),
@@ -369,12 +353,12 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   }, []);
 
   const loadRequestListLimit = useCallback(async () => {
-    const electronWin = window as unknown as ElectronWindowNetwork;
-    if (!electronWin.electron?.getSettings) {
+    // electronWin removed - using window.electron directly
+    if (!window.electron?.getSettings) {
       return;
     }
     try {
-      const settings = await electronWin.electron.getSettings();
+      const settings = await window.electron.getSettings();
       applyRequestListLimit(settings?.requestListLimit);
     } catch (error) {
       console.error('Failed to load request list limit:', error);
@@ -422,8 +406,8 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
       params.set('ids', trackedIds);
     }
 
-    const payload = (window as unknown as ElectronWindowNetwork).electron?.getNetworkData
-      ? await (window as unknown as ElectronWindowNetwork).electron!.getNetworkData!(Object.fromEntries(params.entries()))
+    const payload = window.electron?.getNetworkData
+      ? await window.electron.getNetworkData(Object.fromEntries(params.entries()))
       : await (async () => {
         const response = await fetch(`http://${config.host}:${config.port}/cgi-bin/get-data?${params.toString()}`);
         if (!response.ok) {

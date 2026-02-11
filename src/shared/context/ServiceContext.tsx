@@ -5,27 +5,6 @@ import type { ReactNode } from 'react';
 const API_CHECK_INTERVAL = 100;
 const API_CHECK_TIMEOUT = 5000;
 
-// Service status result
-interface ServiceStatusResult {
-  running?: boolean;
-}
-
-// Service operation result
-interface ServiceOperationResult {
-  success?: boolean;
-  message?: string;
-}
-
-// Electron API interface
-interface ElectronWindowService {
-  electron?: {
-    getServiceStatus?: () => Promise<ServiceStatusResult>;
-    startService?: () => Promise<ServiceOperationResult>;
-    stopService?: () => Promise<ServiceOperationResult>;
-    onServiceStatusChanged?: (callback: (status: ServiceStatusResult) => void) => () => void;
-  };
-}
-
 interface ServiceContextValue {
   isRunning: boolean;
   isStarting: boolean;
@@ -63,12 +42,11 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   const apiCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const syncServiceStatus = useCallback(async (): Promise<boolean> => {
-    const electronWin = window as unknown as ElectronWindowService;
-    if (!electronWin.electron?.getServiceStatus) {
+    if (!window.electron?.getServiceStatus) {
       return false;
     }
     try {
-      const result = await electronWin.electron.getServiceStatus();
+      const result = await window.electron.getServiceStatus();
       const running = result?.running ?? false;
       setIsRunning(running);
       return running;
@@ -81,11 +59,10 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   // Poll for API availability on mount
   useEffect(() => {
     const checkApiAvailable = (): boolean => {
-      const electronWin = window as unknown as ElectronWindowService;
-      if (electronWin.electron?.getServiceStatus &&
-          electronWin.electron?.startService &&
-          electronWin.electron?.stopService &&
-          electronWin.electron?.onServiceStatusChanged) {
+      if (window.electron?.getServiceStatus &&
+          window.electron?.startService &&
+          window.electron?.stopService &&
+          window.electron?.onServiceStatusChanged) {
         setIsApiAvailable(true);
         if (apiCheckIntervalRef.current) {
           clearInterval(apiCheckIntervalRef.current);
@@ -134,8 +111,7 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   useEffect(() => {
     if (!isApiAvailable) return;
 
-    const electronWin = window as unknown as ElectronWindowService;
-    const unsubscribe = electronWin.electron?.onServiceStatusChanged?.((status: ServiceStatusResult) => {
+    const unsubscribe = window.electron?.onServiceStatusChanged?.((status) => {
       const running = status?.running ?? false;
       setIsRunning(running);
       setIsStarting(false);
@@ -149,8 +125,7 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   }, [isApiAvailable]);
 
   const startService = useCallback(async () => {
-    const electronWin = window as unknown as ElectronWindowService;
-    if (!isApiAvailable || !electronWin.electron) {
+    if (!isApiAvailable || !window.electron) {
       setError('Service control not available. Restart app to enable.');
       return;
     }
@@ -167,7 +142,7 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
     setIsStarting(true);
     setError(null);
     try {
-      const result = await electronWin.electron.startService!();
+      const result = await window.electron.startService();
       if (!result.success && result.message !== 'Service already running') {
         throw new Error(result.message || 'Failed to start service');
       }
@@ -183,8 +158,7 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   }, [isApiAvailable, isStarting, syncServiceStatus]);
 
   const stopService = useCallback(async () => {
-    const electronWin = window as unknown as ElectronWindowService;
-    if (!isApiAvailable || !electronWin.electron) {
+    if (!isApiAvailable || !window.electron) {
       setError('Service control not available. Restart app to enable.');
       return;
     }
@@ -202,7 +176,7 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
     setIsStopping(true);
     setError(null);
     try {
-      const result = await electronWin.electron.stopService!();
+      const result = await window.electron.stopService();
       if (!result.success && result.message !== 'Service not running') {
         throw new Error(result.message || 'Failed to stop service');
       }

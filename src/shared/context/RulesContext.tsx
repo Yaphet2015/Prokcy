@@ -29,23 +29,6 @@ interface RulesResult {
   activeGroupNames: string[];
 }
 
-interface ElectronWindowRules {
-  electron?: {
-    getRules?: () => Promise<string | RulesDataResponse>;
-    setRules?: (rules: string, groupName: string) => Promise<void>;
-    setRulesEnabled?: (enabled: boolean) => Promise<void>;
-    onRulesUpdated?: (callback: (data: string | RulesDataResponse) => void) => () => void;
-    getRulesOrder?: () => Promise<string[]>;
-    setRulesOrder?: (order: string[]) => Promise<void>;
-    setRuleSelection?: (name: string, selected: boolean) => Promise<void>;
-    createRulesGroup?: (name: string, content: string) => Promise<void>;
-    deleteRulesGroup?: (name: string) => Promise<void>;
-    renameRulesGroup?: (oldName: string, newName: string) => Promise<void>;
-    reorderRulesGroups?: (order: string[]) => Promise<void>;
-    onServiceStatusChanged?: (callback: (status: { running?: boolean }) => void) => () => void;
-  };
-}
-
 interface GroupOperationResult {
   success: boolean;
   message?: string;
@@ -120,10 +103,9 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
     setIsLoading(true);
     setError(null);
     try {
-      const electronWin = window as unknown as ElectronWindowRules;
-      if (electronWin.electron?.getRules) {
-        const persistedOrderPromise = electronWin.electron.getRulesOrder
-          ? electronWin.electron.getRulesOrder().catch((err) => {
+      if (window.electron?.getRules) {
+        const persistedOrderPromise = window.electron.getRulesOrder
+          ? window.electron.getRulesOrder().catch((err) => {
             if (!isMissingIpcHandler(err, 'get-rules-order')) {
               throw err;
             }
@@ -131,7 +113,7 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
           })
           : Promise.resolve([]);
         const [rulesData, persistedOrder] = await Promise.all([
-          electronWin.electron.getRules(),
+          window.electron.getRules(),
           persistedOrderPromise,
         ]);
         const next = normalizeRulesData(rulesData);
@@ -163,9 +145,9 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
 
   // Listen for rules updates from Whistle utility process
   useEffect(() => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (electronWin.electron?.onRulesUpdated) {
-      const unsubscribe = electronWin.electron.onRulesUpdated((rulesData) => {
+    // electronWin removed - using window.electron directly
+    if (window.electron?.onRulesUpdated) {
+      const unsubscribe = window.electron.onRulesUpdated((rulesData) => {
         const next = normalizeRulesData(rulesData);
         const nextOrder = normalizeRuleOrder(ruleOrderRef.current, next.ruleGroups);
         const orderedGroups = applyRuleOrder(next.ruleGroups, nextOrder);
@@ -192,11 +174,11 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
 
   // Reload rules when service restarts to avoid startup timing gaps.
   useEffect(() => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!electronWin.electron?.onServiceStatusChanged) {
+    // electronWin removed - using window.electron directly
+    if (!window.electron?.onServiceStatusChanged) {
       return undefined;
     }
-    const unsubscribe = electronWin.electron.onServiceStatusChanged((status) => {
+    const unsubscribe = window.electron.onServiceStatusChanged((status) => {
       if (status?.running) {
         loadRules();
       }
@@ -214,15 +196,15 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   const saveRules = useCallback(async () => {
     if (!isDirty) return;
 
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!electronWin.electron?.setRules) {
+    // electronWin removed - using window.electron directly
+    if (!window.electron?.setRules) {
       return;
     }
 
     setIsSaving(true);
     setError(null);
     try {
-      await electronWin.electron.setRules(rules, activeEditorGroupName);
+      await window.electron.setRules(rules, activeEditorGroupName);
       setOriginalRules(rules);
       setRuleGroups((prev) => prev.map((group) => (group.name === activeEditorGroupName
         ? { ...group, data: rules }
@@ -244,14 +226,14 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [originalRules]);
 
   const toggleEnabled = useCallback(async () => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!electronWin.electron?.setRulesEnabled) {
+    // electronWin removed - using window.electron directly
+    if (!window.electron?.setRulesEnabled) {
       return;
     }
 
     try {
       const newState = !isEnabled;
-      await electronWin.electron.setRulesEnabled(newState);
+      await window.electron.setRulesEnabled(newState);
       setIsEnabled(newState);
     } catch (err) {
       const error = err as Error;
@@ -261,8 +243,8 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [isEnabled]);
 
   const setRuleGroupSelection = useCallback(async (name: string, options: { selected?: boolean } = {}) => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!name || !electronWin.electron?.setRuleSelection) {
+    // electronWin removed - using window.electron directly
+    if (!name || !window.electron?.setRuleSelection) {
       return;
     }
     const target = ruleGroups.find((group) => group.name === name);
@@ -275,7 +257,7 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
 
     try {
       setError(null);
-      await electronWin.electron.setRuleSelection(name, nextSelected);
+      await window.electron.setRuleSelection(name, nextSelected);
     } catch (err) {
       const error = err as Error;
       console.error('Failed to update rules group selection:', error);
@@ -299,8 +281,8 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [ruleGroups]);
 
   const createGroup = useCallback(async (name: string, content = ''): Promise<GroupOperationResult> => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!name || !electronWin.electron?.createRulesGroup) {
+    // electronWin removed - using window.electron directly
+    if (!name || !window.electron?.createRulesGroup) {
       return { success: false, message: 'Invalid name' };
     }
     const trimmedName = name.trim();
@@ -313,7 +295,7 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
 
     try {
       setError(null);
-      await electronWin.electron.createRulesGroup(trimmedName, content);
+      await window.electron.createRulesGroup(trimmedName, content);
       return { success: true };
     } catch (err) {
       const error = err as Error;
@@ -324,15 +306,15 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [ruleGroups]);
 
   const deleteGroup = useCallback(async (name: string): Promise<GroupOperationResult> => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!name || !electronWin.electron?.deleteRulesGroup) {
+    // electronWin removed - using window.electron directly
+    if (!name || !window.electron?.deleteRulesGroup) {
       return { success: false, message: 'Invalid name' };
     }
     const trimmedName = name.trim();
 
     try {
       setError(null);
-      await electronWin.electron.deleteRulesGroup(trimmedName);
+      await window.electron.deleteRulesGroup(trimmedName);
       // If deleted group was being edited, switch to first available group
       if (activeEditorGroupName === trimmedName) {
         const remainingGroup = ruleGroups.find((g) => g.name !== trimmedName);
@@ -353,8 +335,8 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [activeEditorGroupName, ruleGroups]);
 
   const renameGroup = useCallback(async (name: string, newName: string): Promise<GroupOperationResult> => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!name || !newName || !electronWin.electron?.renameRulesGroup) {
+    // electronWin removed - using window.electron directly
+    if (!name || !newName || !window.electron?.renameRulesGroup) {
       return { success: false, message: 'Invalid names' };
     }
     const trimmedName = name.trim();
@@ -371,7 +353,7 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
 
     try {
       setError(null);
-      await electronWin.electron.renameRulesGroup(trimmedName, trimmedNewName);
+      await window.electron.renameRulesGroup(trimmedName, trimmedNewName);
       // Update editor group name if renamed group was being edited
       if (activeEditorGroupName === trimmedName) {
         setActiveEditorGroupName(trimmedNewName);
@@ -386,8 +368,8 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
   }, [activeEditorGroupName, ruleGroups]);
 
   const reorderGroups = useCallback(async (newOrder: RuleGroup[]): Promise<GroupOperationResult> => {
-    const electronWin = window as unknown as ElectronWindowRules;
-    if (!Array.isArray(newOrder) || !electronWin.electron?.reorderRulesGroups) {
+    // electronWin removed - using window.electron directly
+    if (!Array.isArray(newOrder) || !window.electron?.reorderRulesGroups) {
       return { success: false, message: 'Reordering not supported' };
     }
 
@@ -405,16 +387,16 @@ export function RulesProvider({ children }: RulesProviderProps): React.JSX.Eleme
       setRuleGroups(newOrder);
       const orderedNames = newOrder.map((g) => g.name);
       ruleOrderRef.current = orderedNames;
-      if (electronWin.electron?.setRulesOrder) {
+      if (window.electron?.setRulesOrder) {
         try {
-          await electronWin.electron.setRulesOrder(orderedNames);
+          await window.electron.setRulesOrder(orderedNames);
         } catch (err) {
           if (!isMissingIpcHandler(err, 'set-rules-order')) {
             throw err;
           }
         }
       }
-      await electronWin.electron.reorderRulesGroups(orderedNames);
+      await window.electron.reorderRulesGroups(orderedNames);
       return { success: true };
     } catch (err) {
       const error = err as Error;

@@ -1,15 +1,5 @@
 import { getBaseUrl, getAuthHeaders } from './config';
 
-// Electron API types
-interface ElectronWindowAPI {
-  electron?: {
-    getNetworkData?: (params: Record<string, string>) => Promise<unknown>;
-    getRuntimeConfig?: () => Promise<RuntimeConfig>;
-    getSettings?: () => Promise<Settings>;
-    updateSettings?: (settings: Settings) => Promise<UpdateSettingsResult>;
-  };
-}
-
 interface RuntimeConfig {
   running?: boolean;
   host?: string;
@@ -80,11 +70,8 @@ export async function setRules(rules: string): Promise<unknown> {
 
 // Values API
 export async function getValues(): Promise<Record<string, string>> {
-  const electronWin = window as unknown as ElectronWindowAPI;
-  const electronApi = electronWin.electron;
-
-  if (electronApi?.getValues) {
-    const result = await electronApi.getValues();
+  if (window.electron?.getValues) {
+    const result = await window.electron.getValues();
     if (result?.ec && result.ec !== 0) {
       throw new Error(result.message || `API error: ${result.ec}`);
     }
@@ -106,10 +93,8 @@ export async function getValues(): Promise<Record<string, string>> {
 }
 
 export async function setValue(key: string, value: string): Promise<unknown> {
-  const electronWin = window as unknown as ElectronWindowAPI;
-  const electronApi = electronWin.electron;
-  if (electronApi?.setValue) {
-    const result = await electronApi.setValue(key, String(value));
+  if (window.electron?.setValue) {
+    const result = await window.electron.setValue(key, String(value));
     if (result?.ec && result.ec !== 0) {
       throw new Error(result.message || `API error: ${result.ec}`);
     }
@@ -122,10 +107,8 @@ export async function setValue(key: string, value: string): Promise<unknown> {
 }
 
 export async function deleteValue(key: string): Promise<unknown> {
-  const electronWin = window as unknown as ElectronWindowAPI;
-  const electronApi = electronWin.electron;
-  if (electronApi?.deleteValue) {
-    const result = await electronApi.deleteValue(key);
+  if (window.electron?.deleteValue) {
+    const result = await window.electron.deleteValue(key);
     if (result?.ec && result.ec !== 0) {
       throw new Error(result.message || `API error: ${result.ec}`);
     }

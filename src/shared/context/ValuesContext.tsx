@@ -1,17 +1,10 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import {
+  createContext, useContext, useState, useCallback, useMemo, useEffect,
+} from 'react';
 import type { ReactNode } from 'react';
 
 // Values type - key-value pairs
 type ValuesData = Record<string, string>;
-
-// Electron API interface
-interface ElectronWindowValues {
-  electron?: {
-    getValues?: () => Promise<ValuesData>;
-    setValue?: (key: string, value: string) => Promise<void>;
-    deleteValue?: (key: string) => Promise<void>;
-  };
-}
 
 interface ValuesContextValue {
   values: ValuesData;
@@ -68,12 +61,28 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     setIsLoading(true);
     setError(null);
     try {
-      const electronWin = window as unknown as ElectronWindowValues;
-      if (!electronWin.electron?.getValues) {
+      if (!window.electron?.getValues) {
         throw new Error('Electron API not available');
       }
-      const data = await electronWin.electron.getValues();
-      setValuesState(data);
+      const data = await window.electron.getValues();
+
+      // Clean up empty keys
+      const hasEmptyKey = '' in data;
+      if (hasEmptyKey) {
+        console.warn('Found empty key in values, removing it...');
+        try {
+          await window.electron.deleteValue('');
+          // Remove empty key from local state
+          const cleanedData = { ...data };
+          delete cleanedData[''];
+          setValuesState(cleanedData);
+        } catch (cleanupError) {
+          console.error('Failed to remove empty key:', cleanupError);
+          setValuesState(data);
+        }
+      } else {
+        setValuesState(data);
+      }
     } catch (err) {
       const error = err as Error;
       console.error('Failed to load values:', error);
@@ -94,11 +103,10 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     setIsSaving(true);
     setError(null);
     try {
-      const electronWin = window as unknown as ElectronWindowValues;
-      if (!electronWin.electron?.setValue) {
+      if (!window.electron?.setValue) {
         throw new Error('Electron API not available');
       }
-      await electronWin.electron.setValue(key, value);
+      await window.electron.setValue(key, value);
     } catch (err) {
       // Revert optimistic update on error
       const error = err as Error;
@@ -128,11 +136,10 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     setIsSaving(true);
     setError(null);
     try {
-      const electronWin = window as unknown as ElectronWindowValues;
-      if (!electronWin.electron?.deleteValue) {
+      if (!window.electron?.deleteValue) {
         throw new Error('Electron API not available');
       }
-      await electronWin.electron.deleteValue(key);
+      await window.electron.deleteValue(key);
     } catch (err) {
       // Revert optimistic update on error
       const error = err as Error;
@@ -158,11 +165,10 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     }
     const emptyValue = '{}';
     try {
-      const electronWin = window as unknown as ElectronWindowValues;
-      if (!electronWin.electron?.setValue) {
+      if (!window.electron?.setValue) {
         throw new Error('Electron API not available');
       }
-      await electronWin.electron.setValue(key, emptyValue);
+      await window.electron.setValue(key, emptyValue);
       // Only update local state after API succeeds
       setValuesState((prev) => ({ ...prev, [key]: emptyValue }));
       return true;
@@ -187,14 +193,13 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     setIsSaving(true);
     setError(null);
     try {
-      const electronWin = window as unknown as ElectronWindowValues;
-      if (!electronWin.electron?.setValue || !electronWin.electron?.deleteValue) {
+      if (!window.electron?.setValue || !window.electron?.deleteValue) {
         throw new Error('Electron API not available');
       }
       // First set new key
-      await electronWin.electron.setValue(newKey, value);
+      await window.electron.setValue(newKey, value);
       // Then delete old key
-      await electronWin.electron.deleteValue(oldKey);
+      await window.electron.deleteValue(oldKey);
       // Only update local state after both operations succeed
       setValuesState((prev) => {
         const next = { ...prev };
