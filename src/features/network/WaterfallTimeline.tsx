@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { useNetwork, type NormalizedRequest } from '../../shared/context/NetworkContext';
 import { getRequestStyles } from '../../shared/utils/styleParser';
-import { createDebouncedHoverState } from './utils/debouncedHoverState.mjs';
+import { createDebouncedHoverState } from './utils/debouncedHoverState';
 import { VirtualList } from '../../shared/ui/VirtualList';
 
 // Timing phase colors according to design spec

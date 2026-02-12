@@ -26,6 +26,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   width: number;
+  isResizing: boolean;
   onResizeStart: (event: React.MouseEvent) => void;
 }
 
@@ -35,6 +36,7 @@ export default function Sidebar({
   isCollapsed,
   onToggleCollapse,
   width,
+  isResizing,
   onResizeStart,
 }: SidebarProps): React.JSX.Element {
   return (
@@ -42,7 +44,8 @@ export default function Sidebar({
       className={`
         relative h-full flex flex-col
         ${!isCollapsed ? 'border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
-        transition-[width] duration-200 justify-between
+        ${isResizing ? 'transition-none' : 'transition-[width] duration-200'}
+        justify-between
         overflow-x-visible z-9999
       `}
       style={{ width: `${width}px` }}
