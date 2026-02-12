@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getSidebarDragMetrics,
   getSidebarCollapseTransition,
-} from '../src/shared/utils/sidebarResizeState.mjs';
+} from '../src/shared/utils/sidebarResizeState.ts';
 
 test('getSidebarDragMetrics returns raw and clamped widths from drag delta', () => {
   const result = getSidebarDragMetrics({

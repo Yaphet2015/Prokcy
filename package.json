@@ -9,6 +9,7 @@
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "dev:electron": "wait-on tcp:127.0.0.1:5173 && electron ./lib",
+    "test": "node --import tsx --test tests/*.test.ts tests/lib/*.test.cjs",
     "build:react": "vite build",
     "build:mac": "npm run build:react && electron-builder --mac",
     "build:win": "npm run build:react && electron-builder --win --x64",
@@ -101,6 +102,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "wait-on": "^7.2.0"
