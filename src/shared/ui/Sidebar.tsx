@@ -78,7 +78,10 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 space-y-1 overflow-x-hidden overflow-y-auto">
+      <nav className={`flex-1 px-2 space-y-1 overflow-x-hidden overflow-y-auto transition-[translate] duration-200
+          ${isCollapsed ? 'translate-y-3' : 'translate-y-0'}
+        `}
+      >
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
