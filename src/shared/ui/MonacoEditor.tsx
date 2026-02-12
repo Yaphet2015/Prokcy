@@ -9,18 +9,29 @@ import { registerWhistleLanguage } from '../../features/rules/whistle-language';
 // monaco-editor package instead of fetching from CDN (which fails in Electron).
 loader.config({ monaco: monacoNs });
 
+interface MonacoGlobalWindow extends Window {
+  __prokcyMonacoConsolePatched?: boolean;
+  __prokcyMonacoGlobalHandlersInstalled?: boolean;
+}
+
 /**
  * Suppress Monaco's internal 'productService' error that occurs in Electron.
  * This error doesn't affect functionality - it's a service resolution warning
  * from Monaco's dependency injection system running in a non-browser context.
  */
 function suppressProductServiceError(): void {
+  const monacoWindow = window as MonacoGlobalWindow;
+  if (monacoWindow.__prokcyMonacoConsolePatched) {
+    return;
+  }
+  monacoWindow.__prokcyMonacoConsolePatched = true;
+
   const originalError = console.error;
   console.error = (...args: unknown[]) => {
     const message = args[0];
     if (
-      typeof message === 'string' &&
-      (message.includes('unknown service') || message.includes('productService'))
+      typeof message === 'string'
+      && (message.includes('unknown service') || message.includes('productService'))
     ) {
       return; // Suppress this specific Monaco error
     }
@@ -29,31 +40,38 @@ function suppressProductServiceError(): void {
 }
 
 // Run suppression once when module loads
-suppressProductServiceError();
+if (typeof window !== 'undefined') {
+  suppressProductServiceError();
+}
 
 /**
  * Global error handlers to catch Monaco service errors before they propagate.
  * These catch errors thrown during Monaco's service resolution (e.g., during paste operations).
  */
 if (typeof window !== 'undefined') {
-  // Catch Monaco's internal service errors at window level
-  window.addEventListener('error', (event: ErrorEvent) => {
-    if (event.message?.includes('productService') ||
-        event.message?.includes('unknown service')) {
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
-    }
-  }, true); // Use capture phase to catch errors early
+  const monacoWindow = window as MonacoGlobalWindow;
+  if (!monacoWindow.__prokcyMonacoGlobalHandlersInstalled) {
+    monacoWindow.__prokcyMonacoGlobalHandlersInstalled = true;
 
-  // Also catch promise rejections from Monaco
-  window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-    if (event.reason?.message?.includes('productService') ||
-        event.reason?.message?.includes('unknown service')) {
-      event.preventDefault();
-      return false;
-    }
-  });
+    // Catch Monaco's internal service errors at window level
+    window.addEventListener('error', (event: ErrorEvent) => {
+      if (event.message?.includes('productService')
+          || event.message?.includes('unknown service')) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, true); // Use capture phase to catch errors early
+
+    // Also catch promise rejections from Monaco
+    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+      if (event.reason?.message?.includes('productService')
+          || event.reason?.message?.includes('unknown service')) {
+        event.preventDefault();
+        return false;
+      }
+    });
+  }
 }
 
 // Editor options from Monaco
@@ -120,7 +138,7 @@ export default function MonacoEditor({
 
   const handleEditorDidMount = (
     editor: editor.IStandaloneCodeEditor,
-    monaco: typeof monacoNs
+    monaco: typeof monacoNs,
   ) => {
     editorRef.current = editor;
 

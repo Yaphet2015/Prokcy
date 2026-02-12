@@ -27,7 +27,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   width: number;
   isResizing: boolean;
-  onResizeStart: (event: React.MouseEvent) => void;
+  onResizeStart: (event: React.PointerEvent) => void;
 }
 
 export default function Sidebar({
@@ -149,14 +149,15 @@ export default function Sidebar({
       <button
         type="button"
         aria-label="Resize sidebar"
-        onMouseDown={onResizeStart}
+        onPointerDown={onResizeStart}
         className={`
           absolute top-0 -right-1 h-full w-2 cursor-col-resize p-0 overflow-hidden
           flex items-center justify-center
         `}
       >
-        <div className={`h-full hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 focus:outline-none ${
-          isCollapsed ? 'translate-y-12 bg-zinc-800 w-px' : 'border-none bg-transparent'
+        <div className={`h-full border-none transition-[translate] duration-300
+          hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 focus:outline-none dark:bg-zinc-800 bg-zinc-200 w-px ${
+          isCollapsed ? 'translate-y-12' : 'translate-y-0'
         }`}
         />
       </button>

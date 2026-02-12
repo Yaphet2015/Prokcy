@@ -53,6 +53,7 @@ function App(): React.JSX.Element {
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const resizeStartRef = useRef({ x: 0, width: SIDEBAR_DEFAULT_WIDTH });
+  const resizingPointerIdRef = useRef<number | null>(null);
   const isSidebarCollapsedRef = useRef(isSidebarCollapsed);
   const ActiveComponent = VIEWS[activeView] || VIEWS.network;
 
@@ -60,9 +61,12 @@ function App(): React.JSX.Element {
     isSidebarCollapsedRef.current = isSidebarCollapsed;
   }, [isSidebarCollapsed]);
 
-  const handleSidebarResizeStart = useCallback((event: React.MouseEvent) => {
+  const handleSidebarResizeStart = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
     const initialWidth = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
+
+    resizingPointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
 
     resizeStartRef.current = {
       x: event.clientX,
@@ -110,7 +114,14 @@ function App(): React.JSX.Element {
       return undefined;
     }
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
+      if (
+        resizingPointerIdRef.current !== null
+        && event.pointerId !== resizingPointerIdRef.current
+      ) {
+        return;
+      }
+
       const { rawNextWidth, clampedNextWidth } = getSidebarDragMetrics({
         startX: resizeStartRef.current.x,
         startWidth: resizeStartRef.current.width,
@@ -150,19 +161,27 @@ function App(): React.JSX.Element {
     };
 
     const stopResizing = () => {
+      resizingPointerIdRef.current = null;
       setIsResizingSidebar(false);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', stopResizing);
-    document.body.style.userSelect = 'none';
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopResizing, true);
+    window.addEventListener('pointercancel', stopResizing, true);
+    window.addEventListener('blur', stopResizing);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', stopResizing);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      resizingPointerIdRef.current = null;
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResizing, true);
+      window.removeEventListener('pointercancel', stopResizing, true);
+      window.removeEventListener('blur', stopResizing);
     };
   }, [isResizingSidebar]);
 
