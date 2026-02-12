@@ -3,42 +3,17 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { useService } from './ServiceContext';
-import type { WhistleRequest } from '../types/whistle';
+import {
+  normalizeRequestSummary,
+  normalizeRequestDetail,
+} from '../../features/network/utils/requestNormalization';
+import type {
+  RawRequestItem,
+  RequestTimings,
+  NormalizedRequest,
+} from '../../features/network/utils/requestNormalization';
 
-// Types
-export interface RequestTimings {
-  dns: number;
-  tcp: number;
-  tls: number;
-  ttfb: number;
-  download: number;
-  total: number;
-}
-
-export interface NormalizedRequest {
-  id: string;
-  method: string;
-  url: string;
-  status: number;
-  statusText: string;
-  size: number;
-  timings: RequestTimings;
-  headers: {
-    request: Record<string, string>;
-    response: Record<string, string>;
-  };
-  requestBody: {
-    content: string;
-    headers: Record<string, string>;
-  } | null;
-  response: {
-    body: string;
-    headers: Record<string, string>;
-    size: number;
-  } | null;
-  rules: Record<string, unknown>;
-  sortTime: number;
-}
+export type { RequestTimings, NormalizedRequest };
 
 export interface RequestFilter {
   method?: string;
@@ -68,6 +43,7 @@ const MAX_RECONNECT_DELAY = 30000;
 const FETCH_COUNT = 120;
 const TRACKED_IDS_COUNT = 200;
 const DEFAULT_REQUEST_LIST_LIMIT = 500;
+const DETAIL_CACHE_LIMIT = 20;
 
 // Helper functions
 function toStringValue(value: unknown, fallback = ''): string {
@@ -80,153 +56,14 @@ function toStringValue(value: unknown, fallback = ''): string {
   return String(value);
 }
 
-function getHeaderValue(headers: Record<string, string> | undefined, name: string): string {
-  if (!headers || typeof headers !== 'object') {
-    return '';
-  }
-  const target = name.toLowerCase();
-  const key = Object.keys(headers).find((k) => k.toLowerCase() === target);
-  if (!key) {
-    return '';
-  }
-  const value = headers[key];
-  return Array.isArray(value) ? value.join(', ') : toStringValue(value, '');
-}
-
-function estimateBase64Size(base64: unknown): number {
-  if (!base64 || typeof base64 !== 'string') {
-    return 0;
-  }
-  let padding = 0;
-  if (base64.endsWith('==')) {
-    padding = 2;
-  } else if (base64.endsWith('=')) {
-    padding = 1;
-  }
-  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
-}
-
-function decodeBase64ToText(base64: unknown): string {
-  if (!base64 || typeof base64 !== 'string') {
-    return '';
-  }
-  try {
-    const binary = atob(base64);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new TextDecoder('utf-8').decode(bytes);
-  } catch {
-    return '';
-  }
-}
-
-function clamp(value: number): number {
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
-
-interface TimingItem {
-  startTime?: number;
-  dnsTime?: number;
-  requestTime?: number;
-  responseTime?: number;
-  endTime?: number;
-}
-
-function getTimings(item: TimingItem): RequestTimings {
-  const now = Date.now();
-  const start = Number(item?.startTime) || now;
-  const dnsTime = Number(item?.dnsTime) || start;
-  const requestTime = Number(item?.requestTime) || dnsTime;
-  const responseTime = Number(item?.responseTime) || requestTime;
-  const endTime = Number(item?.endTime) || now;
-
-  const dns = clamp(dnsTime - start);
-  const tcp = clamp(requestTime - dnsTime);
-  const ttfb = clamp(responseTime - requestTime);
-  const download = clamp(endTime - responseTime);
-  const total = clamp(endTime - start);
-
+function mergeRequestWithDetail(
+  summary: NormalizedRequest,
+  detail: NormalizedRequest
+): NormalizedRequest {
   return {
-    dns,
-    tcp,
-    tls: 0,
-    ttfb,
-    download,
-    total,
-  };
-}
-
-interface RawRequestItem {
-  id?: string;
-  url?: string;
-  req?: {
-    method?: string;
-    headers?: Record<string, string>;
-    base64?: string;
-  };
-  res?: {
-    statusCode?: number;
-    statusMessage?: string;
-    headers?: Record<string, string>;
-    base64?: string;
-    size?: number;
-  };
-  startTime?: number;
-  dnsTime?: number;
-  requestTime?: number;
-  responseTime?: number;
-  endTime?: number;
-  rules?: Record<string, unknown>;
-}
-
-function normalizeRequest(item: RawRequestItem): NormalizedRequest | null {
-  if (!item || typeof item !== 'object') {
-    return null;
-  }
-
-  const id = toStringValue(item.id, '');
-  if (!id) {
-    return null;
-  }
-
-  const requestHeaders = item.req?.headers && typeof item.req.headers === 'object' ? item.req.headers : {};
-  const responseHeaders = item.res?.headers && typeof item.res.headers === 'object' ? item.res.headers : {};
-  const responseContentType = getHeaderValue(responseHeaders, 'content-type');
-
-  const requestBodyText = decodeBase64ToText(item.req?.base64);
-  const responseBodyBase64 = toStringValue(item.res?.base64, '');
-  const responseBody = responseContentType.startsWith('image/')
-    ? responseBodyBase64
-    : decodeBase64ToText(responseBodyBase64);
-
-  const responseSize = Number(item.res?.size) || estimateBase64Size(responseBodyBase64);
-
-  return {
-    id,
-    method: toStringValue(item.req?.method, 'GET').toUpperCase(),
-    url: toStringValue(item.url, ''),
-    status: Number(item.res?.statusCode) || 0,
-    statusText: toStringValue(item.res?.statusMessage, ''),
-    size: responseSize,
-    timings: getTimings(item),
-    headers: {
-      request: requestHeaders,
-      response: responseHeaders,
-    },
-    requestBody: requestBodyText
-      ? {
-        content: requestBodyText,
-        headers: requestHeaders,
-      }
-      : null,
-    response: item.res
-      ? {
-        body: responseBody,
-        headers: responseHeaders,
-        size: responseSize,
-      }
-      : null,
-    rules: item.rules || {},
-    sortTime: Number(item.startTime) || Date.now(),
+    ...summary,
+    requestBody: detail.requestBody,
+    response: detail.response,
   };
 }
 
@@ -247,6 +84,23 @@ function mergeRequests(
   return Array.from(merged.values())
     .sort((a, b) => b.sortTime - a.sortTime)
     .slice(0, maxRequests);
+}
+
+interface NetworkDataPayload {
+  data?: {
+    data?: Record<string, RawRequestItem>;
+    lastId?: string;
+    endId?: string;
+  };
+  ec?: number;
+}
+
+function getPayloadData(payload: unknown): NetworkDataPayload['data'] {
+  const parsed = payload as NetworkDataPayload;
+  if (parsed?.ec && parsed.ec !== 0) {
+    throw new Error(`API error: ${parsed.ec}`);
+  }
+  return parsed?.data;
 }
 
 async function getRuntimeConfig(): Promise<{
@@ -322,6 +176,8 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const lastIdRef = useRef('');
+  const detailCacheRef = useRef<Map<string, NormalizedRequest>>(new Map());
+  const detailFetchTokenRef = useRef(0);
 
   useEffect(() => {
     requestsRef.current = requests;
@@ -341,9 +197,25 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
         return prev;
       }
       const updated = requests.find((req) => req.id === prev.id);
-      return updated || null;
+      if (!updated) {
+        return null;
+      }
+      const detail = detailCacheRef.current.get(updated.id);
+      return detail ? mergeRequestWithDetail(updated, detail) : updated;
     });
   }, [requests]);
+
+  const setRequestDetailCache = useCallback((request: NormalizedRequest) => {
+    detailCacheRef.current.delete(request.id);
+    detailCacheRef.current.set(request.id, request);
+    while (detailCacheRef.current.size > DETAIL_CACHE_LIMIT) {
+      const oldestKey = detailCacheRef.current.keys().next().value;
+      if (!oldestKey) {
+        break;
+      }
+      detailCacheRef.current.delete(oldestKey);
+    }
+  }, []);
 
   const applyRequestListLimit = useCallback((value: unknown) => {
     const parsed = Number(value);
@@ -416,14 +288,10 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
         return response.json();
       })();
 
-    if ((payload as { ec?: number })?.ec && (payload as { ec?: number }).ec !== 0) {
-      throw new Error(`API error: ${(payload as { ec?: number }).ec}`);
-    }
-
-    const data = (payload as { data?: { data?: Record<string, RawRequestItem>; lastId?: string; endId?: string } })?.data;
+    const data = getPayloadData(payload);
     const dataMap = data?.data && typeof data.data === 'object' ? data.data : {};
     const incoming = Object.values(dataMap)
-      .map(normalizeRequest)
+      .map(normalizeRequestSummary)
       .filter((item): item is NormalizedRequest => item !== null);
 
     setRequests((prev) => mergeRequests(prev, incoming, activeLimit));
@@ -437,6 +305,30 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     setIsStreaming(true);
   }, []);
 
+  const fetchRequestDetail = useCallback(async (requestId: string): Promise<NormalizedRequest | null> => {
+    const config = await getRuntimeConfig();
+    if (!config.running || !requestId) {
+      return null;
+    }
+
+    const payload = window.electron?.getNetworkData
+      ? await window.electron.getNetworkData({ ids: requestId, count: '1' })
+      : await (async () => {
+        const params = new URLSearchParams({ ids: requestId, count: '1' });
+        const response = await fetch(`http://${config.host}:${config.port}/cgi-bin/get-data?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return response.json();
+      })();
+
+    const data = getPayloadData(payload);
+    const dataMap = data?.data && typeof data.data === 'object' ? data.data : {};
+    const exactMatch = Object.values(dataMap).find((item) => toStringValue(item.id, '') === requestId);
+    const fallback = exactMatch || Object.values(dataMap)[0];
+    return fallback ? normalizeRequestDetail(fallback) : null;
+  }, []);
+
   const refreshRequests = useCallback(async () => {
     lastIdRef.current = '';
     await fetchNetworkData({ initial: true });
@@ -445,9 +337,43 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   const clearRequests = useCallback(() => {
     // Prevent next poll from reloading old requests after a manual clear.
     lastIdRef.current = String(Date.now());
+    detailCacheRef.current.clear();
+    detailFetchTokenRef.current += 1;
     setRequests([]);
     setSelectedRequest(null);
   }, []);
+
+  useEffect(() => {
+    if (!selectedRequest?.id) {
+      return;
+    }
+
+    const requestId = selectedRequest.id;
+    const cached = detailCacheRef.current.get(requestId);
+    if (cached) {
+      setSelectedRequest((prev) => (prev && prev.id === requestId ? mergeRequestWithDetail(prev, cached) : prev));
+      return;
+    }
+
+    const token = detailFetchTokenRef.current + 1;
+    detailFetchTokenRef.current = token;
+    fetchRequestDetail(requestId)
+      .then((detail) => {
+        if (!detail) {
+          return;
+        }
+        setRequestDetailCache(detail);
+        setSelectedRequest((prev) => {
+          if (!prev || prev.id !== requestId || detailFetchTokenRef.current !== token) {
+            return prev;
+          }
+          return mergeRequestWithDetail(prev, detail);
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to fetch request detail:', error);
+      });
+  }, [selectedRequest?.id, fetchRequestDetail, setRequestDetailCache]);
 
   useEffect(() => {
     if (!isApiAvailable) {
