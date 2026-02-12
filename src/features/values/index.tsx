@@ -1,12 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
+import {
+  useEffect, useRef, useState, useMemo, useCallback,
+} from 'react';
 import { Button } from '@pikoloo/darwin-ui';
-import { Plus } from 'lucide-react';
-import { useValues } from '../../shared/context/ValuesContext';
+import { Plus, Save } from 'lucide-react';
+import { usePrompt } from '../../shared/ui/Modal';
+import { useConfirm } from '../../shared/ui/ConfirmDialog';
 import ContentHeader from '../../shared/ui/ContentHeader';
+import { useValues } from '../../shared/context/ValuesContext';
 import KeysList, { type KeysListHandle } from './components/KeysList';
 import ValueEditor from './components/ValueEditor';
-import Modal, { usePrompt } from '../../shared/ui/Modal';
-import { useConfirm } from '../../shared/ui/ConfirmDialog';
 
 // Types for event handling
 interface ValuesRenameEventDetail {
@@ -17,6 +19,7 @@ interface ValuesRenameEventDetail {
 export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
   const {
     values,
+    originalValues,
     selectedKey,
     selectKey,
     setValue,
@@ -25,10 +28,12 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
     renameKey,
     isLoading,
     isSaving,
+    isDirty,
+    saveValues,
     error,
   } = useValues();
+  const [invalidKeys, setInvalidKeys] = useState<Set<string>>(new Set());
 
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const keysListRef = useRef<KeysListHandle>(null);
 
   // Dialog hooks
@@ -40,6 +45,29 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
       setValue(selectedKey, newValue);
     }
   };
+
+  const handleValidationChange = useCallback((key: string, isValid: boolean) => {
+    setInvalidKeys((prev) => {
+      const next = new Set(prev);
+      if (isValid) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  const unsavableDirtyKeys = useMemo(() => {
+    const keys = Object.keys(values);
+    return new Set(keys.filter((key) => {
+      const isNewKey = !(key in originalValues);
+      const hasChanged = isNewKey || values[key] !== originalValues[key];
+      return hasChanged && invalidKeys.has(key);
+    }));
+  }, [values, originalValues, invalidKeys]);
+
+  const hasUnsavableDirtyValues = unsavableDirtyKeys.size > 0;
 
   // Handle rename event from ValueEditor
   useEffect(() => {
@@ -57,6 +85,14 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
 
+      // Cmd/Ctrl+S: Save values
+      if (isMod && e.key === 's' && !e.shiftKey) {
+        e.preventDefault();
+        if (isDirty && !isSaving && !hasUnsavableDirtyValues) {
+          saveValues();
+        }
+      }
+
       // Cmd/Ctrl+N: Create new value (trigger inline input in KeysList)
       if (isMod && e.key === 'n' && !e.shiftKey) {
         e.preventDefault();
@@ -64,36 +100,19 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
         window.dispatchEvent(new CustomEvent('values-start-create'));
       }
 
-      // Cmd/Ctrl+F: Focus search
-      if (isMod && e.key === 'f' && !e.shiftKey) {
-        e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder*="Search"]');
-        if (searchInput) {
-          (searchInput as HTMLInputElement).focus();
-        }
-      }
+      // // Cmd/Ctrl+F: Focus search
+      // if (isMod && e.key === 'f' && !e.shiftKey) {
+      //   e.preventDefault();
+      //   const searchInput = document.querySelector('input[placeholder*="Search"]');
+      //   if (searchInput) {
+      //     (searchInput as HTMLInputElement).focus();
+      //   }
+      // }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedKey, deleteValue]);
-
-  const handleRenameConfirm = (newName: string) => {
-    if (selectedKey && newName && newName.trim() && newName.trim() !== selectedKey) {
-      renameKey(selectedKey, newName.trim());
-    }
-    setIsRenameModalOpen(false);
-  };
-
-  const handleRenameCancel = () => {
-    setIsRenameModalOpen(false);
-  };
-
-  const handleDeleteValue = () => {
-    if (selectedKey) {
-      deleteValue(selectedKey);
-    }
-  };
+  }, [selectedKey, isDirty, isSaving, hasUnsavableDirtyValues, saveValues]);
 
   // Handle rename from context menu
   const handleContextRename = async (key: string) => {
@@ -133,7 +152,7 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
       return;
     }
 
-    await deleteValue(key);
+    deleteValue(key);
   };
 
   if (isLoading) {
@@ -159,8 +178,23 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
           statusMessage={(
             <>
               {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
+              {hasUnsavableDirtyValues && (
+                <span className="text-xs text-amber-500">Invalid JSON: fix marked values before saving</span>
+              )}
               {error && <span className="text-xs text-red-500">{error}</span>}
             </>
+          )}
+          rightActions={(
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={saveValues}
+              disabled={!isDirty || isSaving || hasUnsavableDirtyValues}
+              leftIcon={<Save className="w-4 h-4" />}
+              title="Save values (Cmd+S)"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
           )}
         />
 
@@ -190,6 +224,7 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
               ref={keysListRef}
               values={values}
               selectedKey={selectedKey}
+              unsavableDirtyKeys={unsavableDirtyKeys}
               onSelectKey={selectKey}
               onCreateValue={createValue}
               onContextRename={handleContextRename}
@@ -202,19 +237,10 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
               selectedKey={selectedKey}
               value={selectedKey ? (values[selectedKey] ?? '') : ''}
               onChange={handleValueChange}
+              onValidationChange={handleValidationChange}
             />
           </main>
         </div>
-
-        {/* Modals */}
-        <Modal
-          isOpen={isRenameModalOpen}
-          title="Rename Value"
-          message="Enter a new name for this value:"
-          defaultValue={selectedKey ?? ''}
-          onConfirm={handleRenameConfirm}
-          onCancel={handleRenameCancel}
-        />
       </div>
     </>
   );

@@ -57,6 +57,12 @@ Styling matches the Rules view exactly for consistency.
 }
 ```
 
+**Unsavable Dirty State (UI-level):**
+- The editor always writes text changes to local state so dirty tracking stays accurate.
+- If the edited value is syntactically invalid JSON, the key is marked as `unsavable-dirty`.
+- Save actions (button and Cmd/Ctrl+S) are blocked while any key is `unsavable-dirty`.
+- The key list shows a filled circle marker for each `unsavable-dirty` key.
+
 **API Integration:**
 - `fetchValues()` calls `getValues()` on mount
 - `setValue(key, value)` → `setValue(key, jsonString)` with 300ms debounce
@@ -100,7 +106,7 @@ src/features/values/
 ## Edge Cases
 
 1. **No values:** Empty state with hint message
-2. **Invalid JSON5:** Monaco shows syntax errors, auto-save suppressed
+2. **Invalid JSON while dirty:** Monaco shows syntax errors, key list shows filled circle marker, save is disabled
 3. **Delete confirmation:** Native `confirm()` dialog
 4. **Duplicate key:** Inline error in create dialog
 5. **API failures:** Retry with exponential backoff

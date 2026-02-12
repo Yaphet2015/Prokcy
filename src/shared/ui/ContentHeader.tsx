@@ -51,6 +51,7 @@ export default function ContentHeader({
       bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
       ${isSidebarCollapsed ? 'pl-8' : ''}
       transition-[pl] duration-200
+      app-drag
     `}
     >
       {/* Left section: Icon + Title */}
@@ -70,7 +71,7 @@ export default function ContentHeader({
       )}
 
       {/* Right section: Actions + Search */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 app-no-drag">
         {rightActions}
         {searchInput}
       </div>

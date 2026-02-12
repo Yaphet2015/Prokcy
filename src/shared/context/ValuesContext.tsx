@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useState, useCallback, useMemo, useEffect,
+  createContext, useContext, useState, useCallback, useMemo, useEffect, useRef,
 } from 'react';
 import type { ReactNode } from 'react';
 
@@ -8,34 +8,40 @@ type ValuesData = Record<string, string>;
 
 interface ValuesContextValue {
   values: ValuesData;
+  originalValues: ValuesData;
   selectedKey: string | null;
   isLoading: boolean;
   isSaving: boolean;
+  isDirty: boolean;
   error: string | null;
   searchQuery: string;
   selectKey: (key: string | null) => void;
   fetchValues: () => Promise<void>;
-  setValue: (key: string, value: string) => Promise<void>;
-  deleteValue: (key: string) => Promise<void>;
-  createValue: (key: string) => Promise<boolean>;
+  setValue: (key: string, value: string) => void;
+  deleteValue: (key: string) => void;
+  createValue: (key: string) => boolean;
   renameKey: (oldKey: string, newKey: string) => Promise<boolean>;
   setSearchQuery: (query: string) => void;
+  saveValues: () => Promise<void>;
 }
 
 const ValuesContext = createContext<ValuesContextValue>({
   values: {},
+  originalValues: {},
   selectedKey: null,
   isLoading: false,
   isSaving: false,
+  isDirty: false,
   error: null,
   searchQuery: '',
   selectKey: () => {},
   fetchValues: async () => {},
-  setValue: async () => {},
-  deleteValue: async () => {},
-  createValue: async () => false,
+  setValue: () => {},
+  deleteValue: () => {},
+  createValue: () => false,
   renameKey: async () => false,
   setSearchQuery: () => {},
+  saveValues: async () => {},
 });
 
 interface ValuesProviderProps {
@@ -44,11 +50,19 @@ interface ValuesProviderProps {
 
 export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Element {
   const [values, setValuesState] = useState<ValuesData>({});
+  const [originalValues, setOriginalValues] = useState<ValuesData>({});
+  const originalValuesRef = useRef(originalValues);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    originalValuesRef.current = originalValues;
+  }, [originalValues]);
 
   const selectKey = useCallback((key: string | null) => {
     setSelectedKey(key);
@@ -76,13 +90,17 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
           const cleanedData = { ...data };
           delete cleanedData[''];
           setValuesState(cleanedData);
+          setOriginalValues(cleanedData);
         } catch (cleanupError) {
           console.error('Failed to remove empty key:', cleanupError);
           setValuesState(data);
+          setOriginalValues(data);
         }
       } else {
         setValuesState(data);
+        setOriginalValues(data);
       }
+      setIsDirty(false);
     } catch (err) {
       const error = err as Error;
       console.error('Failed to load values:', error);
@@ -93,91 +111,79 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
   }, []);
 
   /**
-   * Set a value and auto-save to API
-   * Updates local state immediately for optimistic UI
+   * Check if values have changes compared to original
    */
-  const setValue = useCallback(async (key: string, value: string) => {
-    const oldValue = values[key];
-    // Optimistic update
-    setValuesState((prev) => ({ ...prev, [key]: value }));
-    setIsSaving(true);
-    setError(null);
-    try {
-      if (!window.electron?.setValue) {
-        throw new Error('Electron API not available');
+  const checkDirty = useCallback((currentValues: ValuesData): boolean => {
+    const currentKeys = new Set(Object.keys(currentValues));
+    const originalKeys = new Set(Object.keys(originalValuesRef.current));
+
+    // Check for added keys
+    for (const key of currentKeys) {
+      if (!originalKeys.has(key)) {
+        return true; // New key added
       }
-      await window.electron.setValue(key, value);
-    } catch (err) {
-      // Revert optimistic update on error
-      const error = err as Error;
-      console.error('Failed to save value:', error);
-      setValuesState((prev) => ({ ...prev, [key]: oldValue }));
-      setError(error.message || 'Failed to save value');
-    } finally {
-      setIsSaving(false);
+      if (currentValues[key] !== originalValuesRef.current[key]) {
+        return true; // Value changed
+      }
     }
-  }, [values]);
+
+    // Check for deleted keys
+    for (const key of originalKeys) {
+      if (!currentKeys.has(key)) {
+        return true; // Key was deleted
+      }
+    }
+
+    return false; // No changes
+  }, []); // No dependencies - we use ref instead
 
   /**
-   * Delete a value
-   * Note: Confirmation should be handled by the calling component
+   * Set a value (local only, call saveValues to persist)
+   * Updates local state immediately, updates dirty flag based on whether values match original
    */
-  const deleteValue = useCallback(async (key: string) => {
-    // Optimistic update
-    const oldValue = values[key];
+  const setValue = useCallback((key: string, value: string) => {
+    setValuesState((prev) => {
+      const newValues = { ...prev, [key]: value };
+      const hasChanges = checkDirty(newValues);
+      setIsDirty(hasChanges);
+      return newValues;
+    });
+  }, [checkDirty]);
+
+  /**
+   * Delete a value (local only, call saveValues to persist)
+   * Updates local state immediately, updates dirty flag
+   */
+  const deleteValue = useCallback((key: string) => {
     setValuesState((prev) => {
       const next = { ...prev };
       delete next[key];
+      const hasChanges = checkDirty(next);
+      setIsDirty(hasChanges);
       return next;
     });
     if (selectedKey === key) {
       setSelectedKey(null);
     }
-    setIsSaving(true);
-    setError(null);
-    try {
-      if (!window.electron?.deleteValue) {
-        throw new Error('Electron API not available');
-      }
-      await window.electron.deleteValue(key);
-    } catch (err) {
-      // Revert optimistic update on error
-      const error = err as Error;
-      console.error('Failed to delete value:', error);
-      setValuesState((prev) => ({ ...prev, [key]: oldValue }));
-      if (selectedKey === key) {
-        setSelectedKey(key);
-      }
-      setError(error.message || 'Failed to delete value');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [values, selectedKey]);
+  }, [checkDirty, selectedKey]);
 
   /**
-   * Create a new value with an empty JSON object
+   * Create a new value with an empty JSON object (local only)
    * Returns true if successful, false otherwise
    * Note: Caller is responsible for selecting the new key after success
    */
-  const createValue = useCallback(async (key: string): Promise<boolean> => {
+  const createValue = useCallback((key: string): boolean => {
     if (!key || values[key]) {
       return false;
     }
     const emptyValue = '{}';
-    try {
-      if (!window.electron?.setValue) {
-        throw new Error('Electron API not available');
-      }
-      await window.electron.setValue(key, emptyValue);
-      // Only update local state after API succeeds
-      setValuesState((prev) => ({ ...prev, [key]: emptyValue }));
-      return true;
-    } catch (err) {
-      const error = err as Error;
-      console.error('Failed to create value:', error);
-      setError(error.message || 'Failed to create value');
-      return false;
-    }
+    setValuesState((prev) => {
+      const newValues = { ...prev, [key]: emptyValue };
+      // New key is not in originalValues, so we're definitely dirty
+      setIsDirty(true);
+      return newValues;
+    });
+    return true;
   }, [values]);
 
   /**
@@ -219,6 +225,48 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     }
   }, [values]);
 
+  /**
+   * Save all values to the API
+   * Compares current values with original values and sends only changed values
+   */
+  const saveValues = useCallback(async () => {
+    if (!isDirty) {
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      if (!window.electron?.setValue || !window.electron?.deleteValue) {
+        throw new Error('Electron API not available');
+      }
+
+      const originalKeys = new Set(Object.keys(originalValues));
+      const currentKeys = new Set(Object.keys(values));
+
+      // Delete keys that were removed
+      for (const key of originalKeys) {
+        if (!currentKeys.has(key)) {
+          await window.electron.deleteValue(key);
+        }
+      }
+
+      // Save or update all current values
+      for (const key of currentKeys) {
+        await window.electron.setValue(key, values[key]);
+      }
+
+      // Update original values to current values
+      setOriginalValues(values);
+      setIsDirty(false);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to save values:', error);
+      setError(error.message || 'Failed to save values');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [values, originalValues, isDirty]);
+
   // Fetch values on mount
   useEffect(() => {
     fetchValues();
@@ -234,9 +282,11 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
 
   const value = useMemo<ValuesContextValue>(() => ({
     values,
+    originalValues,
     selectedKey,
     isLoading,
     isSaving,
+    isDirty,
     error,
     searchQuery,
     selectKey,
@@ -246,11 +296,14 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     createValue,
     renameKey,
     setSearchQuery,
+    saveValues,
   }), [
     values,
+    originalValues,
     selectedKey,
     isLoading,
     isSaving,
+    isDirty,
     error,
     searchQuery,
     selectKey,
@@ -259,6 +312,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     deleteValue,
     createValue,
     renameKey,
+    saveValues,
   ]);
 
   return (
