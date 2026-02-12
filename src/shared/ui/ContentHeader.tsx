@@ -55,7 +55,7 @@ export default function ContentHeader({
     `}
     >
       {/* Left section: Icon + Title */}
-      <div className="min-w-0 flex items-center gap-3">
+      <div className="min-w-0 flex items-center gap-3 app-no-drag">
         {icon && <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>}
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 pointer-none select-none">
           {displayTitle}
