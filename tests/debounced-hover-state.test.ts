@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createDebouncedHoverState } from '../src/features/network/utils/debouncedHoverState.mjs';
+import { createDebouncedHoverState } from '../src/features/network/utils/debouncedHoverState.ts';
+
+// Node tests do not have a DOM window; provide the timer surface used by the util.
+if (!(globalThis as { window?: typeof globalThis }).window) {
+  (globalThis as { window?: typeof globalThis }).window = globalThis;
+}
 
 test('createDebouncedHoverState setNow updates immediately', () => {
   let current = 'initial';
