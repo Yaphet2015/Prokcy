@@ -54,7 +54,7 @@ src/
 
 ### App Shell
 
-A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `360px`). If users drag below `200px` and hold there for more than `300ms`, the sidebar auto-collapses without ending the active drag. While keeping the mouse pressed, dragging back to `>=200px` auto-expands the sidebar and continues the same resize interaction.
+A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `300px`). Collapse/expand during drag uses hysteresis to avoid jitter: drag below `170px` to collapse, then drag back to `>=220px` to expand, without ending the active drag. During active drag, width transition is disabled so the sidebar edge tracks the pointer directly.
 
 **Navigation Items:**
 - Network (waterfall icon)
@@ -161,7 +161,7 @@ System font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif
 - **Buttons:** `h-9 px-5 rounded-lg font-medium text-sm` with hover/active states
 - **Inputs:** `h-9 px-3 rounded-lg bg-tahoe-bg/50 border` with focus states
 - **Scrollbars:** Custom thin (8px) with transparent tracks
-- **Sidebar:** default `w-60` equivalent width with draggable resize handle, constrained to `200px-360px`, with auto-collapse when held below `200px` for `300ms`, and continuous drag (no forced release/re-grab) across collapse/expand transitions, plus `glass-tahoe border-r`
+- **Sidebar:** default `w-60` equivalent width with draggable resize handle, constrained to `200px-300px`, with hysteresis collapse/expand thresholds (`<170px` collapse, `>=220px` expand), continuous drag (no forced release/re-grab) across collapse/expand transitions, drag-time `width` transition disabled for pointer-following behavior, plus `glass-tahoe border-r`
 
 ## API Layer & State
 

@@ -64,22 +64,6 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
         window.dispatchEvent(new CustomEvent('values-start-create'));
       }
 
-      // // Cmd/Ctrl+Shift+R: Rename selected
-      // if (isMod && e.shiftKey && e.key === 'R') {
-      //   e.preventDefault();
-      //   if (selectedKey) {
-      //     setIsRenameModalOpen(true);
-      //   }
-      // }
-
-      // // Cmd/Ctrl+D: Delete selected
-      // if (isMod && !e.shiftKey && e.key === 'd' && !e.shiftKey) {
-      //   e.preventDefault();
-      //   if (selectedKey) {
-      //     deleteValue(selectedKey);
-      //   }
-      // }
-
       // Cmd/Ctrl+F: Focus search
       if (isMod && e.key === 'f' && !e.shiftKey) {
         e.preventDefault();
@@ -190,6 +174,7 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
                   Values
                 </h2>
                 <Button
+                  className="hover:dark:text-zinc-950"
                   variant="ghost"
                   size="sm"
                   onClick={() => window.dispatchEvent(new CustomEvent('values-start-create'))}
@@ -217,9 +202,6 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
               selectedKey={selectedKey}
               value={selectedKey ? (values[selectedKey] ?? '') : ''}
               onChange={handleValueChange}
-              onDelete={handleDeleteValue}
-              isSaving={isSaving}
-              error={error}
             />
           </main>
         </div>

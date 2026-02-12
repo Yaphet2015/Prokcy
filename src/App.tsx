@@ -44,7 +44,8 @@ const SIDEBAR_COLLAPSED_WIDTH = 56;
 const SIDEBAR_DEFAULT_WIDTH = 240;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 300;
-const SIDEBAR_COLLAPSE_HOLD_MS = 0;
+const SIDEBAR_COLLAPSE_THRESHOLD = 170;
+const SIDEBAR_EXPAND_THRESHOLD = 220;
 
 function App(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ViewType>('network');
@@ -52,17 +53,16 @@ function App(): React.JSX.Element {
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const resizeStartRef = useRef({ x: 0, width: SIDEBAR_DEFAULT_WIDTH });
-  const collapseHoldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSidebarCollapsedRef = useRef(isSidebarCollapsed);
   const ActiveComponent = VIEWS[activeView] || VIEWS.network;
+
+  useEffect(() => {
+    isSidebarCollapsedRef.current = isSidebarCollapsed;
+  }, [isSidebarCollapsed]);
 
   const handleSidebarResizeStart = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    const initialWidth = isSidebarCollapsed ? SIDEBAR_MIN_WIDTH : sidebarWidth;
-
-    if (isSidebarCollapsed) {
-      setIsSidebarCollapsed(false);
-      setSidebarWidth(SIDEBAR_MIN_WIDTH);
-    }
+    const initialWidth = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
 
     resizeStartRef.current = {
       x: event.clientX,
@@ -110,13 +110,6 @@ function App(): React.JSX.Element {
       return undefined;
     }
 
-    const clearCollapseTimer = () => {
-      if (collapseHoldTimeoutRef.current) {
-        clearTimeout(collapseHoldTimeoutRef.current);
-        collapseHoldTimeoutRef.current = null;
-      }
-    };
-
     const handleMouseMove = (event: MouseEvent) => {
       const { rawNextWidth, clampedNextWidth } = getSidebarDragMetrics({
         startX: resizeStartRef.current.x,
@@ -127,30 +120,36 @@ function App(): React.JSX.Element {
       });
       const { shouldCollapse, shouldExpand } = getSidebarCollapseTransition({
         rawNextWidth,
-        minWidth: SIDEBAR_MIN_WIDTH,
-        isCollapsed: isSidebarCollapsed,
+        collapseThreshold: SIDEBAR_COLLAPSE_THRESHOLD,
+        expandThreshold: SIDEBAR_EXPAND_THRESHOLD,
+        isCollapsed: isSidebarCollapsedRef.current,
       });
 
-      if (shouldCollapse && !collapseHoldTimeoutRef.current) {
-        collapseHoldTimeoutRef.current = setTimeout(() => {
-          setIsSidebarCollapsed(true);
-          collapseHoldTimeoutRef.current = null;
-        }, SIDEBAR_COLLAPSE_HOLD_MS);
-      }
-
-      if (rawNextWidth >= SIDEBAR_MIN_WIDTH) {
-        clearCollapseTimer();
+      if (shouldCollapse) {
+        setIsSidebarCollapsed(true);
+        isSidebarCollapsedRef.current = true;
+        resizeStartRef.current = {
+          x: event.clientX,
+          width: SIDEBAR_COLLAPSED_WIDTH,
+        };
+        return;
       }
 
       if (shouldExpand) {
         setIsSidebarCollapsed(false);
+        isSidebarCollapsedRef.current = false;
+        setSidebarWidth(SIDEBAR_MIN_WIDTH);
+        resizeStartRef.current = {
+          x: event.clientX,
+          width: SIDEBAR_MIN_WIDTH,
+        };
+        return;
       }
 
       setSidebarWidth(clampedNextWidth);
     };
 
     const stopResizing = () => {
-      clearCollapseTimer();
       setIsResizingSidebar(false);
     };
 
@@ -160,13 +159,12 @@ function App(): React.JSX.Element {
     document.body.style.cursor = 'col-resize';
 
     return () => {
-      clearCollapseTimer();
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', stopResizing);
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
     };
-  }, [isResizingSidebar, isSidebarCollapsed]);
+  }, [isResizingSidebar]);
 
   return (
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
@@ -176,6 +174,7 @@ function App(): React.JSX.Element {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
         width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
+        isResizing={isResizingSidebar}
         onResizeStart={handleSidebarResizeStart}
       />
 

@@ -224,6 +224,14 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     fetchValues();
   }, [fetchValues]);
 
+  // Auto-select first value when values are loaded and nothing is selected
+  useEffect(() => {
+    if (!isLoading && values && Object.keys(values).length > 0 && !selectedKey) {
+      const firstKey = Object.keys(values)[0];
+      selectKey(firstKey);
+    }
+  }, [isLoading, values, selectedKey, selectKey]);
+
   const value = useMemo<ValuesContextValue>(() => ({
     values,
     selectedKey,

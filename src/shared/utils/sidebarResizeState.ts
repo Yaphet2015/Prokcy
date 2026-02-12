@@ -13,7 +13,8 @@ export interface SidebarDragMetricsResult {
 
 export interface SidebarCollapseTransition {
   rawNextWidth: number;
-  minWidth: number;
+  collapseThreshold: number;
+  expandThreshold: number;
   isCollapsed: boolean;
 }
 
@@ -41,18 +42,26 @@ export function getSidebarDragMetrics({
 
 export function getSidebarCollapseTransition({
   rawNextWidth,
-  minWidth,
+  collapseThreshold,
+  expandThreshold,
   isCollapsed,
 }: SidebarCollapseTransition): SidebarCollapseTransitionResult {
-  if (rawNextWidth < minWidth) {
+  if (!isCollapsed && rawNextWidth < collapseThreshold) {
     return {
-      shouldCollapse: !isCollapsed,
+      shouldCollapse: true,
       shouldExpand: false,
+    };
+  }
+
+  if (isCollapsed && rawNextWidth >= expandThreshold) {
+    return {
+      shouldCollapse: false,
+      shouldExpand: true,
     };
   }
 
   return {
     shouldCollapse: false,
-    shouldExpand: isCollapsed,
+    shouldExpand: false,
   };
 }
