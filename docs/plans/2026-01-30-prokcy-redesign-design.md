@@ -106,6 +106,7 @@ Add a fixed-width group list panel to the left side of the Rules editor to manag
 - Active groups show rank badges (`#1`, `#2`, ...)
 - Drag-and-drop reorder must update the renderer list optimistically, then persist via IPC. If persistence fails, rollback to the previous order.
 - Drag lifecycle cleanup must not rely on a single drop callback; renderer drag state should also clear on global pointer-release/blur paths to avoid sticky drag UI when drop-target events are missed.
+- Sidebar resize drag follows the same rule: cleanup on `pointerup`, `pointercancel`, and `window.blur` so drag state cannot get stuck if release happens outside the app window.
 
 **State/data:**
 - Extend `RulesContext` with:
