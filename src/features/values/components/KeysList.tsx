@@ -11,6 +11,7 @@ export interface KeysListHandle {
 interface KeysListProps {
   values: Record<string, string>;
   selectedKey: string | null;
+  unsavableDirtyKeys?: Set<string>;
   onSelectKey: (key: string) => void;
   onCreateValue: (name: string) => void;
   onContextRename?: (key: string) => void;
@@ -20,6 +21,7 @@ interface KeysListProps {
 const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
   values,
   selectedKey,
+  unsavableDirtyKeys,
   onSelectKey,
   onCreateValue,
   onContextRename,
@@ -148,6 +150,7 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
           </div>
         ) : (
           filteredKeys.map(key => {
+            const showUnsavableDirtyIndicator = unsavableDirtyKeys?.has(key) ?? false;
             const handleRenameSelect = () => {
               onContextRename?.(key);
             };
@@ -167,7 +170,15 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
                     }`}
                     title={`Click to edit ${key}. Right-click for more options.`}
                   >
-                    <span className="text-sm font-medium truncate block text-zinc-900 dark:text-zinc-100">{key}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {showUnsavableDirtyIndicator && (
+                        <span
+                          className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                          title="Unsaved changes with invalid JSON. Fix before saving."
+                        />
+                      )}
+                      <span className="text-sm font-medium truncate block text-zinc-900 dark:text-zinc-100">{key}</span>
+                    </div>
                   </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Content>

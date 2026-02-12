@@ -1,8 +1,6 @@
 import {
   lazy, Suspense, useEffect, useState, useCallback,
 } from 'react';
-import { Button } from '@pikoloo/darwin-ui';
-import { Trash2 } from 'lucide-react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import { initJson5Language, JSON5_LANGUAGE_ID } from '../constants';
@@ -16,18 +14,14 @@ interface ValueEditorProps {
   selectedKey: string | null;
   value: string;
   onChange: (value: string) => void;
-  onDelete: () => void;
-  isSaving: boolean;
-  error: string | null;
+  onValidationChange?: (key: string, isValid: boolean) => void;
 }
 
 export default function ValueEditor({
   selectedKey,
   value,
   onChange,
-  onDelete,
-  isSaving,
-  error,
+  onValidationChange,
 }: ValueEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
   const [editorValue, setEditorValue] = useState(value || '{}');
@@ -35,10 +29,25 @@ export default function ValueEditor({
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
 
+  const validateValue = useCallback((input: string): boolean => {
+    try {
+      JSON.parse(input);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   // Sync editor value with prop value
   useEffect(() => {
-    setEditorValue(value || '{}');
-  }, [selectedKey, value]);
+    const nextValue = value || '{}';
+    setEditorValue(nextValue);
+    const nextValid = validateValue(nextValue);
+    setIsValid(nextValid);
+    if (selectedKey) {
+      onValidationChange?.(selectedKey, nextValid);
+    }
+  }, [selectedKey, value, onValidationChange, validateValue]);
 
   // Update Monaco theme when system theme changes
   useEffect(() => {
@@ -59,25 +68,13 @@ export default function ValueEditor({
   const handleChange = useCallback((newValue: string | undefined) => {
     const newValueStr = newValue ?? '{}';
     setEditorValue(newValueStr);
-
-    try {
-      JSON.parse(newValueStr);
-      setIsValid(true);
-      onChange(newValueStr);
-    } catch {
-      setIsValid(false);
+    onChange(newValueStr);
+    const nextValid = validateValue(newValueStr);
+    setIsValid(nextValid);
+    if (selectedKey) {
+      onValidationChange?.(selectedKey, nextValid);
     }
-  }, [onChange]);
-
-  const handleDelete = useCallback(() => {
-    if (selectedKey && onDelete) {
-      onDelete();
-    }
-  }, [selectedKey, onDelete]);
-
-  const handleRename = useCallback(() => {
-    setIsRenameModalOpen(true);
-  }, []);
+  }, [onChange, onValidationChange, selectedKey, validateValue]);
 
   const handleRenameConfirm = useCallback((newName: string) => {
     if (newName && newName.trim() && newName.trim() !== selectedKey) {
@@ -104,38 +101,6 @@ export default function ValueEditor({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar */}
-      {/* eslint-disable-next-line max-len -- className for styling can't be easily split */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {selectedKey}
-          </h2>
-          <button
-            onClick={handleRename}
-            // eslint-disable-next-line max-len -- className for styling can't be easily split
-            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-          >
-            Rename
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
-          {!isSaving && !isValid && <span className="text-xs text-red-500">Invalid JSON</span>}
-          {error && <span className="text-xs text-red-500">{error}</span>}
-
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            leftIcon={<Trash2 className="w-4 h-4" />}
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-
       {/* Editor */}
       <div className="flex-1 overflow-hidden">
         <Suspense
