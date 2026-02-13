@@ -646,7 +646,7 @@ export default function RequestInspector(): React.JSX.Element | null {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div
           className={[
-            'flex items-center justify-between shrink-0',
+            'flex items-center justify-between shrink-0 p-2 pb-0',
           ].join(' ')}
         >
           <TabsList>
@@ -661,7 +661,7 @@ export default function RequestInspector(): React.JSX.Element | null {
             variant="ghost"
             size="sm"
             onClick={() => selectRequest(null)}
-            leftIcon={<X className="w-4 h-4" />}
+            leftIcon={<X className="w-4 h-4 hover:dark:text-zinc-950" />}
             aria-label="Close request inspector"
           />
         </div>
