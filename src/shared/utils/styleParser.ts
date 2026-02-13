@@ -22,9 +22,9 @@ export interface ParsedStyles {
  * @param styleValue - The style:// protocol value
  * @returns Object with CSS properties or null
  */
-export function parseStyleValue(styleValue: string | null | undefined): ParsedStyles | null {
+export function parseStyleValue(styleValue: string | null | undefined): ParsedStyles {
   if (!styleValue || typeof styleValue !== 'string') {
-    return null;
+    return {};
   }
 
   const styles: ParsedStyles = {};
@@ -62,7 +62,7 @@ export function parseStyleValue(styleValue: string | null | undefined): ParsedSt
     }
   }
 
-  return Object.keys(styles).length > 0 ? styles : null;
+  return Object.keys(styles).length > 0 ? styles : {};
 }
 
 /**
@@ -70,14 +70,18 @@ export function parseStyleValue(styleValue: string | null | undefined): ParsedSt
  * @param request - Network request object with rules property
  * @returns Parsed CSS styles or null
  */
-export function getRequestStyles(request: { rules?: { style?: { value?: string } } | null } | null | undefined): ParsedStyles | null {
+export function getRequestStyles(
+  request: {
+    rules?: { style?: { value?: string } } | null
+  } | null | undefined,
+): ParsedStyles {
   if (!request || typeof request !== 'object') {
-    return null;
+    return {};
   }
 
   const styleRule = request?.rules?.style;
   if (!styleRule || !styleRule.value) {
-    return null;
+    return {};
   }
 
   return parseStyleValue(styleRule.value);

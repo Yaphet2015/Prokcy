@@ -28,6 +28,7 @@ interface VirtualListProps<T> {
   overscan?: number;
   onScroll?: (scrollTop: number) => void;
   onVisibleRangeChange?: (range: VisibleRange) => void;
+  onScrollbarWidthChange?: (width: number) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -49,6 +50,7 @@ export function VirtualList<T>({
   overscan = 5,
   onScroll,
   onVisibleRangeChange,
+  onScrollbarWidthChange,
   className = '',
   style = {},
 }: VirtualListProps<T>): React.JSX.Element {
@@ -69,6 +71,7 @@ export function VirtualList<T>({
 
     const updateHeight = () => {
       setContainerHeight(container.clientHeight);
+      onScrollbarWidthChange?.(Math.max(container.offsetWidth - container.clientWidth, 0));
     };
 
     // Initial height measurement
@@ -81,7 +84,7 @@ export function VirtualList<T>({
     return () => {
       resizeObserver.disconnect();
     };
-  }, []); // Run only once when ref is set
+  }, [onScrollbarWidthChange]);
 
   // Calculate visible range based on scroll position
   const visibleRange = useMemo<VisibleRange>(() => {
