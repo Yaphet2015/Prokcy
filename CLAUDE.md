@@ -6,19 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Prokcy is a cross-platform desktop network debugging proxy tool. Built with Electron, it provides a modern GUI for the powerful Whistle proxy server.
 
+**Core Features:**
+- **Network:** Waterfall timeline with full request/response inspection
+- **Rules:** Monaco Editor with Whistle syntax highlighting and rule group management
+- **Values:** Key-value store with inline JSON5 editing
+
 ## Development Commands
 
 ```bash
 # Install dependencies
 npm install
 
-# Run in development mode
-npm start
+# Run in development mode (Vite + Electron)
+npm run dev
+
+# Individual dev commands
+npm run dev:vite     # Vite dev server only (port 5173)
+npm run dev:electron # Electron only (requires Vite running)
+npm start           # Electron only (production build)
 
 # Lint code
 npm run lint
 
 # Build for distribution
+npm run build:react  # Build React app to dist-react/
 npm run build:mac    # macOS (Intel & Apple Silicon)
 npm run build:win    # Windows
 npm run build:linux  # Linux
@@ -40,26 +51,28 @@ The application uses Electron's multi-process architecture with three distinct p
 - Single instance enforcement
 - IPC (Inter-Process Communication) coordination
 - macOS dock menu integration with window tracking
+- Window control IPC handlers (`window:minimize`, `window:toggle-maximize`, `window:close`)
 
 **Renderer Process**:
-- Displays the Whistle web UI
+- React frontend with Vite + TailwindCSS
 - Handles user interactions
-- Runs find-bar functionality for in-page search
+- Theme synchronization with system appearance
 
 **Utility Process** (`lib/whistle.js`):
 - Forked child process that runs the Whistle proxy server
 - Handles all proxy operations, rule management, and plugin system
 - Communicates with main process via `process.parentPort.postMessage()`
 
-### Key Modules
+### Key Modules (Electron/Node.js)
 
-- **`lib/context.js`**: Shared state management between processes (window reference, child process, options, data URL handling)
-- **`lib/window.js`**: BrowserWindow creation, lifecycle, and cleanup
+- **`lib/index.js`**: Main entry point, app lifecycle
+- **`lib/window.js`**: BrowserWindow creation (frameless, transparent), lifecycle, and cleanup
 - **`lib/menu.js`**: Application menus, tray icon, and system proxy management
 - **`lib/proxy.js`**: System proxy configuration (macOS/Windows/Linux)
 - **`lib/settings.js`**: User preferences and proxy settings UI
 - **`lib/plugins.js`**: Plugin installation via `npminstall`
 - **`lib/fork.js`**: Manages the forked Whistle utility process
+- **`lib/ipc.js`**: IPC handlers for theme sync and window controls
 - **`lib/storage.js`**: Persistent settings storage using `~/.whistle_client/proxy_settings`
 - **`lib/util.js`**: Shared utilities including platform detection, paths, and helper functions
 
@@ -85,10 +98,10 @@ Message types are defined in `lib/whistle.js` (worker receiving) and `lib/fork.j
 
 3. **Single Instance**: Uses `app.requestSingleInstanceLock()` to prevent multiple instances. Second instances trigger `open-url` or `second-instance` events.
 
-4. **macOS LSUIElement**: The app uses `LSUIElement: true` to hide from dock by default, with a "Hide From Dock" menu option.
+4. **Frameless Window**: The app uses `frame: false` with `transparent: true` for a custom glassmorphism UI. Window controls are custom-rendered in the sidebar.
 
 5. **Platform-Specific Code**:
-   - macOS: Dock menu, sudo-prompt for root CA installation
+   - macOS: Native traffic lights hidden, dock menu, sudo-prompt for root CA installation
    - Windows: Squirrel installer integration, pseudo-protocol handling
    - Linux: AppImage packaging
 
@@ -96,45 +109,97 @@ Message types are defined in `lib/whistle.js` (worker receiving) and `lib/fork.j
 
 ## File Structure Conventions
 
-- All source files in `/lib/`
-- Static assets in `/public/` (icons, themes)
+### Electron/Node.js (`lib/`)
 - Entry point: `lib/index.js`
 - Module imports use CommonJS (`require`/`module.exports`)
+- Static assets in `/public/` (icons, themes)
+
+## Feature Details
+
+### Network Section
+
+**Layout:** Split panel - WaterfallTimeline (top 60%) + RequestInspector (bottom 40%)
+
+**WaterfallTimeline:**
+- Virtualized request list for performance
+- Phase color-coding: DNS (blue), TCP (teal), TLS (green), TTFB (purple), Download (orange)
+- Hover expansion with phase labels and timing values
+- Debounced hover collapse (500ms delay)
+- Timeline scaling tied to visible virtualized range
+
+**RequestInspector:**
+- Tabs: Headers, Body, Response, Timeline
+- Syntax-highlighted JSON for bodies
+- Full request/response details
+
+### Rules Section
+
+**Layout:** Two-pane - RulesSidebar (groups list, w-72) + RulesEditor (Monaco)
+
+**Rule Groups:**
+- Single click: Open group in editor
+- Double click: Toggle group active state
+- Drag-and-drop: Reorder groups (updates priority)
+- Right-click context menu: Create, Rename, Delete
+- Active groups show priority badges (#1, #2, ...)
+- `enableMultipleRules` mode allows multiple active groups
+
+**Monaco Editor:**
+- Custom Whistle language with syntax highlighting
+- Tahoe themes (`tahoe-dark`, `tahoe-light`)
+- Cmd/Ctrl+S to save, Cmd/Ctrl+/ to toggle comments
+- Lazy-loaded with Suspense
+
+### Values Section
+
+**Layout:** Two-column - KeysList (left 30%) + ValueEditor (right 70%)
+
+**Features:**
+- JSON5 format (comments and trailing commas allowed)
+- Auto-save with 300ms debounce
+- Create/delete/rename operations
+- Search/filter keys
+- Invalid JSON shows error, blocks save
+
+**Keyboard Shortcuts:**
+- Cmd+N: Create new value
+- Cmd+D: Delete selected
+- Cmd+Shift+R: Rename selected
+- Cmd+F: Focus search
+
+## API Integration
+
+**Base URL:** `http://localhost:8888` (configurable)
+
+**Endpoints (`src/shared/api/whistle.js`):**
+- `/cgi-bin/requests/list` - Network requests
+- `/cgi-bin/rules/get` / `/cgi-bin/rules/add` - Rules
+- `/cgi-bin/values/list2` / `/cgi-bin/values/add` / `/cgi-bin/values/remove` - Values
+
+**SSE Streaming:** Real-time network updates via Server-Sent Events
+
+**Authentication:** Supports Basic Auth via Proxy Settings
 
 ## Code Patterns
 
+### Electron/Node.js
 - Error handling uses global `uncaughtException` and `unhandledRejection` handlers
 - Async operations use try-catch with no-op fallbacks
 - Icon management uses caching with theme-aware loading (`dark/` prefix)
 - Menus are rebuilt dynamically when checkbox states change
 
-## Frontend Development
+### React Frontend
+- Keep files under 500 lines; extract components/hooks when approaching limit
+- Use custom hooks for complex logic (drag-and-drop, CRUD operations)
+- Barrel exports (`index.js`) for clean imports
+- Lazy load Monaco Editor with Suspense fallback
+- Context providers for shared state, props for component-specific
 
-The React frontend is built with Vite + React + TailwindCSS.
+## Documentation
 
-**Development:**
-```bash
-npm run dev          # Start Vite + Electron in parallel
-npm run dev:vite     # Vite dev server only (port 5173)
-npm run dev:electron # Electron only (requires Vite running)
-```
-
-**Building:**
-```bash
-npm run build:react  # Build React app to dist-react/
-```
-
-**Frontend Structure:**
-- `src/App.jsx` - Root component with Sidebar + routing
-- `src/features/` - Feature modules (network, rules, values)
-- `src/shared/` - Shared utilities (api, context, ui)
-- `src/styles/` - Global styles and Tailwind config
-
-**State Management:**
-- React Context for app state (useNetwork, useRules, useValues)
-- ThemeProvider for dark/light mode sync with macOS
-
-**API Integration:**
-- `src/shared/api/whistle.js` - HTTP client for Whistle backend
-- Default: `http://localhost:8888`
-- Supports Basic Auth via Proxy Settings
+Additional design and implementation plans are in `docs/plans/`:
+- `2026-01-30-prokcy-redesign-design.md` - Full UI redesign overview
+- `2026-01-30-prokcy-phase1-foundation.md` - Foundation implementation plan
+- `2026-02-03-values-feature-design.md` - Values feature design
+- `2026-02-10-rules-refactoring-plan.md` - Rules modular refactoring
+- `2025-02-10-glassmorphism-frameless-window-design.md` - Window chrome design
