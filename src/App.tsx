@@ -8,8 +8,7 @@ import Rules from './features/rules';
 import Values from './features/values';
 import Settings from './features/settings';
 import {
-  getSidebarDragMetrics,
-  getSidebarCollapseTransition,
+  getSidebarResizeState,
 } from './shared/utils/sidebarResizeState';
 import type { ViewType } from './types/ui';
 
@@ -122,42 +121,26 @@ function App(): React.JSX.Element {
         return;
       }
 
-      const { rawNextWidth, clampedNextWidth } = getSidebarDragMetrics({
+      const nextState = getSidebarResizeState({
         startX: resizeStartRef.current.x,
         startWidth: resizeStartRef.current.width,
         currentX: event.clientX,
         minWidth: SIDEBAR_MIN_WIDTH,
         maxWidth: SIDEBAR_MAX_WIDTH,
-      });
-      const { shouldCollapse, shouldExpand } = getSidebarCollapseTransition({
-        rawNextWidth,
         collapseThreshold: SIDEBAR_COLLAPSE_THRESHOLD,
         expandThreshold: SIDEBAR_EXPAND_THRESHOLD,
+        collapsedWidth: SIDEBAR_COLLAPSED_WIDTH,
         isCollapsed: isSidebarCollapsedRef.current,
       });
 
-      if (shouldCollapse) {
-        setIsSidebarCollapsed(true);
-        isSidebarCollapsedRef.current = true;
-        resizeStartRef.current = {
-          x: event.clientX,
-          width: SIDEBAR_COLLAPSED_WIDTH,
-        };
-        return;
+      if (nextState.isCollapsed !== isSidebarCollapsedRef.current) {
+        setIsSidebarCollapsed(nextState.isCollapsed);
+        isSidebarCollapsedRef.current = nextState.isCollapsed;
       }
 
-      if (shouldExpand) {
-        setIsSidebarCollapsed(false);
-        isSidebarCollapsedRef.current = false;
-        setSidebarWidth(SIDEBAR_MIN_WIDTH);
-        resizeStartRef.current = {
-          x: event.clientX,
-          width: SIDEBAR_MIN_WIDTH,
-        };
-        return;
+      if (!nextState.isCollapsed) {
+        setSidebarWidth(nextState.width);
       }
-
-      setSidebarWidth(clampedNextWidth);
     };
 
     const stopResizing = () => {
