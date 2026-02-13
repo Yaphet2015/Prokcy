@@ -32,10 +32,13 @@ interface RuleGroup {
   name: string;
 }
 
+interface GroupOperationResult {
+  success: boolean;
+  message?: string;
+}
+
 export function useRuleGroupActions({ prompt, confirm }: UseRuleGroupActionsParams) {
   const {
-    ruleGroups,
-    activeEditorGroupName,
     createGroup,
     deleteGroup,
     renameGroup,
@@ -43,42 +46,14 @@ export function useRuleGroupActions({ prompt, confirm }: UseRuleGroupActionsPara
     setRuleGroupSelection,
   } = useRules();
 
-  // Generate a unique name for new groups
-  const generateNewGroupName = useCallback((): string => {
-    const existingNames = new Set(ruleGroups.map((g) => g.name.toLowerCase()));
-    let counter = 1;
-    let newName = 'New Group';
-
-    while (existingNames.has(newName.toLowerCase())) {
-      counter += 1;
-      newName = `New Group ${counter}`;
-    }
-
-    return newName;
-  }, [ruleGroups]);
-
   // Handle create group
-  const handleCreateGroup = useCallback(async () => {
-    const defaultName = generateNewGroupName();
-    const name = await prompt({
-      title: 'Create New Group',
-      message: 'Enter a name for the new rules group:',
-      defaultValue: defaultName,
-    });
-
-    if (!name?.trim()) {
-      return;
+  const handleCreateGroup = useCallback(async (name: string): Promise<GroupOperationResult> => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { success: false, message: 'Group name is required' };
     }
-
-    const result = await createGroup(name.trim());
-    if (!result.success) {
-      await prompt({
-        title: 'Error',
-        message: result.message ?? 'Failed to create group',
-        defaultValue: '',
-      });
-    }
-  }, [generateNewGroupName, prompt, createGroup]);
+    return createGroup(trimmedName);
+  }, [createGroup]);
 
   // Handle rename from context menu
   const handleRenameGroup = useCallback(async (group: RuleGroup) => {

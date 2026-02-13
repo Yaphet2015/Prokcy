@@ -49,8 +49,8 @@ export default function ContentHeader({
       h-12 shrink-0 flex items-center justify-between
       px-4 border-b border-zinc-200/70 dark:border-zinc-800/70
       bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
-      ${isSidebarCollapsed ? 'pl-8' : ''}
-      transition-[pl] duration-200
+      ${isSidebarCollapsed ? 'translate-x-[8px]' : 'translate-x-0'}
+      transition-[translate] duration-200
       app-drag
     `}
     >

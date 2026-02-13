@@ -22,7 +22,7 @@ Remove Electron's native window frame and implement a bold glassmorphism UI with
 
 **Shape:** Subtly rounded corners (~12-16px radius) for refined macOS-style appearance.
 
-**Window Controls:** Integrated into sidebar header (not floating, not top-left traffic lights).
+**Window Controls:** Integrated into sidebar header (not floating, not top-left traffic lights), with control glyphs revealed on hover/focus for each traffic-light button.
 
 ---
 

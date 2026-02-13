@@ -40,6 +40,11 @@ export interface SidebarResizeStateResult {
   width: number;
 }
 
+export interface SidebarWidthTransitionClassParams {
+  previousIsCollapsed: boolean;
+  isCollapsed: boolean;
+}
+
 export function getSidebarDragMetrics({
   startX,
   startWidth,
@@ -133,4 +138,22 @@ export function getSidebarResizeState({
     isCollapsed: false,
     width: clampedNextWidth,
   };
+}
+
+export function getSidebarWidthTransitionClass({
+  previousIsCollapsed,
+  isCollapsed,
+}: SidebarWidthTransitionClassParams): string {
+  // Transitioning to expanded: ease-in, 150ms delay, 50ms duration.
+  if (previousIsCollapsed && !isCollapsed) {
+    return 'delay-150 duration-50';
+  }
+
+  // Transitioning to collapsed: ease-out, no delay, 50ms duration.
+  if (!previousIsCollapsed && isCollapsed) {
+    return 'delay-0 duration-50';
+  }
+
+  // Keep pointer-following behavior during drag when collapse state is unchanged.
+  return 'transition-none delay-150 duration-50';
 }
