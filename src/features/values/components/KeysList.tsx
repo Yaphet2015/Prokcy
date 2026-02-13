@@ -116,7 +116,7 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {/* Inline input for creating new value */}
         {isCreating && (
-          <div className="px-3 py-2 rounded-lg border border-blue-500 bg-blue-500/10 dark:bg-blue-500/20">
+          <div className="px-3 py-2 rounded-lg border border-dashed border-zinc-500 bg-blue-500/10 dark:bg-blue-500/20">
             <Input
               ref={inputRef}
               placeholder="New value name..."
@@ -131,6 +131,7 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
                 Add
               </Button>
               <Button
+                className="hover:dark:text-zinc-950"
                 size="sm"
                 variant="ghost"
                 onClick={() => {

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getSidebarDragMetrics,
   getSidebarCollapseTransition,
+  getSidebarWidthTransitionClass,
   getSidebarResizeState,
 } from '../src/shared/utils/sidebarResizeState.ts';
 
@@ -22,15 +23,15 @@ test('getSidebarDragMetrics returns raw and clamped widths from drag delta', () 
 test('getSidebarCollapseTransition requests collapse only when dragging below min from expanded', () => {
   const shouldCollapse = getSidebarCollapseTransition({
     rawNextWidth: 150,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     isCollapsed: false,
   });
 
   const alreadyCollapsed = getSidebarCollapseTransition({
     rawNextWidth: 150,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     isCollapsed: true,
   });
 
@@ -40,9 +41,9 @@ test('getSidebarCollapseTransition requests collapse only when dragging below mi
 
 test('getSidebarCollapseTransition requests expand when dragging back above min while collapsed', () => {
   const result = getSidebarCollapseTransition({
-    rawNextWidth: 220,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    rawNextWidth: 166,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     isCollapsed: true,
   });
 
@@ -52,8 +53,8 @@ test('getSidebarCollapseTransition requests expand when dragging back above min 
 test('getSidebarCollapseTransition does not toggle around shared boundary when expanded', () => {
   const result = getSidebarCollapseTransition({
     rawNextWidth: 190,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     isCollapsed: false,
   });
 
@@ -63,8 +64,8 @@ test('getSidebarCollapseTransition does not toggle around shared boundary when e
 test('getSidebarCollapseTransition does not expand until crossing expand threshold', () => {
   const result = getSidebarCollapseTransition({
     rawNextWidth: 210,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     isCollapsed: true,
   });
 
@@ -82,8 +83,8 @@ test('getSidebarResizeState keeps expand trigger stable across repeated collapse
     currentX: 29,
     minWidth: 200,
     maxWidth: 300,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     collapsedWidth: 56,
     isCollapsed,
   });
@@ -96,14 +97,14 @@ test('getSidebarResizeState keeps expand trigger stable across repeated collapse
     currentX: 80,
     minWidth: 200,
     maxWidth: 300,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     collapsedWidth: 56,
     isCollapsed,
   });
   isCollapsed = expand1.isCollapsed;
   assert.equal(expand1.isCollapsed, false);
-  assert.equal(expand1.width, 220);
+  assert.equal(expand1.width, 166);
 
   const collapseAgain = getSidebarResizeState({
     startX,
@@ -111,8 +112,8 @@ test('getSidebarResizeState keeps expand trigger stable across repeated collapse
     currentX: 20,
     minWidth: 200,
     maxWidth: 300,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     collapsedWidth: 56,
     isCollapsed,
   });
@@ -125,13 +126,13 @@ test('getSidebarResizeState keeps expand trigger stable across repeated collapse
     currentX: 80,
     minWidth: 200,
     maxWidth: 300,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     collapsedWidth: 56,
     isCollapsed,
   });
   assert.equal(expand2.isCollapsed, false);
-  assert.equal(expand2.width, 220);
+  assert.equal(expand2.width, 166);
 });
 
 test('getSidebarResizeState clamps expanded width to max while pointer keeps moving right', () => {
@@ -141,12 +142,39 @@ test('getSidebarResizeState clamps expanded width to max while pointer keeps mov
     currentX: 300,
     minWidth: 200,
     maxWidth: 300,
-    collapseThreshold: 170,
-    expandThreshold: 220,
+    collapseThreshold: 70,
+    expandThreshold: 166,
     collapsedWidth: 56,
     isCollapsed: false,
   });
 
   assert.equal(expanded.isCollapsed, false);
   assert.equal(expanded.width, 300);
+});
+
+test('getSidebarWidthTransitionClass uses ease-out with no delay when collapsing', () => {
+  const easing = getSidebarWidthTransitionClass({
+    previousIsCollapsed: false,
+    isCollapsed: true,
+  });
+
+  assert.equal(easing, 'transition-[width] ease-out delay-0 duration-50');
+});
+
+test('getSidebarWidthTransitionClass uses ease-in with 150ms delay when expanding', () => {
+  const easing = getSidebarWidthTransitionClass({
+    previousIsCollapsed: true,
+    isCollapsed: false,
+  });
+
+  assert.equal(easing, 'transition-[width] ease-in delay-150 duration-50');
+});
+
+test('getSidebarWidthTransitionClass disables transition when collapse state is unchanged', () => {
+  const easing = getSidebarWidthTransitionClass({
+    previousIsCollapsed: false,
+    isCollapsed: false,
+  });
+
+  assert.equal(easing, 'transition-none');
 });

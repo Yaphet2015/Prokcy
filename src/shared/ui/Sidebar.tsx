@@ -1,6 +1,6 @@
 import { Button } from '@pikoloo/darwin-ui';
 import {
-  ChevronLeft, ChevronRight, Activity, FileText, Key, Settings, LucideIcon,
+  ChevronLeft, ChevronRight, Activity, FileText, Key, Settings, LucideIcon, Minus, Maximize2, X,
 } from 'lucide-react';
 import ServiceToggle from './ServiceToggle';
 import type { ViewType } from '../../types/ui';
@@ -28,6 +28,7 @@ interface SidebarProps {
   width: number;
   isResizing: boolean;
   onResizeStart: (event: React.PointerEvent) => void;
+  widthTransitionClass: string;
 }
 
 export default function Sidebar({
@@ -38,6 +39,7 @@ export default function Sidebar({
   width,
   isResizing,
   onResizeStart,
+  widthTransitionClass,
 }: SidebarProps): React.JSX.Element {
   return (
     <aside
@@ -60,20 +62,26 @@ export default function Sidebar({
             type="button"
             aria-label="Close window"
             onClick={() => window.electron?.closeWindow?.()}
-            className="h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
-          />
+            className="group relative h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
+          >
+            <X className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
           <button
             type="button"
             aria-label="Minimize window"
             onClick={() => window.electron?.minimizeWindow?.()}
-            className="h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
-          />
+            className="group relative h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
+          >
+            <Minus className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
           <button
             type="button"
             aria-label="Toggle maximize window"
             onClick={() => window.electron?.toggleMaximizeWindow?.()}
-            className="h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
-          />
+            className="group relative h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
+          >
+            <Maximize2 className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
         </div>
       </div>
 
@@ -146,6 +154,7 @@ export default function Sidebar({
         )}
       </div>
 
+      {/* Resize handler for sidebar */}
       <button
         type="button"
         aria-label="Resize sidebar"
@@ -155,7 +164,7 @@ export default function Sidebar({
           flex items-center justify-center
         `}
       >
-        <div className={`h-full border-none transition-[translate] duration-300
+        <div className={`h-full border-none transition-[translate] ${widthTransitionClass}
           hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 focus:outline-none dark:bg-zinc-800 bg-zinc-200 w-px ${
           isCollapsed ? 'translate-y-12' : 'translate-y-0'
         }`}

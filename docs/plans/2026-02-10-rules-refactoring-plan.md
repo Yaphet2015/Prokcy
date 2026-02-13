@@ -13,6 +13,12 @@
 
 **Tech Stack:** React, Framer Motion (Reorder), Monaco Editor, TypeScript, existing patterns from `src/shared/`
 
+## Update (2026-02-13)
+
+- New rule-group creation should use inline creation UI inside the sidebar list.
+- Do not open a modal dialog for "Create New Group".
+- The list should show a border-dashed create item that expands to input + `Add`/`Cancel`.
+
 ---
 
 ## Task 1: Create directory structure for modular components
@@ -1186,7 +1192,7 @@ Test each feature:
 - [ ] Click on a group opens it in editor
 - [ ] Double-click toggles active state
 - [ ] Drag and drop reordering works
-- [ ] Create new group dialog works
+- [ ] Create new group inline row works (border-dashed list item with Add/Cancel)
 - [ ] Rename group dialog works
 - [ ] Delete group with confirmation works
 - [ ] Monaco editor loads with correct theme

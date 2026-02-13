@@ -9,6 +9,7 @@ import Values from './features/values';
 import Settings from './features/settings';
 import {
   getSidebarResizeState,
+  getSidebarWidthTransitionClass,
 } from './shared/utils/sidebarResizeState';
 import type { ViewType } from './types/ui';
 
@@ -43,8 +44,8 @@ const SIDEBAR_COLLAPSED_WIDTH = 56;
 const SIDEBAR_DEFAULT_WIDTH = 240;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 300;
-const SIDEBAR_COLLAPSE_THRESHOLD = 170;
-const SIDEBAR_EXPAND_THRESHOLD = 220;
+const SIDEBAR_COLLAPSE_THRESHOLD = 70;
+const SIDEBAR_EXPAND_THRESHOLD = 166;
 
 function App(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ViewType>('network');
@@ -54,10 +55,16 @@ function App(): React.JSX.Element {
   const resizeStartRef = useRef({ x: 0, width: SIDEBAR_DEFAULT_WIDTH });
   const resizingPointerIdRef = useRef<number | null>(null);
   const isSidebarCollapsedRef = useRef(isSidebarCollapsed);
+  const previousIsSidebarCollapsedRef = useRef(isSidebarCollapsed);
   const ActiveComponent = VIEWS[activeView] || VIEWS.network;
+  const sidebarWidthTransitionClass = getSidebarWidthTransitionClass({
+    previousIsCollapsed: previousIsSidebarCollapsedRef.current,
+    isCollapsed: isSidebarCollapsed,
+  });
 
   useEffect(() => {
     isSidebarCollapsedRef.current = isSidebarCollapsed;
+    previousIsSidebarCollapsedRef.current = isSidebarCollapsed;
   }, [isSidebarCollapsed]);
 
   const handleSidebarResizeStart = useCallback((event: React.PointerEvent) => {
@@ -178,6 +185,7 @@ function App(): React.JSX.Element {
         width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
         isResizing={isResizingSidebar}
         onResizeStart={handleSidebarResizeStart}
+        widthTransitionClass={sidebarWidthTransitionClass}
       />
 
       <div className="min-w-0 min-h-0 flex-1 flex flex-col">
