@@ -23,6 +23,23 @@ export interface SidebarCollapseTransitionResult {
   shouldExpand: boolean;
 }
 
+export interface SidebarResizeStateParams {
+  startX: number;
+  startWidth: number;
+  currentX: number;
+  minWidth: number;
+  maxWidth: number;
+  collapseThreshold: number;
+  expandThreshold: number;
+  collapsedWidth: number;
+  isCollapsed: boolean;
+}
+
+export interface SidebarResizeStateResult {
+  isCollapsed: boolean;
+  width: number;
+}
+
 export function getSidebarDragMetrics({
   startX,
   startWidth,
@@ -63,5 +80,57 @@ export function getSidebarCollapseTransition({
   return {
     shouldCollapse: false,
     shouldExpand: false,
+  };
+}
+
+export function getSidebarResizeState({
+  startX,
+  startWidth,
+  currentX,
+  minWidth,
+  maxWidth,
+  collapseThreshold,
+  expandThreshold,
+  collapsedWidth,
+  isCollapsed,
+}: SidebarResizeStateParams): SidebarResizeStateResult {
+  const { rawNextWidth, clampedNextWidth } = getSidebarDragMetrics({
+    startX,
+    startWidth,
+    currentX,
+    minWidth,
+    maxWidth,
+  });
+  const { shouldCollapse, shouldExpand } = getSidebarCollapseTransition({
+    rawNextWidth,
+    collapseThreshold,
+    expandThreshold,
+    isCollapsed,
+  });
+
+  if (shouldCollapse) {
+    return {
+      isCollapsed: true,
+      width: collapsedWidth,
+    };
+  }
+
+  if (shouldExpand) {
+    return {
+      isCollapsed: false,
+      width: clampedNextWidth,
+    };
+  }
+
+  if (isCollapsed) {
+    return {
+      isCollapsed: true,
+      width: collapsedWidth,
+    };
+  }
+
+  return {
+    isCollapsed: false,
+    width: clampedNextWidth,
   };
 }

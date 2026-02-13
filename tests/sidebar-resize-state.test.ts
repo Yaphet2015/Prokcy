@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getSidebarDragMetrics,
   getSidebarCollapseTransition,
+  getSidebarResizeState,
 } from '../src/shared/utils/sidebarResizeState.ts';
 
 test('getSidebarDragMetrics returns raw and clamped widths from drag delta', () => {
@@ -68,4 +69,84 @@ test('getSidebarCollapseTransition does not expand until crossing expand thresho
   });
 
   assert.deepEqual(result, { shouldCollapse: false, shouldExpand: false });
+});
+
+test('getSidebarResizeState keeps expand trigger stable across repeated collapse/expand in one drag', () => {
+  const startX = 100;
+  const startWidth = 240;
+  let isCollapsed = false;
+
+  const collapse = getSidebarResizeState({
+    startX,
+    startWidth,
+    currentX: 29,
+    minWidth: 200,
+    maxWidth: 300,
+    collapseThreshold: 170,
+    expandThreshold: 220,
+    collapsedWidth: 56,
+    isCollapsed,
+  });
+  isCollapsed = collapse.isCollapsed;
+  assert.equal(collapse.isCollapsed, true);
+
+  const expand1 = getSidebarResizeState({
+    startX,
+    startWidth,
+    currentX: 80,
+    minWidth: 200,
+    maxWidth: 300,
+    collapseThreshold: 170,
+    expandThreshold: 220,
+    collapsedWidth: 56,
+    isCollapsed,
+  });
+  isCollapsed = expand1.isCollapsed;
+  assert.equal(expand1.isCollapsed, false);
+  assert.equal(expand1.width, 220);
+
+  const collapseAgain = getSidebarResizeState({
+    startX,
+    startWidth,
+    currentX: 20,
+    minWidth: 200,
+    maxWidth: 300,
+    collapseThreshold: 170,
+    expandThreshold: 220,
+    collapsedWidth: 56,
+    isCollapsed,
+  });
+  isCollapsed = collapseAgain.isCollapsed;
+  assert.equal(collapseAgain.isCollapsed, true);
+
+  const expand2 = getSidebarResizeState({
+    startX,
+    startWidth,
+    currentX: 80,
+    minWidth: 200,
+    maxWidth: 300,
+    collapseThreshold: 170,
+    expandThreshold: 220,
+    collapsedWidth: 56,
+    isCollapsed,
+  });
+  assert.equal(expand2.isCollapsed, false);
+  assert.equal(expand2.width, 220);
+});
+
+test('getSidebarResizeState clamps expanded width to max while pointer keeps moving right', () => {
+  const expanded = getSidebarResizeState({
+    startX: 0,
+    startWidth: 240,
+    currentX: 300,
+    minWidth: 200,
+    maxWidth: 300,
+    collapseThreshold: 170,
+    expandThreshold: 220,
+    collapsedWidth: 56,
+    isCollapsed: false,
+  });
+
+  assert.equal(expanded.isCollapsed, false);
+  assert.equal(expanded.width, 300);
 });
