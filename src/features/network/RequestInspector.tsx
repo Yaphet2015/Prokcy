@@ -96,7 +96,7 @@ export default function RequestInspector(): React.JSX.Element | null {
         onMouseDown={startResize}
         aria-label="Resize request inspector"
       >
-        <div className="group-hover:scale-y-400 h-px w-full shadow-amber-100 bg-zinc-200/80 hover:bg-blue-400/70 dark:bg-zinc-800/80 dark:hover:bg-blue-500/70" />
+        <div className="group-hover:scale-y-400 h-px w-full bg-zinc-200/80 hover:bg-blue-400/70 dark:bg-zinc-800/80 dark:hover:bg-blue-500/70" />
       </button>
 
       {/* Tabs */}
