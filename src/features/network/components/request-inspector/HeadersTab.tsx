@@ -5,7 +5,7 @@ export function HeadersTab({ request }: TabProps): React.JSX.Element {
   const headers = request?.headers ?? { request: {}, response: {} };
 
   return (
-    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
+    <div className="p-4 pb-8 h-full overflow-y-auto">
       <div className="space-y-6">
         {/* Request Headers */}
         <div>

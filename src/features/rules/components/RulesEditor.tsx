@@ -1,4 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import {
+  lazy, Suspense, useCallback,
+} from 'react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import { useMonacoSave } from '../../../shared/ui/MonacoEditor';
@@ -23,17 +25,12 @@ export function RulesEditor({
   isLoading,
 }: RulesEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
-  const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
 
   useMonacoSave(useCallback(() => {
     if (isDirty) {
       onSave();
     }
   }, [isDirty, onSave]));
-
-  useEffect(() => {
-    setMonacoTheme(getThemeId(isDark));
-  }, [isDark]);
 
   const handleBeforeMount = useCallback((monaco: typeof Monaco) => {
     registerTahoeThemes(monaco);
@@ -66,7 +63,7 @@ export function RulesEditor({
         value={value}
         onChange={onChange}
         language="whistle"
-        theme={monacoTheme}
+        theme={getThemeId(isDark)}
         beforeMount={handleBeforeMount}
         options={{
           readOnly: false,

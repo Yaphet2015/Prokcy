@@ -27,7 +27,6 @@ export default function ValueEditor({
   const [editorValue, setEditorValue] = useState(value || '{}');
   const [isValid, setIsValid] = useState(true);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const [monacoTheme, setMonacoTheme] = useState(getThemeId(isDark));
 
   const validateValue = useCallback((input: string): boolean => {
     try {
@@ -48,11 +47,6 @@ export default function ValueEditor({
       onValidationChange?.(selectedKey, nextValid);
     }
   }, [selectedKey, value, onValidationChange, validateValue]);
-
-  // Update Monaco theme when system theme changes
-  useEffect(() => {
-    setMonacoTheme(getThemeId(isDark));
-  }, [isDark]);
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
   useMonacoSave(useCallback(() => {
@@ -117,7 +111,7 @@ export default function ValueEditor({
             value={editorValue}
             onChange={handleChange}
             language={JSON5_LANGUAGE_ID}
-            theme={monacoTheme}
+            theme={getThemeId(isDark)}
             beforeMount={handleBeforeMount}
             options={{
               minimap: { enabled: false },
