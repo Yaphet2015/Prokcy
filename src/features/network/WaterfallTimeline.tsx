@@ -24,6 +24,7 @@ const MIN_BAR_WIDTH_PERCENT = 2;
 // Compression factor for idle gaps (higher = more compression)
 const GAP_COMPRESSION_FACTOR = 0.15;
 const HOVER_DEBOUNCE_MS = 500;
+const REQUEST_ROW_COLUMNS = 'grid-cols-[3rem_2rem_minmax(0,1fr)_3rem_4rem_12rem]';
 
 // Types
 interface TimingPhase {
@@ -42,11 +43,6 @@ interface RequestTimings {
   total?: number;
 }
 
-interface CompressedTimelineData {
-  compressedDuration: number;
-  requestPositions: RequestPosition[];
-}
-
 interface RequestPosition {
   request: NormalizedRequest;
   compressedPosition: number;
@@ -56,6 +52,11 @@ interface RequestPosition {
 interface TimelineDataState {
   compressedDuration: number;
   positionMap: Map<string, RequestPosition>;
+}
+
+interface CompressedTimelineData {
+  compressedDuration: number;
+  requestPositions: RequestPosition[];
 }
 
 // Timing phases for a request bar
@@ -214,7 +215,7 @@ const WaterfallBar = memo(({
   const leftPercent = isHovered ? 0 : (compressedPosition / compressedDuration) * 100;
   const widthPercent = isHovered
     ? 100
-    : Math.max((duration / compressedDuration) * 100, MIN_BAR_WIDTH_PERCENT / compressedDuration * 100);
+    : Math.max((duration / compressedDuration) * 100, (MIN_BAR_WIDTH_PERCENT / compressedDuration) * 100);
 
   return (
     <div
@@ -267,6 +268,7 @@ export default function WaterfallTimeline() {
   } = useNetwork();
 
   const [hoveredRequestId, setHoveredRequestId] = useState<string | null>(null);
+  const [listScrollbarWidth, setListScrollbarWidth] = useState(0);
   // Timeline data is now state-based to update on scroll
   const [timelineData, setTimelineData] = useState<TimelineDataState>({
     compressedDuration: 1000,
@@ -380,20 +382,20 @@ export default function WaterfallTimeline() {
         role="button"
         tabIndex={0}
         className={`
-          group flex items-center gap-3 px-4 py-2.5 cursor-pointer
+          group grid ${REQUEST_ROW_COLUMNS} items-center gap-3 px-4 py-2.5 cursor-pointer
           transition-colors duration-150
           ${isSelected ? 'bg-blue-500/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'}
         `}
         style={getRequestStyles(request)}
       >
         {/* Method Indicator */}
-        <span className="text-xs w-12 text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
+        <span className="text-xs text-center text-zinc-500 dark:text-zinc-400" title={request.method}>
           {getMethodIcon(request.method)}
         </span>
 
         {/* Status Code */}
         <span
-          className={`text-xs font-mono w-12 ${getStatusColor(request.status)}`}
+          className={`text-xs font-mono ${getStatusColor(request.status)}`}
         >
           {request.status || '-'}
         </span>
@@ -409,12 +411,12 @@ export default function WaterfallTimeline() {
         </div>
 
         {/* Size */}
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400  text-right tabular-nums">
           {request.size ? `${(request.size / 1024).toFixed(1)}KB` : '-'}
         </span>
 
         {/* Timing */}
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400  text-right tabular-nums">
           {formatTime(request.timings?.total ?? 0)}
         </span>
 
@@ -439,17 +441,27 @@ export default function WaterfallTimeline() {
 
   return (
     <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
-      {/* Timing Legend */}
-      <div className="h-8 flex items-center gap-4 px-4 border-b border-zinc-200/30 dark:border-zinc-800/30 shrink-0">
-        {(Object.entries(TIMING_COLORS) as [string, string][]).map(([key, color]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-sm"
-              style={{ backgroundColor: color }}
-            />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 uppercase">{key}</span>
-          </div>
-        ))}
+      {/* Virtual list title */}
+      <div
+        className={`h-8 grid ${REQUEST_ROW_COLUMNS} items-center gap-3 px-4 border-b border-zinc-200/30 dark:border-zinc-800/30 shrink-0`}
+        style={{ paddingRight: `${16 + listScrollbarWidth}px` }}
+      >
+        <span className="text-[9px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400 text-center">
+          Method
+        </span>
+        <span className="text-[9px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400 translate-x-[-6px]"> Status</span>
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400">
+          URL
+        </span>
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400 text-right">
+          Size
+        </span>
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400 text-right">
+          Time
+        </span>
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-zinc-500 dark:text-zinc-400">
+          Waterfall
+        </span>
       </div>
 
       {/* Request List with Virtual Scrolling */}
@@ -467,6 +479,7 @@ export default function WaterfallTimeline() {
           itemKey="id"
           overscan={5}
           onVisibleRangeChange={handleVisibleRangeChange}
+            onScrollbarWidthChange={setListScrollbarWidth}
           className="flex-1"
         />
       )}
