@@ -12,6 +12,10 @@ import type {
   RequestTimings,
   NormalizedRequest,
 } from '../../features/network/utils/requestNormalization';
+import {
+  filterRequestsByPatterns,
+  parseFilterPatterns,
+} from '../utils/patternMatch';
 
 export type { RequestTimings, NormalizedRequest };
 
@@ -178,6 +182,7 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   const lastIdRef = useRef('');
   const detailCacheRef = useRef<Map<string, NormalizedRequest>>(new Map());
   const detailFetchTokenRef = useRef(0);
+  const filterPatternsRef = useRef<string[]>([]);
 
   useEffect(() => {
     requestsRef.current = requests;
@@ -224,6 +229,12 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     setRequests((prev) => prev.slice(0, nextLimit));
   }, []);
 
+  const applyRequestFilters = useCallback((filterString: unknown) => {
+    const patterns = parseFilterPatterns(typeof filterString === 'string' ? filterString : '');
+    filterPatternsRef.current = patterns;
+    setRequests((prev) => filterRequestsByPatterns(prev, patterns));
+  }, []);
+
   const loadRequestListLimit = useCallback(async () => {
     // electronWin removed - using window.electron directly
     if (!window.electron?.getSettings) {
@@ -232,10 +243,11 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     try {
       const settings = await window.electron.getSettings();
       applyRequestListLimit(settings?.requestListLimit);
+      applyRequestFilters(settings?.requestFilters);
     } catch (error) {
       console.error('Failed to load request list limit:', error);
     }
-  }, [applyRequestListLimit]);
+  }, [applyRequestListLimit, applyRequestFilters]);
 
   useEffect(() => {
     loadRequestListLimit();
@@ -245,12 +257,13 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     const handleSettingsUpdated = (event: Event) => {
       const customEvent = event as CustomEvent;
       applyRequestListLimit(customEvent?.detail?.requestListLimit);
+      applyRequestFilters(customEvent?.detail?.requestFilters);
     };
     window.addEventListener('prokcy-settings-updated', handleSettingsUpdated);
     return () => {
       window.removeEventListener('prokcy-settings-updated', handleSettingsUpdated);
     };
-  }, [applyRequestListLimit]);
+  }, [applyRequestListLimit, applyRequestFilters]);
 
   const fetchNetworkData = useCallback(async ({ initial = false } = {}) => {
     const config = await getRuntimeConfig();
@@ -290,9 +303,10 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
 
     const data = getPayloadData(payload);
     const dataMap = data?.data && typeof data.data === 'object' ? data.data : {};
-    const incoming = Object.values(dataMap)
+    const normalizedIncoming = Object.values(dataMap)
       .map(normalizeRequestSummary)
       .filter((item): item is NormalizedRequest => item !== null);
+    const incoming = filterRequestsByPatterns(normalizedIncoming, filterPatternsRef.current);
 
     setRequests((prev) => mergeRequests(prev, incoming, activeLimit));
 

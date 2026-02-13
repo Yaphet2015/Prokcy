@@ -22,6 +22,7 @@ interface SettingsForm {
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
+  requestFilters: string;
 }
 
 interface ProxyPayload {
@@ -40,6 +41,7 @@ interface PreferencesPayload {
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
+  requestFilters: string;
 }
 
 interface SettingsPayload {
@@ -56,6 +58,7 @@ interface SettingsCategory {
 
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { id: 'proxy', label: 'Proxy', icon: '🌐' },
+  { id: 'network', label: 'Network', icon: '🔍' },
   { id: 'app', label: 'App', icon: '⚙️' },
 ];
 
@@ -104,6 +107,7 @@ const DEFAULT_SETTINGS: SettingsForm = {
   startAtLogin: false,
   hideFromDock: false,
   themeMode: 'system',
+  requestFilters: '',
 };
 
 const hasWhitespace = (value: string): boolean => /\s/.test(value);
@@ -152,6 +156,7 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
     themeMode: THEME_MODES.includes(String(settings.themeMode))
       ? String(settings.themeMode)
       : DEFAULT_SETTINGS.themeMode,
+    requestFilters: String(settings.requestFilters || ''),
   };
 };
 
@@ -229,7 +234,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     return '';
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -261,24 +266,35 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         startAtLogin: form.startAtLogin,
         hideFromDock: form.hideFromDock,
         themeMode: form.themeMode,
+        requestFilters: form.requestFilters,
       },
     };
 
     try {
       const result = await window.electron.updateSettings(payload);
+      console.log('[settings] updateSettings result:', result);
+      console.log('[settings] result.settings:', result?.settings);
+      console.log('[settings] result.settings.requestFilters:', result?.settings?.requestFilters);
       if (!result?.success) {
         throw new Error(result?.message || 'Failed to save settings');
       }
       const next = normalizeSettings(result.settings || {});
+      console.log('[settings] normalized next.requestFilters:', next.requestFilters);
       setForm(next);
       setSavedForm(next);
+      window.dispatchEvent(new CustomEvent('prokcy-settings-updated', {
+        detail: {
+          requestListLimit: Number(next.requestListLimit),
+          requestFilters: next.requestFilters,
+        },
+      }));
       setMessage('Settings saved');
     } catch (err) {
       setError((err as Error)?.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
-  };
+  }, [form, validate]);
 
   // Handle keyboard shortcuts (Cmd+S or Ctrl+S to save)
   useEffect(() => {
@@ -294,7 +310,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDirty, loading, saving]);
+  }, [isDirty, loading, saving, handleSave]);
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
@@ -484,6 +500,41 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           placeholder="One host per line, e.g., localhost, 127.0.0.1"
                           className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                         />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* Network Section */}
+              {activeCategory === 'network' && (
+                <div className="max-w-3xl space-y-6">
+                  <section>
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      Request Filters
+                    </h2>
+
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">Filter Patterns</span>
+                      <textarea
+                        value={form.requestFilters}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField('requestFilters', e.target.value)}
+                        disabled={loading}
+                        rows={6}
+                        placeholder="One pattern per line"
+                        className="w-full px-3 py-2 text-sm font-mono rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                      />
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                        Exclude matching requests from the waterfall timeline. Use wildcards (*).
+                      </p>
+                      <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 space-y-1">
+                        <p className="font-medium text-zinc-500 dark:text-zinc-400">Examples:</p>
+                        <ul className="list-disc list-inside space-y-0.5 ml-1">
+                          <li><code className="text-zinc-600 dark:text-zinc-300">*.google.com</code> - any subdomain of google.com</li>
+                          <li><code className="text-zinc-600 dark:text-zinc-300">/api/health*</code> - URLs starting with /api/health</li>
+                          <li><code className="text-zinc-600 dark:text-zinc-300">*/analytics/*</code> - any path containing /analytics/</li>
+                          <li><code className="text-zinc-600 dark:text-zinc-300">fonts.googleapis.com</code> - exact domain match</li>
+                        </ul>
                       </div>
                     </div>
                   </section>
