@@ -25,7 +25,12 @@
     }
   },
   "rules": {
-    "max-len": ["warn", { "code": 120 }],
+    "max-len": [
+      "none",
+      {
+        "code": 120
+      }
+    ],
     "no-empty": ["error", { "allowEmptyCatch": true }],
     "no-param-reassign": 0,
     "func-names": 0,
