@@ -72,6 +72,7 @@ Split layout: WaterfallTimeline (top 60%) and RequestInspector (bottom 40%).
 - Timing color-coded: DNS (blue), TCP (teal), TLS (green), TTFB (purple), Download (orange)
 - Click to populate inspector
 - Searchable and filterable
+- Request filter patterns from Settings are matched against multiple URL targets: full URL, hostname/host, and pathname (including pathname+query) so entries like `brook.pdd.net`, `/api/health*`, and `*/analytics/*` all work as documented; saving Settings re-applies filters immediately to already-captured rows and new incoming requests without restart
 - Virtualized request list uses a compact "Requests" title header instead of a phase legend row; phase details remain visible on hover tooltips and expanded bars
 - Virtualized list header is split into aligned columns (`Method`, `Status`, `URL`, `Size`, `Time`, `Waterfall`) matching each request row layout
 - Column header reserves dynamic right gutter equal to list scrollbar width so header columns stay aligned with rows

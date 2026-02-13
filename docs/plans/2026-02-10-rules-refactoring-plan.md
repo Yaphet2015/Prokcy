@@ -19,6 +19,11 @@
 - Do not open a modal dialog for "Create New Group".
 - The list should show a border-dashed create item that expands to input + `Add`/`Cancel`.
 
+## Update (2026-02-13, Default Toggle Behavior)
+
+- Double-click on `Default` must toggle active/inactive exactly like other rule groups.
+- `Default` is special in Whistle internals and must map to default-enable/default-disable APIs instead of regular group select/unselect APIs.
+
 ---
 
 ## Task 1: Create directory structure for modular components

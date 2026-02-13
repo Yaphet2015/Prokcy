@@ -41,6 +41,7 @@ interface SettingsForm {
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
+  requestFilters: string;
 }
 
 interface ProxyPayload {
@@ -59,6 +60,7 @@ interface PreferencesPayload {
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
+  requestFilters: string;
 }
 
 interface SettingsPayload {
