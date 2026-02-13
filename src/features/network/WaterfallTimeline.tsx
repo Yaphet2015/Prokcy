@@ -440,7 +440,7 @@ export default function WaterfallTimeline() {
   }, [selectedRequest, selectRequest, timelineData, hoveredRequestId, handleHoverStart, handleHoverEnd]);
 
   return (
-    <div className="flex-1 w-full overflow-auto flex flex-col border-b border-zinc-200 dark:border-zinc-800">
+    <div className="flex-1 w-full overflow-auto flex flex-col">
       {/* Virtual list title */}
       <div
         className={`h-8 grid ${REQUEST_ROW_COLUMNS} items-center gap-3 px-4 border-b border-zinc-200/30 dark:border-zinc-800/30 shrink-0`}

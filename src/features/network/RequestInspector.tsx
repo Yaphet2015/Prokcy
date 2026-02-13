@@ -86,23 +86,25 @@ export default function RequestInspector(): React.JSX.Element | null {
   return (
     <div
       ref={inspectorRef}
-      className="flex-none min-h-6 flex overflow-auto flex-col border-t border-zinc-200 dark:border-zinc-800 scrollbar-hide"
+      className="flex-none min-h-6 flex overflow-auto flex-col scrollbar-hide"
       style={{ height: `${inspectorHeight}px` }}
     >
       {/* Resize handle */}
       <button
         type="button"
-        className={[
-          'h-1 w-full cursor-row-resize shrink-0',
-          'bg-zinc-200/80 hover:bg-blue-400/70',
-          'dark:bg-zinc-800/80 dark:hover:bg-blue-500/70',
-        ].join(' ')}
+        className="group h-1 w-full cursor-row-resize shrink-0 flex items-center"
         onMouseDown={startResize}
         aria-label="Resize request inspector"
-      />
+      >
+        <div className="group-hover:scale-y-400 h-px w-full shadow-amber-100 bg-zinc-200/80 hover:bg-blue-400/70 dark:bg-zinc-800/80 dark:hover:bg-blue-500/70" />
+      </button>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        className="h-full flex flex-col"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
         <div
           className={[
             'flex items-center justify-between shrink-0 p-2 pb-0',
@@ -126,20 +128,20 @@ export default function RequestInspector(): React.JSX.Element | null {
           />
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="headers">
+        <div className="flex-1 min-h-0">
+          <TabsContent className="h-full min-h-0" value="headers">
             <HeadersTab request={selectedRequest} />
           </TabsContent>
-          <TabsContent value="body">
+          <TabsContent className="h-full min-h-0" value="body">
             <BodyTab request={selectedRequest} />
           </TabsContent>
-          <TabsContent value="response">
+          <TabsContent className="h-full min-h-0" value="response">
             <ResponseTab request={selectedRequest} />
           </TabsContent>
-          <TabsContent value="rules">
+          <TabsContent className="h-full min-h-0" value="rules">
             <RulesTab request={selectedRequest} />
           </TabsContent>
-          <TabsContent value="timeline">
+          <TabsContent className="h-full min-h-0" value="timeline">
             <TimelineTab request={selectedRequest} />
           </TabsContent>
         </div>
