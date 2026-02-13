@@ -45,7 +45,7 @@ export default function Sidebar({
     <aside
       className={`
         relative h-full flex flex-col
-        ${!isCollapsed ? 'border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
+        ${!isCollapsed ? ' bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
         ${isResizing ? 'transition-none' : 'transition-[width] duration-200'}
         justify-between
         overflow-x-visible z-9999
@@ -159,15 +159,15 @@ export default function Sidebar({
         type="button"
         aria-label="Resize sidebar"
         onPointerDown={onResizeStart}
-        className={`
-          absolute top-0 -right-1 h-full w-2 cursor-col-resize p-0 overflow-hidden
+        className={`group
+          absolute top-0 -right-1 h-full w-1 cursor-col-resize p-0 overflow-hidden
           flex items-center justify-center
         `}
       >
-        <div className={`h-full border-none transition-[translate] ${widthTransitionClass}
-          hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 focus:outline-none dark:bg-zinc-800 bg-zinc-200 w-px ${
-          isCollapsed ? 'translate-y-12' : 'translate-y-0'
-        }`}
+        <div className={`h-full w-px border-none transition-[translate] ${widthTransitionClass}
+          group-hover:scale-x-400 bg-zinc-200/80 hover:bg-blue-400/70 dark:bg-zinc-800/80 dark:hover:bg-blue-500/70
+          ${isCollapsed ? 'translate-y-12' : 'translate-y-0'}
+        `}
         />
       </button>
     </aside>
