@@ -47,15 +47,16 @@ export default function ContentHeader({
   return (
     <div className={`
       h-12 shrink-0 flex items-center justify-between
-      px-4 border-b border-zinc-200/70 dark:border-zinc-800/70
+      pr-2 pl-4 border-b border-zinc-200/70 dark:border-zinc-800/70
       bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
-      ${isSidebarCollapsed ? 'translate-x-[8px]' : 'translate-x-0'}
-      transition-[translate] duration-200
       app-drag
     `}
     >
       {/* Left section: Icon + Title */}
-      <div className="min-w-0 flex items-center gap-3 app-no-drag">
+      <div className={`min-w-0 flex items-center gap-3 app-no-drag
+        ${isSidebarCollapsed ? 'translate-x-[8px]' : 'translate-x-0'}
+        transition-[translate] duration-200`}
+      >
         {icon && <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>}
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 pointer-none select-none">
           {displayTitle}
