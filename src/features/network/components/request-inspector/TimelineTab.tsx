@@ -22,7 +22,7 @@ export function TimelineTab({ request }: TabProps): React.JSX.Element {
   ].filter(p => (timings[p.key as keyof RequestTimings] ?? 0) > 0);
 
   return (
-    <div className="p-4 h-full overflow-y-auto scrollbar-hide">
+    <div className="p-4 pb-8 h-full overflow-y-auto scrollbar-hide">
       <div className="space-y-4">
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
