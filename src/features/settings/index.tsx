@@ -23,6 +23,7 @@ interface SettingsForm {
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  systemProxyEnabled: boolean;
 }
 
 interface ProxyPayload {
@@ -108,6 +109,7 @@ const DEFAULT_SETTINGS: SettingsForm = {
   hideFromDock: false,
   themeMode: 'system',
   requestFilters: '',
+  systemProxyEnabled: false,
 };
 
 const hasWhitespace = (value: string): boolean => /\s/.test(value);
@@ -157,6 +159,7 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
       ? String(settings.themeMode)
       : DEFAULT_SETTINGS.themeMode,
     requestFilters: String(settings.requestFilters || ''),
+    systemProxyEnabled: !!settings.systemProxyEnabled,
   };
 };
 
@@ -295,6 +298,24 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       setSaving(false);
     }
   }, [form, validate]);
+
+  const handleSystemProxyToggle = useCallback(async (enabled: boolean) => {
+    if (!window.electron?.setSystemProxyEnabled) {
+      setError('System proxy API unavailable');
+      return;
+    }
+
+    try {
+      const result = await window.electron.setSystemProxyEnabled(enabled);
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to toggle system proxy');
+      }
+      updateField('systemProxyEnabled', enabled);
+      setMessage(enabled ? 'System proxy enabled' : 'System proxy disabled');
+    } catch (err) {
+      setError((err as Error)?.message || 'Failed to toggle system proxy');
+    }
+  }, []);
 
   // Handle keyboard shortcuts (Cmd+S or Ctrl+S to save)
   useEffect(() => {
@@ -500,6 +521,21 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           placeholder="One host per line, e.g., localhost, 127.0.0.1"
                           className="w-full px-3 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                         />
+                      </div>
+
+                      {/* System Proxy Toggle - full width */}
+                      <div className="space-y-1.5 md:col-span-2">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={form.systemProxyEnabled}
+                            onChange={handleSystemProxyToggle}
+                            disabled={loading}
+                            label="Set as System Proxy"
+                          />
+                        </div>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                          Route system network traffic through Prokcy. Required for capturing HTTPS requests.
+                        </p>
                       </div>
                     </div>
                   </section>
