@@ -125,12 +125,14 @@ function decodeBase64ToText(base64: unknown, maxBytes = 0): DecodeResult {
     if (maxBytes > 0 && bytes.length > maxBytes) {
       return { text: '', omitted: true };
     }
+    // Use 'replace' error mode to handle invalid UTF-8 sequences gracefully
     return {
-      text: new TextDecoder('utf-8').decode(bytes),
+      text: new TextDecoder('utf-8', { fatal: false }).decode(bytes),
       omitted: false,
     };
   } catch {
-    return { text: '', omitted: false };
+    // If decoding fails completely, return empty string
+    return { text: 'failed to decode', omitted: false };
   }
 }
 
@@ -224,12 +226,22 @@ export function normalizeRequestDetail(item: RawRequestItem): NormalizedRequest 
 
   let responseBody = '';
   if (responseContentType.startsWith('image/')) {
+    // For images, keep base64 as-is for display
     responseBody = responseBodyBase64.length > MAX_DETAIL_IMAGE_BASE64_CHARS
       ? OMITTED_RESPONSE_BODY_MESSAGE
       : responseBodyBase64;
   } else {
+    // For text-based content (JSON, JS, HTML, etc.), decode base64 to text
     const decoded = decodeBase64ToText(responseBodyBase64, MAX_DETAIL_TEXT_BODY_BYTES);
-    responseBody = decoded.omitted ? OMITTED_RESPONSE_BODY_MESSAGE : decoded.text;
+    if (decoded.omitted) {
+      responseBody = OMITTED_RESPONSE_BODY_MESSAGE;
+    } else if (decoded.text) {
+      responseBody = decoded.text;
+    } else if (responseBodyBase64) {
+      // If text decoding failed but we have raw base64, keep it for display
+      // The UI can attempt to decode or show raw
+      responseBody = responseBodyBase64;
+    }
   }
 
   return {
