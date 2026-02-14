@@ -42,6 +42,7 @@ interface SettingsForm {
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  systemProxyEnabled: boolean;
 }
 
 interface ProxyPayload {
@@ -72,6 +73,12 @@ interface SettingsResponse {
   success?: boolean;
   message?: string;
   settings?: SettingsForm;
+}
+
+interface SystemProxyResult {
+  success?: boolean;
+  message?: string;
+  enabled?: boolean;
 }
 
 // ============= Window Controls API =============
@@ -133,6 +140,13 @@ interface ValuesAPI {
   deleteValue(name: string): Promise<void>;
 }
 
+// ============= System Proxy API =============
+
+interface SystemProxyAPI {
+  getSystemProxyEnabled(): Promise<boolean>;
+  setSystemProxyEnabled(enabled: boolean): Promise<SystemProxyResult>;
+}
+
 // ============= Complete Electron API =============
 /**
  * The complete API exposed via contextBridge in electron-preload.js
@@ -143,7 +157,8 @@ export interface ElectronAPI extends
   SettingsAPI,
   RulesAPI,
   ServiceAPI,
-  ValuesAPI {}
+  ValuesAPI,
+  SystemProxyAPI {}
 
 declare global {
   interface Window {
