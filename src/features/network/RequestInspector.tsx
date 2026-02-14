@@ -86,7 +86,7 @@ export default function RequestInspector(): React.JSX.Element | null {
   return (
     <div
       ref={inspectorRef}
-      className="flex-none min-h-6 flex overflow-auto flex-col scrollbar-hide"
+      className="flex-none min-h-6 flex overflow-hidden flex-col scrollbar-hide"
       style={{ height: `${inspectorHeight}px` }}
     >
       {/* Resize handle */}
