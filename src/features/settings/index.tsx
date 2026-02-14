@@ -195,6 +195,14 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   }, []);
 
   useEffect(() => {
+    if (message) {
+      setTimeout(() => {
+        setMessage('');
+      }, 3000);
+    }
+  }, [message]);
+
+  useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
