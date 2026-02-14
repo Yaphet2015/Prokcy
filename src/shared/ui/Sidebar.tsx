@@ -48,7 +48,7 @@ export default function Sidebar({
         ${!isCollapsed ? ' bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
         ${isResizing ? 'transition-none' : 'transition-[width] duration-200'}
         justify-between
-        overflow-x-visible z-9999
+        overflow-x-visible z-[100]
       `}
       style={{ width: `${width}px` }}
     >
@@ -57,7 +57,7 @@ export default function Sidebar({
         isCollapsed ? 'bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70' : 'bg-white dark:bg-zinc-900'
       }`}
       >
-        <div className="app-no-drag flex items-center gap-2 ">
+        <div className="app-no-drag flex items-center gap-2 relative z-[100]">
           <button
             type="button"
             aria-label="Close window"
