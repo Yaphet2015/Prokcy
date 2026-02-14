@@ -58,11 +58,11 @@
       }
     },
     "win": {
-      "icon": "public/whistle.png",
+      "icon": "public/dock.png",
       "target": "nsis"
     },
     "linux": {
-      "icon": "public/whistle.png",
+      "icon": "public/dock.png",
       "target": [
         {
           "target": "AppImage",

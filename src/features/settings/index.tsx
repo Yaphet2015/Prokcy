@@ -422,7 +422,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                 <div className="max-w-3xl space-y-6">
                   <section>
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
-                      Proxy Configuration
+                        Proxy Service
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -570,6 +570,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       />
                       <p className="text-xs text-zinc-400 dark:text-zinc-500">
                         Exclude matching requests from the waterfall timeline. Use wildcards (*).
+                          Multiple patterns can be separated by newlines.
                       </p>
                       <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 space-y-1">
                         <p className="font-medium text-zinc-500 dark:text-zinc-400">Examples:</p>

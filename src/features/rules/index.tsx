@@ -50,18 +50,18 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
         <ContentHeader
           viewName="rules"
           isSidebarCollapsed={isSidebarCollapsed}
-          leftActions={(
-            <Button
-              className="hover:dark:text-zinc-950"
-              variant="ghost"
-              size="sm"
-              onClick={toggleEnabled}
-              leftIcon={<Power color={isEnabled ? 'green' : 'red'} className="w-4 h-4" />}
-              title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
-            >
-              {isEnabled ? 'Enabled' : 'Disabled'}
-            </Button>
-          )}
+          // leftActions={(
+          //   <Button
+          //     className="hover:dark:text-zinc-950"
+          //     variant="ghost"
+          //     size="sm"
+          //     onClick={toggleEnabled}
+          //     leftIcon={<Power color={isEnabled ? 'green' : 'red'} className="w-4 h-4" />}
+          //     title={isEnabled ? 'Disable all rules' : 'Enable all rules'}
+          //   >
+          //     {isEnabled ? 'Enabled' : 'Disabled'}
+          //   </Button>
+          // )}
           statusMessage={error && <span className="text-xs text-red-500">{error}</span>}
           rightActions={(
             <Button
