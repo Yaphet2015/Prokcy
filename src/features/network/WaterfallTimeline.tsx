@@ -356,8 +356,8 @@ export default function WaterfallTimeline() {
 
   // Memoized hover handlers (rerender-defer-reads: stable callbacks)
   const handleHoverStart = useCallback((event: React.MouseEvent) => {
-    const { requestId } = event.currentTarget.dataset;
-    debouncedHoverState.setNow(requestId);
+    const { requestId } = (event.currentTarget as HTMLElement).dataset;
+    debouncedHoverState.setNow(requestId ?? null);
   }, [debouncedHoverState]);
 
   const handleHoverEnd = useCallback(() => {
@@ -366,7 +366,7 @@ export default function WaterfallTimeline() {
 
   // Render individual request row (called by VirtualList)
   const renderRequestRow = useCallback((props: { item: NormalizedRequest; index: number }) => {
-    const { item: request, index } = props;
+    const { item: request } = props;
     const isSelected = selectedRequest?.id === request.id;
     const pos = timelineData.positionMap.get(request.id);
 
