@@ -1,0 +1,27 @@
+import requireW2 from 'whistle/require';
+declare const noop: () => void;
+export declare const isMac: boolean;
+export declare const LOCALHOST: string;
+export declare const VERSION: string;
+export declare const BASE_DIR: string;
+export declare const CLIENT_PLUGINS_PATH: string;
+export declare const CUSTOM_PLUGINS_PATH: string;
+export declare const ICON: string;
+export declare const DOCK_ICON: string;
+export declare const TRAY_ICON: string;
+export declare const USERNAME_EXPORT: string;
+export declare const PROC_PATH_EXPORT: string;
+export declare const getDataUrl: (url: string) => string | null;
+export { noop };
+export { requireW2 };
+export declare const sudoPromptExec: (command: string, callback: (error?: Error) => void) => void;
+export declare const compareFile: (file1: string, file2: string) => Promise<boolean>;
+export declare const readJson: (file: string) => Promise<Record<string, unknown>>;
+export declare const closeWhistle: () => void;
+export declare const showWin: (win: Electron.BrowserWindow | null) => void;
+export declare const getErrorMsg: (err: unknown) => string;
+export declare const getErrorStack: (err: unknown) => string;
+export declare const getString: (str: unknown, len?: number) => string;
+export declare const getJson: (url: string) => Promise<unknown> | undefined;
+export declare const getArtifactName: (version: string) => string;
+//# sourceMappingURL=util.d.ts.map

@@ -18,7 +18,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": false
   },
   "include": ["lib/**/*"],
   "exclude": ["node_modules", "dist-lib"]
