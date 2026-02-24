@@ -230,14 +230,12 @@ export const getJson = (url: string): Promise<unknown> | undefined => {
     headers['x-whistle-https-request'] = '1';
   }
 
-  const requestOptions: http.RequestOptions = {
+  const requestOptions: http.RequestOptions & { host: string; port: number | string } = {
     ...parsedUrl,
     headers,
+    host: (options as { host?: string }).host || LOCALHOST,
+    port: (options as { port?: number | string }).port || 8888,
   };
-
-  // Explicitly cast to satisfy TypeScript
-  (requestOptions as any).host = options.host || LOCALHOST;
-  (requestOptions as any).port = options.port;
 
   return new Promise((resolve, reject) => {
     const handleError = (err?: Error) => {
