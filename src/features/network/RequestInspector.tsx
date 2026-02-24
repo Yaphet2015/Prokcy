@@ -119,11 +119,11 @@ export default function RequestInspector(): React.JSX.Element | null {
           </TabsList>
 
           <Button
-            className="-translate-y-1"
+            className="-translate-y-1 hover:dark:text-zinc-950"
             variant="ghost"
             size="sm"
             onClick={() => selectRequest(null)}
-            leftIcon={<X className="w-4 h-4 hover:dark:text-zinc-950" />}
+            leftIcon={<X className="w-4 h-4" />}
             aria-label="Close request inspector"
           />
         </div>
