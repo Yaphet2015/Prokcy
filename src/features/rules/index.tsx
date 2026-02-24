@@ -65,14 +65,15 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
           statusMessage={error && <span className="text-xs text-red-500">{error}</span>}
           rightActions={(
             <Button
-              variant="primary"
+              variant={isDirty ? "primary" : "ghost"}
               size="sm"
+              loading={isSaving}
               onClick={saveRules}
               disabled={!isDirty || isSaving}
               leftIcon={<Save className="w-4 h-4" />}
               title="Save rules (Cmd+S)"
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              Save
             </Button>
           )}
         />
