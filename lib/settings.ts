@@ -1,0 +1,382 @@
+import path from 'path';
+import { isIP } from 'net';
+import { lookup } from 'dns';
+import { promisify } from 'util';
+import {
+  BrowserWindow,
+  ipcMain,
+  app,
+  globalShortcut,
+  IpcMainEvent,
+} from 'electron';
+import {
+  showWin,
+  getString,
+  LOCALHOST,
+  USERNAME_EXPORT,
+  ICON,
+  isMac,
+} from './util';
+import {
+  getWin,
+  getOptions,
+  getChild,
+  sendMsg,
+  isServiceRunning as isRunning,
+} from './context';
+import { enableProxy, isEnabled } from './proxy';
+import storage, { ProxySettings as StorageProxySettings } from './storage';
+import { showWindow } from './window';
+import type Storage from 'whistle/lib/rules/storage';
+
+// Constants
+const username: string = USERNAME_EXPORT;
+const password: string = `pass_${Math.random()}`;
+export const authorization: string = Buffer.from(`${username}:${password}`).toString('base64');
+const DEFAULT_PORT: string = '8888';
+const HEADER_SIZE_OPTIONS: number[] = [512, 1024, 5120, 10240, 51200, 102400];
+const DEFAULT_REQUEST_LIST_LIMIT = 500;
+const MIN_REQUEST_LIST_LIMIT = 100;
+const MAX_REQUEST_LIST_LIMIT = 5000;
+
+// Type for the parsed settings
+export interface ProxySettings {
+  port: string;
+  socksPort?: string;
+  username?: string;
+  password?: string;
+  uiAuth: {
+    username: string;
+    password: string;
+  };
+  host: string;
+  bypass: string;
+  useDefaultStorage: boolean;
+  maxHttpHeaderSize: number;
+  requestListLimit: number;
+}
+
+// Type for settings input (from storage or UI)
+type SettingsInput = Storage | Record<string, unknown>;
+
+// Type for applySettings options
+interface ApplySettingsOptions {
+  hideOnSuccess?: boolean;
+  showErrorToast?: boolean;
+}
+
+// Type for applySettings result
+interface ApplySettingsResult {
+  success: boolean;
+  message?: string;
+  changed?: boolean;
+  needsRestart?: boolean;
+}
+
+// State variables
+let child: BrowserWindow | null = null;
+let storageChanged: boolean = false;
+
+// DNS lookup promisified
+const dnsLookupAsync = promisify(lookup);
+
+/**
+ * Check if a port number is valid
+ * @param p - Port number to check
+ * @returns true if port is in valid range
+ */
+const isPort = (p: number): boolean => p > 0 && p < 65536;
+
+/**
+ * Get a validated port as string
+ * @param p - Port number
+ * @param defaultPort - Default port to use if invalid
+ * @returns Port as string or default
+ */
+const getPort = (p: unknown, defaultPort?: string): string =>
+  isPort(p as number) ? String(p) : (defaultPort || '');
+
+/**
+ * Hide the settings window
+ */
+const hideSettings = (): void => {
+  if (child) {
+    child.hide();
+  }
+  // @ts-expect-error - Patched globalShortcut.unregister accepts callback
+  globalShortcut.unregister('ESC', hideSettings);
+};
+
+/**
+ * Get a value from settings data
+ * Handles both raw objects and Storage instances with getProperty
+ * @param data - Settings data object
+ * @param key - Key to retrieve
+ * @returns The value or undefined
+ */
+const getValue = (data: SettingsInput, key: string): unknown => {
+  if (!data) {
+    return undefined;
+  }
+  // Check if it's a Storage instance with getProperty method
+  if (typeof (data as Storage).getProperty === 'function') {
+    return (data as Storage).getProperty(key);
+  }
+  // Otherwise treat as plain object
+  return (data as Record<string, unknown>)[key];
+};
+
+/**
+ * Normalize request list limit to valid range
+ * @param value - Raw limit value
+ * @returns Normalized limit within valid range
+ */
+const normalizeRequestListLimit = (value: unknown): number => {
+  const limit = Number(value);
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_REQUEST_LIST_LIMIT;
+  }
+  if (limit < MIN_REQUEST_LIST_LIMIT) {
+    return MIN_REQUEST_LIST_LIMIT;
+  }
+  if (limit > MAX_REQUEST_LIST_LIMIT) {
+    return MAX_REQUEST_LIST_LIMIT;
+  }
+  return limit;
+};
+
+/**
+ * Parse settings from storage data
+ * @param data - Raw settings data from storage
+ * @returns Parsed and validated ProxySettings
+ */
+const parseSettings = (data: SettingsInput): ProxySettings => {
+  const headerSize = +getValue(data, 'maxHttpHeaderSize')!;
+
+  return {
+    port: getPort(getValue(data, 'port'), DEFAULT_PORT),
+    socksPort: getPort(getValue(data, 'socksPort')),
+    username: getString(getValue(data, 'username'), 16),
+    password: getString(getValue(data, 'password'), 16),
+    uiAuth: { username, password },
+    host: getString(getValue(data, 'host'), 255),
+    bypass: getString(getValue(data, 'bypass'), 2000),
+    useDefaultStorage: !!getValue(data, 'useDefaultStorage'),
+    maxHttpHeaderSize: HEADER_SIZE_OPTIONS.includes(headerSize) ? headerSize : 256,
+    requestListLimit: normalizeRequestListLimit(getValue(data, 'requestListLimit')),
+  };
+};
+
+/**
+ * Get current proxy settings from storage
+ * @returns Current ProxySettings
+ */
+export const getSettings = (): ProxySettings => parseSettings(storage);
+
+/**
+ * Update shadow rules in the child process
+ * @param settings - Settings to send to child process
+ */
+const updateShadowRules = (settings: ProxySettings): void => {
+  sendMsg({
+    type: 'setShadowRules',
+    settings,
+  });
+};
+
+/**
+ * Check if settings have changed compared to current settings
+ * @param data - New settings data
+ * @returns true if any setting has changed
+ */
+const hasChanged = (data: ProxySettings): boolean => {
+  if (!getChild()) {
+    return true;
+  }
+  const curSettings = getSettings();
+  const keys = Object.keys(curSettings);
+  for (let i = 0, len = keys.length; i < len; i++) {
+    const key = keys[i];
+    if (key !== 'uiAuth' && curSettings[key as keyof ProxySettings] !== data[key as keyof ProxySettings]) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Show a toast message in the settings window
+ * @param msg - Message or error to display
+ */
+const showToast = (msg: string | Error | { message?: string }): void => {
+  const message = (msg && (msg as Error).message) || msg;
+  if (child && child.webContents && !child.isDestroyed()) {
+    child.webContents.send('showToast', message);
+  }
+};
+
+/**
+ * Perform DNS lookup on a hostname
+ * @param host - Hostname to lookup
+ * @returns Promise that resolves to IP address or the original host if it's already an IP
+ */
+const dnsLookup = async (host: string): Promise<string> => {
+  if (!host || isIP(host)) {
+    return host;
+  }
+  try {
+    const result = await dnsLookupAsync(host);
+    return result?.address || LOCALHOST;
+  } catch (err) {
+    throw err;
+  }
+};
+
+/**
+ * Apply new proxy settings
+ * Validates settings, updates system proxy if needed, and persists to storage
+ *
+ * @param rawData - New settings data
+ * @param options - Options for behavior
+ * @returns Promise with result object
+ */
+export const applySettings = async (
+  rawData: SettingsInput,
+  options: ApplySettingsOptions = {}
+): Promise<ApplySettingsResult> => {
+  const { hideOnSuccess = false, showErrorToast = false } = options;
+  const data = rawData && parseSettings(rawData);
+  if (!data) {
+    return { success: false, message: 'Invalid settings' };
+  }
+
+  try {
+    await dnsLookup(data.host);
+  } catch (e) {
+    if (showErrorToast) {
+      showToast(e as Error);
+    }
+    return { success: false, message: (e as Error)?.message || 'Invalid bound host' };
+  }
+
+  if (isRunning() && !hasChanged(data)) {
+    if (hideOnSuccess) {
+      hideSettings();
+    }
+    return { success: true, changed: false, needsRestart: false };
+  }
+
+  const curSettings = getSettings();
+  const portChanged = curSettings.port !== data.port;
+  const hostChanged = curSettings.host !== data.host;
+  const bypassChanged = curSettings.bypass !== data.bypass;
+
+  if (isEnabled() && (portChanged || hostChanged || bypassChanged)) {
+    try {
+      await enableProxy({
+        port: Number(data.port),
+        host: data.host,
+        bypass: data.bypass,
+      });
+    } catch (e) {
+      // Silently ignore proxy enable errors
+    }
+  }
+
+  updateShadowRules(data);
+  const nextData = { ...data };
+  delete (nextData as Partial<ProxySettings>).uiAuth;
+  storage.setProperties(nextData as StorageProxySettings);
+
+  if (hideOnSuccess) {
+    hideSettings();
+  }
+
+  storageChanged = curSettings.useDefaultStorage !== data.useDefaultStorage;
+  const socksChanged = curSettings.socksPort !== data.socksPort;
+  const headerSizeChanged = curSettings.maxHttpHeaderSize !== data.maxHttpHeaderSize;
+  const requestListLimitChanged = curSettings.requestListLimit !== data.requestListLimit;
+  const needsRestart = !isRunning() || portChanged || hostChanged
+    || socksChanged || storageChanged || headerSizeChanged || requestListLimitChanged;
+
+  if (needsRestart) {
+    app.emit('whistleSettingsChanged', true);
+  }
+
+  return { success: true, changed: true, needsRestart };
+};
+
+/**
+ * Send current settings to the settings window
+ */
+const showSettings = (): void => {
+  showWin(child);
+  if (child?.webContents) {
+    child.webContents.send('showSettings', getSettings());
+  }
+};
+
+/**
+ * Reload the main page if storage directory changed
+ */
+export const reloadPage = (): void => {
+  if (storageChanged) {
+    storageChanged = false;
+    const win = getWin();
+    if (win && win.webContents) {
+      win.webContents.reload();
+    }
+  }
+};
+
+/**
+ * Show the settings window
+ * Creates window on first call, shows existing window on subsequent calls
+ */
+export const showSettingsWindow = (): void => {
+  showWindow();
+  if (child) {
+    return showSettings();
+  }
+  child = new BrowserWindow({
+    parent: getWin() || undefined,
+    title: 'Proxy Settings',
+    autoHideMenuBar: true,
+    show: false,
+    frame: false,
+    modal: true,
+    icon: ICON,
+    width: 470,
+    height: isMac ? 460 : 435,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      spellcheck: false,
+    },
+  });
+  // @ts-expect-error - Custom property for find bar support
+  child._hasFindBar = true;
+  child.loadFile(path.join(__dirname, '../public/settings.html'));
+  // @ts-expect-error - Custom property to identify settings window
+  child.isSettingsWin = true;
+  child.on('focus', () => {
+    // @ts-expect-error - Patched globalShortcut.unregister accepts callback
+    globalShortcut.unregister('ESC', hideSettings);
+    globalShortcut.register('ESC', hideSettings);
+  });
+  child.on('ready-to-show', () => {
+    showSettings();
+  });
+};
+
+// IPC handlers
+ipcMain.on('hideSettings', () => {
+  if (!getOptions() || !isRunning()) {
+    return app.quit();
+  }
+  hideSettings();
+});
+
+ipcMain.on('applySettings', async (_event: IpcMainEvent, data: SettingsInput) => {
+  await applySettings(data, { hideOnSuccess: true, showErrorToast: true });
+});

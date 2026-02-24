@@ -56,3 +56,19 @@ export interface IpcResponse<T = unknown> {
   message?: string;
   data?: T;
 }
+
+// Patched Electron APIs (from lib/patch.js)
+declare module 'electron' {
+  interface GlobalShortcut {
+    /**
+     * Patched version that supports callback parameter for 'ESC' key
+     */
+    unregister(accelerator: string, callback?: () => void): boolean;
+
+    /**
+     * Patched version that supports callback parameter
+     */
+    register(accelerator: string, callback: () => void): boolean;
+  }
+}
+

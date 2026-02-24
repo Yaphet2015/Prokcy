@@ -64,6 +64,13 @@ declare module 'whistle/lib/rules/storage' {
      * Clear all properties
      */
     clear(): void;
+
+    /**
+     * Set multiple properties at once
+     * @param obj - Object with properties to set
+     * @returns true if successful
+     */
+    setProperties(obj: Record<string, unknown>): boolean | undefined;
   }
 
   export = Storage;
