@@ -135,7 +135,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
     <div className="px-5 h-full overflow-y-auto scrollbar-hide">
       {ruleEntries.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800/50 dark:to-zinc-900/50 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800/50 dark:to-zinc-900/50 flex items-center justify-center">
             <span className="text-3xl">Ø</span>
           </div>
           <div className="text-center">
@@ -148,83 +148,113 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {ruleEntries.map(([type, rule]) => {
-            const typeStr = String(type ?? 'unknown');
-            const config = getRuleConfig(typeStr);
-            const ruleObj = rule as { value?: unknown };
-            const parsed = parseRuleValue(rule);
+          <div className="py-4">
+            <div className="space-y-4">
+              {ruleEntries.map(([type, rule], index) => {
+                const typeStr = String(type ?? 'unknown');
+                const config = getRuleConfig(typeStr);
+                const ruleObj = rule as { value?: unknown; rawMatcher?: unknown; pattern?: unknown };
+                const parsed = parseRuleValue(rule);
 
-            return (
-              <div
-                key={typeStr}
-                className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100/50 dark:from-zinc-900/50 dark:to-zinc-800/30 border border-zinc-200 dark:border-zinc-700/50 transition-all duration-200 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-600"
-              >
-                {/* Accent bar */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${config.color ?? 'from-slate-500 to-zinc-600'} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                return (
+                  <div
+                    key={typeStr}
+                    className="border border-zinc-200 dark:border-zinc-700/50 rounded-lg overflow-hidden"
+                  >
+                    {/* Rule Header */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-900/30 border-b border-zinc-200 dark:border-zinc-700/50">
+                      <div
+                        className={`w-[3px] h-8 bg-linear-to-b ${config.color ?? 'from-slate-500 to-zinc-600'} rounded-full`}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                            {String(config?.label ?? 'Unknown Rule')}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono uppercase">
+                            {typeStr}
+                          </span>
+                        </div>
+                      </div>
+                      {parsed?.protocol && (
+                        <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-2 py-1 rounded">
+                          {valueToString(parsed.protocol)}
+                        </span>
+                      )}
+                    </div>
 
-                <div className="pl-4 pr-4 py-3">
-                  {/* Header */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
-                      {String(config?.label ?? 'Unknown Rule')}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded-md bg-zinc-200 dark:bg-zinc-800 text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
-                      {parsed?.protocol || (parsed?.pattern && 'pattern') || typeStr}
-                    </span>
-                  </div>
-
-                  {/* Pattern/Protocol indicator */}
-                  {parsed?.pattern && (
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase shrink-0 mt-0.5">
+                    {/* Rule Details */}
+                    <div className="p-4 space-y-3">
+                      {/* Pattern Row */}
+                      <div className="flex gap-3 items-center">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
                         Pattern
                       </span>
-                      <code className="flex-1 text-[11px] font-mono bg-red-500/10 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 rounded border border-red-200 dark:border-red-800/30 break-all">
-                        {valueToString(parsed.pattern)}
-                      </code>
-                    </div>
-                  )}
+                        {parsed?.pattern ? (
+                          <code className="flex-1 text-xs font-mono text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 px-3 py-2 rounded break-all">
+                            {valueToString(parsed.pattern)}
+                          </code>
+                        ) : (
+                          <span className="flex-1 text-xs text-zinc-400 dark:text-zinc-600 italic py-2">
+                            No pattern specified
+                          </span>
+                        )}
+                      </div>
 
-                  {parsed?.protocol && (
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase shrink-0 mt-0.5">
-                        Protocol
+                      {/* Value/Replacement Row */}
+                      <div className="flex gap-3 items-center">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
+                          {parsed?.pattern || parsed?.protocol ? 'Replacement' : 'Value'}
                       </span>
-                      <code className="text-[11px] font-mono bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700/50">
-                        {valueToString(parsed.protocol)}
-                        :
-                      </code>
-                    </div>
-                  )}
+                        {parsed?.value ? (
+                          <code className="flex-1 text-xs font-mono text-zinc-800 dark:text-zinc-200 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-3 py-2 rounded break-all">
+                            {valueToString(parsed.value)}
+                          </code>
+                        ) : !parsed?.pattern && ruleObj.value ? (
+                          <code className="flex-1 text-xs font-mono text-zinc-800 dark:text-zinc-200 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-3 py-2 rounded break-all">
+                            {valueToString(ruleObj.value)}
+                          </code>
+                        ) : (
+                          <span className="flex-1 text-xs text-zinc-400 dark:text-zinc-600 italic py-2">
+                            No value
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Value display */}
-                  {parsed?.value && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                        {parsed?.pattern || parsed?.protocol ? 'Replacement' : 'Value'}
-                      </span>
-                      <code className="block text-xs font-mono bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 break-all">
-                        {valueToString(parsed.value)}
-                      </code>
-                    </div>
-                  )}
+                      {/* Raw Matcher Row (if available and different) */}
+                      {ruleObj.rawMatcher && (
+                        <div className="flex gap-3 items-center">
+                          <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
+                            Raw Rule
+                          </span>
+                          <code className="flex-1 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-2 rounded break-all">
+                            {valueToString(ruleObj.rawMatcher)}
+                          </code>
+                        </div>
+                      )}
 
-                  {/* Raw value fallback for complex rules */}
-                  {!parsed?.value && !parsed?.pattern && ruleObj.value && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                        Rule Definition
+                      {/* Additional Context */}
+                      <div className="flex gap-3 pt-2">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0">
+                          Action
                       </span>
-                      <code className="block text-xs font-mono bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 break-all">
-                        {valueToString(ruleObj.value)}
-                      </code>
+                        <div className="flex-1">
+                          <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                            {parsed?.protocol && parsed?.pattern
+                              ? `Matched "${valueToString(parsed.pattern)}" and applied ${parsed.protocol} protocol`
+                              : parsed?.protocol
+                                ? `Applied ${parsed.protocol} protocol`
+                                : parsed?.pattern
+                                  ? `Matched pattern: "${valueToString(parsed.pattern)}"`
+                                  : 'Rule was applied'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                );
+              })}
+            </div>
         </div>
       )}
     </div>
