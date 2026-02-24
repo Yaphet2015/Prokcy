@@ -53,7 +53,7 @@ export default function Sidebar({
       style={{ width: `${width}px` }}
     >
       <div className={`fixed top-0 left-0 z-999 app-drag h-12 w-full
-      bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
+      bg-white/85 dark:bg-zinc-900/80 backdrop-blur-xl
       ${isCollapsed ? 'border-b border-zinc-200/70 dark:border-zinc-800/70' : ''}
       `} />
 
