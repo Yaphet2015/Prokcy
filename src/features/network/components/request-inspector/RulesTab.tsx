@@ -132,7 +132,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
   }) as [string, unknown][];
 
   return (
-    <div className="px-5 h-full overflow-y-auto scrollbar-hide">
+    <div className="px-5 h-full overflow-y-auto scrollbar-hide pb-3">
       {ruleEntries.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800/50 dark:to-zinc-900/50 flex items-center justify-center">
@@ -187,7 +187,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
                     <div className="p-4 space-y-3">
                       {/* Pattern Row */}
                       <div className="flex gap-3 items-center">
-                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-20 shrink-0 pt-1">
                         Pattern
                       </span>
                         {parsed?.pattern ? (
@@ -203,7 +203,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
 
                       {/* Value/Replacement Row */}
                       <div className="flex gap-3 items-center">
-                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-20 shrink-0 pt-1">
                           {parsed?.pattern || parsed?.protocol ? 'Replacement' : 'Value'}
                       </span>
                         {parsed?.value ? (
@@ -224,7 +224,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
                       {/* Raw Matcher Row (if available and different) */}
                       {ruleObj.rawMatcher && (
                         <div className="flex gap-3 items-center">
-                          <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0 pt-1">
+                          <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-20 shrink-0 pt-1">
                             Raw Rule
                           </span>
                           <code className="flex-1 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-2 rounded break-all">
@@ -235,7 +235,7 @@ export function RulesTab({ request }: TabProps): React.JSX.Element {
 
                       {/* Additional Context */}
                       <div className="flex gap-3 pt-2">
-                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-24 shrink-0">
+                        <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase w-20 shrink-0">
                           Action
                       </span>
                         <div className="flex-1">
