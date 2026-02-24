@@ -1,6 +1,6 @@
 import { Button } from '@pikoloo/darwin-ui';
 import {
-  ChevronLeft, ChevronRight, Activity, FileText, Key, Settings, LucideIcon, Minus, Maximize2, X,
+  ChevronLeft, ChevronRight, Activity, FileText, Key, Settings, LucideIcon,
 } from 'lucide-react';
 import ServiceToggle from './ServiceToggle';
 import type { ViewType } from '../../types/ui';
@@ -48,48 +48,13 @@ export default function Sidebar({
         ${!isCollapsed ? ' bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
         ${isResizing ? 'transition-none' : 'transition-[width] duration-200'}
         justify-between
-        overflow-x-visible z-[100]
       `}
       style={{ width: `${width}px` }}
     >
-      {/* Window controls */}
-      <div className={`app-drag h-12 flex items-center px-4 shrink-0 transition-[bakckground-color] duration-200 ${
-        isCollapsed ? 'bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/70 dark:border-zinc-800/70' : 'bg-white dark:bg-zinc-900'
-      }`}
-      >
-        <div className="app-no-drag flex items-center gap-2 relative z-[100]">
-          <button
-            type="button"
-            aria-label="Close window"
-            onClick={() => window.electron?.closeWindow?.()}
-            className="group relative h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
-          >
-            <X className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-          </button>
-          <button
-            type="button"
-            aria-label="Minimize window"
-            onClick={() => window.electron?.minimizeWindow?.()}
-            className="group relative h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
-          >
-            <Minus className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-          </button>
-          <button
-            type="button"
-            aria-label="Toggle maximize window"
-            onClick={() => window.electron?.toggleMaximizeWindow?.()}
-            className="group relative h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
-          >
-            <Maximize2 className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-          </button>
-        </div>
-      </div>
+      <div className="fixed top-0 left-0 z-999 app-drag h-12 w-full"></div>
 
       {/* Navigation */}
-      <nav className={`flex-1 px-2 space-y-1 overflow-x-hidden overflow-y-auto transition-[translate] duration-200
-          ${isCollapsed ? 'translate-y-3' : 'translate-y-0'}
-        `}
-      >
+      <nav className="flex-1 px-2 pt-12 space-y-1 overflow-x-hidden overflow-y-auto">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
@@ -161,7 +126,7 @@ export default function Sidebar({
         onPointerDown={onResizeStart}
         className={`group
           absolute top-0 -right-1 h-full w-1 cursor-col-resize p-0 overflow-hidden
-          flex items-center justify-center
+          flex items-center justify-center z-90
         `}
       >
         <div className={`h-full w-px border-none transition-[translate] ${widthTransitionClass}

@@ -1,6 +1,7 @@
 import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
+import { Minus, Maximize2, X } from 'lucide-react';
 import Sidebar from './shared/ui/Sidebar';
 // import ContentHeader from './shared/ui/ContentHeader';
 import Network from './features/network';
@@ -175,14 +176,17 @@ function App(): React.JSX.Element {
     };
   }, [isResizingSidebar]);
 
+  const sidebarWidthValue = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
+
   return (
     <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
+
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
-        width={isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth}
+        width={sidebarWidthValue}
         isResizing={isResizingSidebar}
         onResizeStart={handleSidebarResizeStart}
         widthTransitionClass={sidebarWidthTransitionClass}
@@ -193,6 +197,34 @@ function App(): React.JSX.Element {
         <main className="min-h-0 flex-1 overflow-hidden w-full">
           <ActiveComponent isSidebarCollapsed={isSidebarCollapsed} />
         </main>
+      </div>
+
+      {/* Window controls - fixed at top-left, below the sidebar */}
+      <div className={`fixed top-4 left-4 z-9999 flex justify-start items-center gap-2 app-drag`}>
+        <button
+          type="button"
+          aria-label="Close window"
+          onClick={() => window.electron?.closeWindow?.()}
+          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
+        >
+          <X className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+        </button>
+        <button
+          type="button"
+          aria-label="Minimize window"
+          onClick={() => window.electron?.minimizeWindow?.()}
+          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
+        >
+          <Minus className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+        </button>
+        <button
+          type="button"
+          aria-label="Toggle maximize window"
+          onClick={() => window.electron?.toggleMaximizeWindow?.()}
+          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
+        >
+          <Maximize2 className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+        </button>
       </div>
     </div>
   );
