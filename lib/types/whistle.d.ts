@@ -112,3 +112,35 @@ declare module 'whistle/lib/rules/storage' {
 
   export default Storage;
 }
+
+declare module 'set-global-proxy' {
+  /**
+   * Enable system proxy settings
+   * @param options - Proxy configuration options
+   */
+  export function enableProxy(options: {
+    port: number;
+    host?: string;
+    bypass?: string;
+    proxyHelper: string;
+  }): void;
+
+  /**
+   * Disable system proxy settings
+   * @param proxyHelper - Path to the proxy helper binary
+   */
+  export function disableProxy(proxyHelper: string): void;
+
+  /**
+   * Get the path to the macOS proxy helper binary
+   * @returns Path to the proxy helper or undefined if not on macOS
+   */
+  export function getMacProxyHelper(): string | undefined;
+
+  /**
+   * Get the user ID (UID) of a file
+   * @param filePath - Path to the file
+   * @returns The UID of the file owner
+   */
+  export function getUid(filePath: string): number;
+}
