@@ -22,6 +22,6 @@
     "noEmit": false,
     "allowImportingTsExtensions": false
   },
-  "include": ["lib/**/*"],
+  "include": ["lib/**/*", "types/**/*"],
   "exclude": ["node_modules", "dist-lib"]
 }
