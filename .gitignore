@@ -132,3 +132,4 @@ dist-react
 
 .DS_Store
 .worktrees/
+dist-lib/
