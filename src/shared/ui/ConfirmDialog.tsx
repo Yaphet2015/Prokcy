@@ -45,7 +45,7 @@ export default function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="px-6 py-4">
           {message && (
             <DialogDescription>{message}</DialogDescription>
           )}
@@ -54,6 +54,7 @@ export default function ConfirmDialog({
         <DialogFooter>
           <div className="flex items-center justify-end gap-3">
             <Button
+              className='hover:dark:text-zinc-950'
               variant="ghost"
               onClick={onCancel}
             >

@@ -366,14 +366,15 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               Reload
             </Button> */}
             <Button
-              variant="primary"
+              variant={isDirty ? "primary" : "ghost"}
               size="sm"
               onClick={handleSave}
               disabled={!isDirty || loading || saving}
               leftIcon={<Save className="w-4 h-4" />}
               title="Save settings"
+              loading={saving}
             >
-              {saving ? 'Saving...' : 'Save'}
+              Save
             </Button>
           </>
         )}

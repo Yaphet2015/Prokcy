@@ -186,14 +186,15 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
           )}
           rightActions={(
             <Button
-              variant="primary"
+              variant={isDirty ? "primary" : "ghost"}
               size="sm"
               onClick={saveValues}
               disabled={!isDirty || isSaving || hasUnsavableDirtyValues}
               leftIcon={<Save className="w-4 h-4" />}
               title="Save values (Cmd+S)"
+              loading={isSaving}
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              Save
             </Button>
           )}
         />

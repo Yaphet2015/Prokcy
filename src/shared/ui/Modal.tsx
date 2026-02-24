@@ -55,7 +55,7 @@ export default function Modal({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-2 py-4 px-6">
           {message && (
             <DialogDescription>{message}</DialogDescription>
           )}
@@ -78,6 +78,7 @@ export default function Modal({
           <div className="flex items-center justify-end gap-3">
             <Button
               variant="ghost"
+              className='hover:dark:text-zinc-950'
               onClick={onCancel}
             >
               Cancel
