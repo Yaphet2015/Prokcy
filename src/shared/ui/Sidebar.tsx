@@ -48,13 +48,20 @@ export default function Sidebar({
         ${!isCollapsed ? ' bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl' : 'bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md'}
         ${isResizing ? 'transition-none' : 'transition-[width] duration-200'}
         justify-between
+        overflow-x-visible z-100
       `}
       style={{ width: `${width}px` }}
     >
-      <div className="fixed top-0 left-0 z-999 app-drag h-12 w-full"></div>
+      <div className={`fixed top-0 left-0 z-999 app-drag h-12 w-full
+      bg-white/85 dark:bg-zinc-950/80 backdrop-blur-xl
+      ${isCollapsed ? 'border-b border-zinc-200/70 dark:border-zinc-800/70' : ''}
+      `} />
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 pt-12 space-y-1 overflow-x-hidden overflow-y-auto">
+      <nav className={`flex-1 px-2 pt-12 space-y-1 overflow-x-hidden overflow-y-auto transition-[translate] duration-200
+          ${isCollapsed ? 'translate-y-3' : 'translate-y-0'}
+        `}
+      >
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
@@ -126,7 +133,7 @@ export default function Sidebar({
         onPointerDown={onResizeStart}
         className={`group
           absolute top-0 -right-1 h-full w-1 cursor-col-resize p-0 overflow-hidden
-          flex items-center justify-center z-90
+          flex items-center justify-start z-90
         `}
       >
         <div className={`h-full w-px border-none transition-[translate] ${widthTransitionClass}
