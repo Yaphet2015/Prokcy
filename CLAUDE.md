@@ -40,13 +40,31 @@ npm run release:win
 npm run release:linux
 ```
 
+## TypeScript Configuration
+
+The Electron main process (`lib/`) uses TypeScript with a separate configuration:
+
+- **`tsconfig.lib.json`** - TypeScript config for Electron main process
+  - Compiles to CommonJS for Electron compatibility
+  - Output directory: `dist-lib/`
+  - Strict type checking enabled
+
+- **`lib/types/`** - Type declarations for:
+  - Electron API extensions
+  - Whistle proxy server (untyped dependency)
+  - Shared application types
+
+- **`dist-lib/`** - Compiled JavaScript output (gitignored)
+
+The React frontend (`src/`) uses the root `tsconfig.json` with ESM output.
+
 ## Architecture
 
 ### Multi-Process Electron Architecture
 
 The application uses Electron's multi-process architecture with three distinct processes:
 
-**Main Process** (`lib/index.js`):
+**Main Process** (`lib/index.ts`):
 - Application lifecycle management
 - Single instance enforcement
 - IPC (Inter-Process Communication) coordination
@@ -58,23 +76,23 @@ The application uses Electron's multi-process architecture with three distinct p
 - Handles user interactions
 - Theme synchronization with system appearance
 
-**Utility Process** (`lib/whistle.js`):
+**Utility Process** (`lib/whistle.ts`):
 - Forked child process that runs the Whistle proxy server
 - Handles all proxy operations, rule management, and plugin system
 - Communicates with main process via `process.parentPort.postMessage()`
 
 ### Key Modules (Electron/Node.js)
 
-- **`lib/index.js`**: Main entry point, app lifecycle
-- **`lib/window.js`**: BrowserWindow creation (frameless, transparent), lifecycle, and cleanup
-- **`lib/menu.js`**: Application menus, tray icon, and system proxy management
-- **`lib/proxy.js`**: System proxy configuration (macOS/Windows/Linux)
-- **`lib/settings.js`**: User preferences and proxy settings UI
-- **`lib/plugins.js`**: Plugin installation via `npminstall`
-- **`lib/fork.js`**: Manages the forked Whistle utility process
-- **`lib/ipc.js`**: IPC handlers for theme sync and window controls
-- **`lib/storage.js`**: Persistent settings storage using `~/.whistle_client/proxy_settings`
-- **`lib/util.js`**: Shared utilities including platform detection, paths, and helper functions
+- **`lib/index.ts`**: Main entry point, app lifecycle
+- **`lib/window.ts`**: BrowserWindow creation (frameless, transparent), lifecycle, and cleanup
+- **`lib/menu.ts`**: Application menus, tray icon, and system proxy management
+- **`lib/proxy.ts`**: System proxy configuration (macOS/Windows/Linux)
+- **`lib/settings.ts`**: User preferences and proxy settings UI
+- **`lib/plugins.ts`**: Plugin installation via `npminstall`
+- **`lib/fork.ts`**: Manages the forked Whistle utility process
+- **`lib/ipc.ts`**: IPC handlers for theme sync and window controls
+- **`lib/storage.ts`**: Persistent settings storage using `~/.whistle_client/proxy_settings`
+- **`lib/util.ts`**: Shared utilities including platform detection, paths, and helper functions
 
 ### IPC Communication Pattern
 
@@ -88,7 +106,7 @@ child.postMessage({ type: 'selectRules', name: 'MyRules' });
 process.parentPort.postMessage({ type: 'options', options: {...} });
 ```
 
-Message types are defined in `lib/whistle.js` (worker receiving) and `lib/fork.js` (main receiving).
+Message types are defined in `lib/whistle.ts` (worker receiving) and `lib/fork.ts` (main receiving).
 
 ### Important Architectural Notes
 
@@ -110,8 +128,9 @@ Message types are defined in `lib/whistle.js` (worker receiving) and `lib/fork.j
 ## File Structure Conventions
 
 ### Electron/Node.js (`lib/`)
-- Entry point: `lib/index.js`
+- Entry point: `lib/index.ts`
 - Module imports use CommonJS (`require`/`module.exports`)
+- Compiled to `dist-lib/` (gitignored)
 - Static assets in `/public/` (icons, themes)
 
 ## Feature Details
@@ -171,7 +190,7 @@ Message types are defined in `lib/whistle.js` (worker receiving) and `lib/fork.j
 
 **Base URL:** `http://localhost:8888` (configurable)
 
-**Endpoints (`src/shared/api/whistle.js`):**
+**Endpoints (`src/shared/api/whistle.ts`):**
 - `/cgi-bin/requests/list` - Network requests
 - `/cgi-bin/rules/get` / `/cgi-bin/rules/add` - Rules
 - `/cgi-bin/values/list2` / `/cgi-bin/values/add` / `/cgi-bin/values/remove` - Values
