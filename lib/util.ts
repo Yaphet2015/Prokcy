@@ -9,7 +9,12 @@ import { getWhistlePath } from 'whistle';
 import { getChild, sendMsg, getOptions } from './context';
 import config from '../package.json';
 
-const fse = requireW2('fs-extra');
+const fse = requireW2('fs-extra') as {
+  readJson: (
+    file: string,
+    callback: (err: Error | null, data: Record<string, unknown>) => void
+  ) => void;
+};
 
 // Constants
 const USERNAME: string = config.name;
