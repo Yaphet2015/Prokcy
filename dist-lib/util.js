@@ -210,10 +210,9 @@ const getJson = (url) => {
     const requestOptions = {
         ...parsedUrl,
         headers,
+        host: options.host || exports.LOCALHOST,
+        port: options.port || 8888,
     };
-    // Explicitly cast to satisfy TypeScript
-    requestOptions.host = options.host || exports.LOCALHOST;
-    requestOptions.port = options.port;
     return new Promise((resolve, reject) => {
         const handleError = (err) => {
             clearTimeout(timer);
