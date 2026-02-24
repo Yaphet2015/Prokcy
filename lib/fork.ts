@@ -16,7 +16,7 @@ import {
   getChild,
 } from './context';
 import { showMessageBox } from './dialog';
-import { create, updateRules } from './menu';
+import { create, updateRules, type RulesConfig } from './menu';
 import { updateRules as updateIpcRules, notifyServiceStatus } from './ipc';
 
 const SCRIPT = path.join(__dirname, 'whistle.js');
@@ -54,7 +54,7 @@ interface ErrorMessage extends BaseMessage {
  */
 interface RulesMessage extends BaseMessage {
   type: 'rules';
-  rules: unknown;
+  rules: RulesConfig;
 }
 
 /**
@@ -86,7 +86,7 @@ interface GetRegistryListMessage extends BaseMessage {
 interface OptionsMessage extends BaseMessage {
   type: 'options';
   options: WhistleOptions;
-  rules: unknown;
+  rules: RulesConfig;
 }
 
 /**
