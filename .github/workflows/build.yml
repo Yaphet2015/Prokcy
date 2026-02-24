@@ -28,18 +28,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm install -g app-builder-bin
+        run: npm ci
 
       - name: Build TypeScript
         run: npm run build:lib
 
       - name: Build React app
         run: npm run build:react
+
+      - name: Install app-builder-bin
+        run: npm install -g app-builder-bin
 
       - name: Build and package (macOS)
         if: matrix.os == 'macos-latest'
