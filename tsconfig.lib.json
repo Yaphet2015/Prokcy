@@ -5,7 +5,7 @@
     "module": "commonjs",
     "outDir": "./dist-lib",
     "rootDir": "./lib",
-    "lib": ["ES2020"],
+    "types": [],
     "skipLibCheck": true,
     "strict": true,
     "esModuleInterop": true,

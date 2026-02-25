@@ -417,6 +417,7 @@ export const create = async (): Promise<void> => {
     }
   };
 
+  // @ts-ignore - custom event for checking updates
   app.on('checkUpdateClient', checkUpdate);
 
   proxyMenu = {

@@ -151,6 +151,7 @@ const updateDock = (): void => {
       win.on('page-title-updated', updateDock);
       // @ts-ignore - 'close' event exists but not in TypeScript definitions
       win.once('close', updateDock);
+      // @ts-ignore - 'ready-to-show' event exists but not in WebContents type definitions
       win.on('ready-to-show', updateDock);
     });
 
@@ -166,6 +167,7 @@ const updateDock = (): void => {
     applyThemeMode();
     createWindow();
     forkWhistle();
+    // @ts-ignore - custom event for whistle settings changes
     app.on('whistleSettingsChanged', forkWhistle);
   });
 })();
