@@ -26,8 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run TypeScript check
-        run: npx tsc -p tsconfig.lib.json --noEmit
+      - name: Build TypeScript
+        run: npm run build:lib
 
       - name: Run linter
         run: npm run lint || true
