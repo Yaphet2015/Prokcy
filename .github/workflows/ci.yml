@@ -26,6 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --include=dev
 
+      - name: Debug Node/npm install state
+        run: |
+          node -v
+          npm -v
+          npm config get production
+          npm ls electron @types/node typescript --depth=0 || true
+
       - name: Build TypeScript
         run: npm run build:lib
 
@@ -47,6 +54,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --include=dev
+
+      - name: Debug Node/npm install state
+        run: |
+          node -v
+          npm -v
+          npm config get production
+          npm ls electron @types/node typescript --depth=0 || true
 
       - name: Build lib
         run: npm run build:lib
@@ -76,6 +90,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --include=dev
+
+      - name: Debug Node/npm install state
+        run: |
+          node -v
+          npm -v
+          npm config get production
+          npm ls electron @types/node typescript --depth=0 || true
 
       - name: Build TypeScript
         run: npm run build:lib

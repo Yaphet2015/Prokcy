@@ -4,9 +4,9 @@
 
 **Goal:** Migrate 16 CommonJS modules in `lib/` to TypeScript with ESM syntax, compiled to CommonJS for Electron compatibility.
 
-**Architecture:** Create separate TypeScript configuration for Electron main process (`tsconfig.lib.json`), compile to `dist-lib/` with CommonJS output, use ESM syntax in source, install `@types/electron` for type safety, create stub declarations for untyped dependencies (whistle, sudo-prompt).
+**Architecture:** Create separate TypeScript configuration for Electron main process (`tsconfig.lib.json`), compile to `dist-lib/` with CommonJS output, use ESM syntax in source, use Electron's bundled type declarations (from the `electron` package), and create stub declarations for untyped dependencies (whistle, sudo-prompt).
 
-**Tech Stack:** TypeScript 5.9, Electron 39, @types/electron, @types/node, tsx (dev), esbuild (production)
+**Tech Stack:** TypeScript 5.9, Electron 39, @types/node, tsx (dev), esbuild (production)
 
 ---
 
@@ -15,27 +15,27 @@
 **Files:**
 - Modify: `package.json`
 
-**Step 1: Install @types/electron**
+**Step 1: Install dependencies**
 
 ```bash
-npm install --save-dev @types/electron
+npm install
 ```
 
-Expected: Package installed successfully, `@types/electron` added to devDependencies
+Expected: Dependencies installed successfully, including `electron` and `@types/node`
 
 **Step 2: Verify installation**
 
 ```bash
-cat package.json | grep "@types/electron"
+npm ls electron @types/node typescript --depth=0
 ```
 
-Expected: `"@types/electron": "^<version>"` appears in devDependencies
+Expected: `electron`, `@types/node`, and `typescript` are installed
 
 **Step 3: Commit**
 
 ```bash
 git add package.json package-lock.json
-git commit -m "feat: install @types/electron for type safety"
+git commit -m "chore: verify TypeScript and Electron dependencies"
 ```
 
 ---
