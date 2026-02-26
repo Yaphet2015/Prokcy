@@ -70,14 +70,6 @@ export const isMac: boolean = process.platform === 'darwin';
 export const LOCALHOST: string = '127.0.0.1';
 export const VERSION: string = config.version;
 export const BASE_DIR: string = path.join(getWhistlePath(), '.whistle_client');
-export const CLIENT_PLUGINS_PATH: string = path.join(
-  getWhistlePath(),
-  '.whistle_client_plugins'
-);
-export const CUSTOM_PLUGINS_PATH: string = path.join(
-  getWhistlePath(),
-  'custom_plugins'
-);
 export const ICON: string = path.join(__dirname, '../public/dock.png');
 export const DOCK_ICON: string = path.join(__dirname, '../public/dock.png');
 export const TRAY_ICON: string = isMac

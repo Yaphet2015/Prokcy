@@ -9,8 +9,6 @@ import {
   PROC_PATH_EXPORT,
   BASE_DIR,
   LOCALHOST,
-  CUSTOM_PLUGINS_PATH,
-  CLIENT_PLUGINS_PATH,
   requireW2,
 } from './util';
 
@@ -25,7 +23,6 @@ const { getBypass } = requireW2('set-global-proxy') as {
 };
 
 const PROJECT_PLUGINS_PATH: string = path.join(__dirname, '../node_modules');
-const pluginsPath: string[] = [path.join(CLIENT_PLUGINS_PATH, 'node_modules')];
 const WEB_PAGE: string = path.join(__dirname, '../public/open.html');
 const SPECIAL_AUTH: string = `${Math.random()}`;
 const CIDR_RE: RegExp = /^([(a-z\d:.]+)\/\d{1,2}$/i;
@@ -60,22 +57,12 @@ interface RulesUtil {
   };
 }
 
-interface PluginMgr {
-  REGISTRY_LIST: string[];
-  on: (event: string, callback: (type?: string) => void) => void;
-  disableAllPlugins: (disable: boolean) => void;
-  refreshPlugins: () => void;
-  addRegistry: (registry: string) => void;
-  getRegistryList: () => string[];
-}
-
 interface HttpsUtil {
   getRootCAFile: () => string;
 }
 
 interface WhistleProxy {
   rulesUtil: RulesUtil;
-  pluginMgr: PluginMgr;
   httpsUtil: HttpsUtil;
   setShadowRules: (rules: string) => void;
   on: (event: string, callback: () => void) => void;
@@ -86,9 +73,7 @@ type MessageType =
   | 'error'
   | 'options'
   | 'rules'
-  | 'install'
-  | 'checkUpdate'
-  | 'getRegistryList';
+  | 'checkUpdate';
 
 interface BaseMessage {
   type: MessageType;
@@ -110,27 +95,15 @@ interface RulesMessage extends BaseMessage {
   rules: RulesData;
 }
 
-interface InstallMessage extends BaseMessage {
-  type: 'install';
-  plugins: string[];
-}
-
 interface CheckUpdateMessage extends BaseMessage {
   type: 'checkUpdate';
-}
-
-interface GetRegistryListMessage extends BaseMessage {
-  type: 'getRegistryList';
-  list: string[];
 }
 
 type Message =
   | ErrorMessage
   | OptionsMessage
   | RulesMessage
-  | InstallMessage
-  | CheckUpdateMessage
-  | GetRegistryListMessage;
+  | CheckUpdateMessage;
 
 // Message data types received from main process
 interface ReceivedMessageData {
@@ -139,7 +112,6 @@ interface ReceivedMessageData {
   content?: string;
   newName?: string;
   names?: string[];
-  registry?: string;
   settings?: ProxySettings;
 }
 
@@ -158,14 +130,11 @@ interface WhistleOptions {
   reqCacheSize?: number;
   shadowRules?: string;
   useDefaultStorage?: boolean;
-  customPluginsPath?: string;
   baseDir?: string;
-  pluginsPath?: string[];
   projectPluginsPath?: string;
   specialAuth?: string;
   mode?: string;
   disableInstaller?: boolean;
-  registryPath?: string;
   rootCAFile?: string;
 }
 
@@ -302,13 +271,9 @@ const parseOptions = (): WhistleOptions => {
 
 const newOptions = parseOptions();
 const baseDir = newOptions.useDefaultStorage ? '' : BASE_DIR;
-if (!baseDir) {
-  newOptions.customPluginsPath = CUSTOM_PLUGINS_PATH;
-}
 
 const baseOptions: WhistleOptions = {
   baseDir,
-  pluginsPath,
   projectPluginsPath: PROJECT_PLUGINS_PATH,
   specialAuth: SPECIAL_AUTH,
   mode: 'client|disableUpdateTips|disableAuthUI|enableMultipleRules',
@@ -318,12 +283,6 @@ const baseOptions: WhistleOptions = {
 
 const proxy = startWhistle({
   ...baseOptions,
-  installPlugins(plugins: string[]): void {
-    sendMsg({
-      type: 'install',
-      plugins,
-    });
-  },
   handleUpdate(_: unknown, res: { json: (data: { ec: number }) => void }): void {
     sendMsg({ type: 'checkUpdate' });
     res.json({ ec: 0 });
@@ -341,7 +300,6 @@ const proxy = startWhistle({
     type: 'options',
     options: {
       ...baseOptions,
-      registryPath: proxy.pluginMgr.REGISTRY_LIST,
       rootCAFile: proxy.httpsUtil.getRootCAFile(),
     },
     rules: getRulesPayload(proxy),
@@ -382,12 +340,6 @@ const proxy = startWhistle({
       }, 30);
     }
   };
-
-  proxy.pluginMgr.on('updateRules', (type?: string) => {
-    if (type === 'disableAllPlugins') {
-      updateImmediately();
-    }
-  });
 
   proxy.on('rulesDataChange', updateImmediately);
 });
@@ -445,35 +397,12 @@ process.parentPort?.on('message', (data: unknown) => {
     return { success: true };
   }
 
-  if (type === 'disableAllPlugins') {
-    return proxy.pluginMgr.disableAllPlugins(true);
-  }
-
-  if (type === 'enableAllPlugins') {
-    return proxy.pluginMgr.disableAllPlugins(false);
-  }
-
-  if (type === 'refreshPlugins') {
-    return proxy.pluginMgr.refreshPlugins();
-  }
-
-  if (type === 'addRegistry') {
-    return proxy.pluginMgr.addRegistry(msgData.registry || '');
-  }
-
   if (type === 'enableCapture') {
     return proxy.rulesUtil.properties.setEnableCapture(true);
   }
 
   if (type === 'setShadowRules') {
     return proxy.setShadowRules(getShadowRules(msgData.settings));
-  }
-
-  if (type === 'getRegistryList') {
-    return sendMsg({
-      type: 'getRegistryList',
-      list: proxy.pluginMgr.getRegistryList(),
-    });
   }
 
   // Create new rules group

@@ -1,6 +1,5 @@
 import { utilityProcess, app } from 'electron';
 import path from 'path';
-import { install } from './plugins';
 import {
   getSettings,
   showSettingsWindow,
@@ -29,9 +28,7 @@ let hasError: boolean;
 type MessageType =
   | 'error'
   | 'rules'
-  | 'install'
   | 'checkUpdate'
-  | 'getRegistryList'
   | 'options';
 
 /**
@@ -58,26 +55,10 @@ interface RulesMessage extends BaseMessage {
 }
 
 /**
- * Plugin installation message from utility process
- */
-interface InstallMessage extends BaseMessage {
-  type: 'install';
-  plugins: Parameters<typeof install>[0];
-}
-
-/**
  * Check update message from utility process
  */
 interface CheckUpdateMessage extends BaseMessage {
   type: 'checkUpdate';
-}
-
-/**
- * Get registry list message from utility process
- */
-interface GetRegistryListMessage extends BaseMessage {
-  type: 'getRegistryList';
-  list: unknown;
 }
 
 /**
@@ -95,9 +76,7 @@ interface OptionsMessage extends BaseMessage {
 type UtilityProcessMessage =
   | ErrorMessage
   | RulesMessage
-  | InstallMessage
   | CheckUpdateMessage
-  | GetRegistryListMessage
   | OptionsMessage;
 
 /**
@@ -176,16 +155,8 @@ const forkWhistle = (restart?: boolean): void => {
       return;
     }
 
-    if (type === 'install') {
-      return install((data as InstallMessage).plugins);
-    }
-
     if (type === 'checkUpdate') {
       return app.emit('checkUpdateClient');
-    }
-
-    if (type === 'getRegistryList') {
-      return app.emit('getRegistryList', (data as GetRegistryListMessage).list);
     }
 
     if (type !== 'options') {

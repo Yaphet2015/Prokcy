@@ -1022,14 +1022,6 @@ export async function deleteValue(key) {
   });
 }
 
-// Plugin API (for future use)
-export async function installPlugin(name, options = {}) {
-  return request('/api/plugins/install', {
-    method: 'POST',
-    body: JSON.stringify({ name, ...options }),
-  });
-}
-
 // Health check
 export async function checkHealth() {
   try {
@@ -1048,7 +1040,6 @@ export default {
   getValues,
   setValue,
   deleteValue,
-  installPlugin,
   checkHealth,
 };
 ```

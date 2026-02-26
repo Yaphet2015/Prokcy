@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 Prokcy is a cross-platform desktop network debugging proxy tool. Built with Electron, it provides a modern GUI for the powerful Whistle proxy server.
@@ -10,35 +8,6 @@ Prokcy is a cross-platform desktop network debugging proxy tool. Built with Elec
 - **Network:** Waterfall timeline with full request/response inspection
 - **Rules:** Monaco Editor with Whistle syntax highlighting and rule group management
 - **Values:** Key-value store with inline JSON5 editing
-
-## Development Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode (Vite + Electron)
-npm run dev
-
-# Individual dev commands
-npm run dev:vite     # Vite dev server only (port 5173)
-npm run dev:electron # Electron only (requires Vite running)
-npm start           # Electron only (production build)
-
-# Lint code
-npm run lint
-
-# Build for distribution
-npm run build:react  # Build React app to dist-react/
-npm run build:mac    # macOS (Intel & Apple Silicon)
-npm run build:win    # Windows
-npm run build:linux  # Linux
-
-# Create and publish release
-npm run release:mac
-npm run release:win
-npm run release:linux
-```
 
 ## TypeScript Configuration
 
@@ -78,7 +47,7 @@ The application uses Electron's multi-process architecture with three distinct p
 
 **Utility Process** (`lib/whistle.ts`):
 - Forked child process that runs the Whistle proxy server
-- Handles all proxy operations, rule management, and plugin system
+- Handles proxy operations and rule management
 - Communicates with main process via `process.parentPort.postMessage()`
 
 ### Key Modules (Electron/Node.js)
@@ -88,7 +57,6 @@ The application uses Electron's multi-process architecture with three distinct p
 - **`lib/menu.ts`**: Application menus, tray icon, and system proxy management
 - **`lib/proxy.ts`**: System proxy configuration (macOS/Windows/Linux)
 - **`lib/settings.ts`**: User preferences and proxy settings UI
-- **`lib/plugins.ts`**: Plugin installation via `npminstall`
 - **`lib/fork.ts`**: Manages the forked Whistle utility process
 - **`lib/ipc.ts`**: IPC handlers for theme sync and window controls
 - **`lib/storage.ts`**: Persistent settings storage using `~/.whistle_client/proxy_settings`

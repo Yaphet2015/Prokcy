@@ -53,8 +53,8 @@ const handleWillQuit = async (e: Event): Promise<void> => {
 };
 
 // Valid tab names for navigation
-type TabName = 'Network' | 'Rules' | 'Values' | 'Plugins' | 'Settings';
-const TABS: TabName[] = ['Network', 'Rules', 'Values', 'Plugins', 'Settings'];
+type TabName = 'Network' | 'Rules' | 'Values' | 'Settings';
+const TABS: TabName[] = ['Network', 'Rules', 'Values', 'Settings'];
 
 /**
  * Show the main window and optionally navigate to a specific tab

@@ -180,7 +180,6 @@ System font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif
 getNetworkRequests()    // All captured requests
 getRules() / setRules() // Rule configuration
 getValues() / setValues() // Key-value store
-installPlugin(name)      // Plugin management
 ```
 
 All requests target `http://localhost:8888` (configurable). The client handles Proxy Authentication when required.
