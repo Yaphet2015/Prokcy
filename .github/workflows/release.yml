@@ -5,13 +5,6 @@ on:
     tags:
       - 'v*'
 
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., v1.5.6)'
-        required: true
-        type: string
-
 permissions:
   contents: write
 
@@ -49,11 +42,7 @@ jobs:
       - name: Extract version from tag
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION=${{ github.event.inputs.version }}
-          else
-            VERSION=${GITHUB_REF#refs/tags/}
-          fi
+          VERSION=${GITHUB_REF#refs/tags/}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
         shell: bash
