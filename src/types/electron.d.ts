@@ -130,6 +130,7 @@ interface ServiceAPI {
   startService(): Promise<ServiceOperationResult>;
   stopService(): Promise<ServiceOperationResult>;
   onServiceStatusChanged(callback: (status: ServiceStatusResult) => void): () => void;
+  onOpenSettingsView(callback: () => void): () => void;
 }
 
 // ============= Values API =============

@@ -108,8 +108,14 @@ function App(): React.JSX.Element {
     window.showWhistleWebUI = showWhistleWebUI;
     window.addEventListener('keydown', handleShortcut);
 
+    // Listen for open-settings-view event from main process
+    const unsubscribe = window.electron?.onOpenSettingsView?.(() => {
+      setActiveView('settings');
+    });
+
     return () => {
       window.removeEventListener('keydown', handleShortcut);
+      unsubscribe?.();
       if (window.showWhistleWebUI === showWhistleWebUI) {
         delete window.showWhistleWebUI;
       }

@@ -199,7 +199,7 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
 };
 
 export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
-  const [activeCategory, setActiveCategory] = useState<string>('proxy');
+  const [activeCategory, setActiveCategory] = useState<string>('general');
   const [form, setForm] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [savedForm, setSavedForm] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -432,11 +432,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                 key={category.id}
                 type="button"
                 onClick={() => setActiveCategory(category.id)}
-                className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${
-                  activeCategory === category.id
-                    ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
-                    : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
-                }`}
+                className={`w-full px-3 py-2 rounded-lg border transition-all text-left ${activeCategory === category.id
+                  ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
+                  : 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">{category.icon}</span>
@@ -630,31 +629,13 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
 
                 {/* General Section */}
                 {activeCategory === 'general' && (
-                <div className="max-w-3xl space-y-6">
-                    {/* Storage */}
+                  <div className="max-w-3xl space-y-6">
+                    {/* Appearance */}
                   <section>
                       <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
-                      Storage
+                        Appearance
                       </h2>
-                    <div className="flex flex-col gap-2">
-                      <Switch
-                        checked={form.useDefaultStorage}
-                        onChange={(checked) => updateField('useDefaultStorage', checked)}
-                        disabled={loading}
-                        label="Use whistle's default storage directory"
-                      />
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
-                        By default, Prokcy uses a separate storage directory (~/.whistle_client/).
-                        Enable this to share settings with the CLI version of Whistle.
-                      </p>
-                    </div>
-                    </section>
 
-                    {/* Appearance */}
-                  <section className="mt-4">
-                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
-                      Appearance
-                      </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
@@ -673,6 +654,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Behavior
                       </h2>
+
                       <div className="space-y-4">
                       <div className="flex flex-col gap-2">
                         <Switch
@@ -704,6 +686,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Window
                       </h2>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Default Width</span>
@@ -740,6 +723,26 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       Default window size when the app launches. Changes take effect on next app start.
                     </p>
                   </section>
+
+                    {/* Storage */}
+                    <section className="mt-4">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
+                        Storage
+                      </h2>
+                      <div className="flex flex-col gap-2">
+                        <Switch
+                          checked={form.useDefaultStorage}
+                          onChange={(checked) => updateField('useDefaultStorage', checked)}
+                          disabled={loading}
+                          label="Use whistle's default storage directory"
+                        />
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                          By default, Prokcy uses a separate storage directory (~/.whistle_client/).
+                          Enable this to share settings with the CLI version of Whistle.
+                        </p>
+                      </div>
+                    </section>
+
                 </div>
               )}
             </>

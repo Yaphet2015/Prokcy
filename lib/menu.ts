@@ -6,6 +6,7 @@ import {
   shell,
   nativeImage,
   nativeTheme,
+  systemPreferences,
   MenuItemConstructorOptions,
   NativeImage,
 } from 'electron';
@@ -68,6 +69,7 @@ interface MenuItemWithOptions extends MenuItemConstructorOptions {
  * Update tray menus function reference
  */
 let updateTrayMenus: (() => void) | null = null;
+let rebuildMenusForTheme: (() => void) | null = null;
 
 /**
  * Current rules configuration
@@ -105,9 +107,23 @@ const SEPARATOR_MENU: MenuItemConstructorOptions = { type: 'separator' };
 const PATH_SEP_RE = /[\\/]/;
 
 /**
- * Get current theme prefix based on system appearance
+ * Get current theme prefix for menu bar assets.
+ * On macOS this always follows the OS appearance instead of app theme overrides.
  */
-const getTheme = (): string => (nativeTheme.shouldUseDarkColors ? 'dark/' : '');
+const getTheme = (): string => {
+  if (isMac) {
+    try {
+      const appearance = systemPreferences.getUserDefault('AppleInterfaceStyle', 'string');
+      return typeof appearance === 'string' && appearance.toLowerCase() === 'dark'
+        ? 'dark/'
+        : '';
+    } catch {
+      return nativeTheme.shouldUseDarkColors ? 'dark/' : '';
+    }
+  }
+
+  return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI ? 'dark/' : '';
+};
 
 let theme = getTheme();
 
@@ -701,6 +717,16 @@ export const create = async (): Promise<void> => {
     },
   ]);
 
+  rebuildMenusForTheme = () => {
+    trayMenus = createTrayMenus();
+    updateStartAtLogin();
+    updateHideFromDock();
+    updateProxyStatus();
+    if (updateTrayMenus) {
+      updateTrayMenus();
+    }
+  };
+
   trayMenus = createTrayMenus();
   const trayIcon = getIcon(TRAY_ICON);
   trayIcon.setTemplateImage(true);
@@ -762,13 +788,7 @@ export const create = async (): Promise<void> => {
     }
     theme = curTheme;
     icons = createIcons();
-    trayMenus = createTrayMenus();
-    updateStartAtLogin();
-    updateHideFromDock();
-    updateProxyStatus();
-    if (updateTrayMenus) {
-      updateTrayMenus();
-    }
+    rebuildMenusForTheme?.();
   });
 };
 
@@ -794,5 +814,28 @@ export const refreshProxyStatus = (): void => {
     if (updateTrayMenus) {
       updateTrayMenus();
     }
+  }
+};
+
+/**
+ * Refresh theme after programmatic changes to nativeTheme.themeSource
+ * This is needed because nativeTheme.on('updated') only fires on system appearance changes,
+ * not when themeSource is changed programmatically.
+ */
+export const refreshTheme = (): void => {
+  const curTheme = getTheme();
+  if (theme === curTheme) {
+    return;
+  }
+  theme = curTheme;
+  // Clear icon cache to force fresh icons with new theme paths
+  Object.keys(iconCache).forEach((key) => delete iconCache[key]);
+  icons = createIcons();
+  rebuildMenusForTheme?.();
+  // Update the tray icon itself with theme-aware version
+  if (tray) {
+    const trayIcon = getIcon(TRAY_ICON);
+    trayIcon.setTemplateImage(true);
+    tray.setImage(trayIcon);
   }
 };

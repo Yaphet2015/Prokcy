@@ -19,7 +19,7 @@ import {
 } from './preferences';
 import { enableProxy, disableProxy, isEnabled, type ProxyOptions } from './proxy';
 import storage from './storage';
-import { refreshProxyStatus } from './menu';
+import { refreshProxyStatus, refreshTheme } from './menu';
 import type { IpcRequest, NetworkQuery } from './types/electron';
 
 // Module state
@@ -379,6 +379,17 @@ function initIpc(win: BrowserWindow): void {
       if (Object.prototype.hasOwnProperty.call(preferences, 'requestFilters')) {
         setRequestFilters(preferences.requestFilters);
       }
+      if (Object.prototype.hasOwnProperty.call(preferences, 'themeMode')) {
+        // Manually refresh theme after programmatic change
+        // nativeTheme.on('updated') only fires on system appearance changes
+        refreshTheme();
+        // Notify renderer of theme change
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('theme-changed', {
+            isDark: nativeTheme.shouldUseDarkColors,
+          });
+        }
+      }
 
       const finalSettings = {
         ...getSettings(),
@@ -478,7 +489,11 @@ function initIpc(win: BrowserWindow): void {
       return { success: false, message: 'Service already running' };
     }
     // Dynamic import to avoid circular dependency
-    const forkWhistle = require('./fork');
+    const forkModule = require('./fork') as { default?: () => void } | (() => void);
+    const forkWhistle = typeof forkModule === 'function' ? forkModule : forkModule.default;
+    if (typeof forkWhistle !== 'function') {
+      return { success: false, message: 'Failed to load service starter' };
+    }
     forkWhistle();
     return { success: true };
   });

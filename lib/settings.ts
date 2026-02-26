@@ -1,32 +1,20 @@
-import path from 'path';
 import { isIP } from 'net';
 import { lookup } from 'dns';
 import { promisify } from 'util';
+import { app } from 'electron';
 import {
-  BrowserWindow,
-  ipcMain,
-  app,
-  globalShortcut,
-  IpcMainEvent,
-} from 'electron';
-import {
-  showWin,
   getString,
   LOCALHOST,
   USERNAME_EXPORT,
-  ICON,
-  isMac,
 } from './util';
 import {
   getWin,
-  getOptions,
   getChild,
   sendMsg,
   isServiceRunning as isRunning,
 } from './context';
 import { enableProxy, isEnabled } from './proxy';
 import storage, { ProxySettings as StorageProxySettings } from './storage';
-import { showWindow } from './window';
 import type Storage from 'whistle/lib/rules/storage';
 
 // Constants
@@ -118,7 +106,6 @@ interface ApplySettingsResult {
 }
 
 // State variables
-let child: BrowserWindow | null = null;
 let storageChanged: boolean = false;
 
 // DNS lookup promisified
@@ -139,17 +126,6 @@ const isPort = (p: number): boolean => p > 0 && p < 65536;
  */
 const getPort = (p: unknown, defaultPort?: string): string =>
   isPort(p as number) ? String(p) : (defaultPort || '');
-
-/**
- * Hide the settings window
- */
-const hideSettings = (): void => {
-  if (child) {
-    child.hide();
-  }
-  // @ts-expect-error - Patched globalShortcut.unregister accepts callback
-  globalShortcut.unregister('ESC', hideSettings);
-};
 
 /**
  * Get a value from settings data
@@ -240,17 +216,6 @@ const hasChanged = (data: ProxySettings): boolean => {
 };
 
 /**
- * Show a toast message in the settings window
- * @param msg - Message or error to display
- */
-const showToast = (msg: string | Error | { message?: string }): void => {
-  const message = (msg && (msg as Error).message) || msg;
-  if (child && child.webContents && !child.isDestroyed()) {
-    child.webContents.send('showToast', message);
-  }
-};
-
-/**
  * Perform DNS lookup on a hostname
  * @param host - Hostname to lookup
  * @returns Promise that resolves to IP address or the original host if it's already an IP
@@ -277,9 +242,8 @@ const dnsLookup = async (host: string): Promise<string> => {
  */
 export const applySettings = async (
   rawData: SettingsInput,
-  options: ApplySettingsOptions = {}
+  _options: ApplySettingsOptions = {}
 ): Promise<ApplySettingsResult> => {
-  const { hideOnSuccess = false, showErrorToast = false } = options;
   const data = rawData && parseSettings(rawData);
   if (!data) {
     return { success: false, message: 'Invalid settings' };
@@ -288,16 +252,10 @@ export const applySettings = async (
   try {
     await dnsLookup(data.host);
   } catch (e) {
-    if (showErrorToast) {
-      showToast(e as Error);
-    }
     return { success: false, message: (e as Error)?.message || 'Invalid bound host' };
   }
 
   if (isRunning() && !hasChanged(data)) {
-    if (hideOnSuccess) {
-      hideSettings();
-    }
     return { success: true, changed: false, needsRestart: false };
   }
 
@@ -323,10 +281,6 @@ export const applySettings = async (
   delete (nextData as Partial<ProxySettings>).uiAuth;
   storage.setProperties(nextData as StorageProxySettings);
 
-  if (hideOnSuccess) {
-    hideSettings();
-  }
-
   storageChanged = curSettings.useDefaultStorage !== data.useDefaultStorage;
   const socksChanged = curSettings.socksPort !== data.socksPort;
   const headerSizeChanged = curSettings.maxHttpHeaderSize !== data.maxHttpHeaderSize;
@@ -342,16 +296,6 @@ export const applySettings = async (
 };
 
 /**
- * Send current settings to the settings window
- */
-const showSettings = (): void => {
-  showWin(child);
-  if (child?.webContents) {
-    child.webContents.send('showSettings', getSettings());
-  }
-};
-
-/**
  * Reload the main page if storage directory changed
  */
 export const reloadPage = (): void => {
@@ -363,55 +307,3 @@ export const reloadPage = (): void => {
     }
   }
 };
-
-/**
- * Show the settings window
- * Creates window on first call, shows existing window on subsequent calls
- */
-export const showSettingsWindow = (): void => {
-  showWindow();
-  if (child) {
-    return showSettings();
-  }
-  child = new BrowserWindow({
-    parent: getWin() || undefined,
-    title: 'Proxy Settings',
-    autoHideMenuBar: true,
-    show: false,
-    frame: false,
-    modal: true,
-    icon: ICON,
-    width: 470,
-    height: isMac ? 500 : 475,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      spellcheck: false,
-    },
-  });
-  // @ts-expect-error - Custom property for find bar support
-  child._hasFindBar = true;
-  child.loadFile(path.join(__dirname, '../public/settings.html'));
-  // @ts-expect-error - Custom property to identify settings window
-  child.isSettingsWin = true;
-  child.on('focus', () => {
-    // @ts-expect-error - Patched globalShortcut.unregister accepts callback
-    globalShortcut.unregister('ESC', hideSettings);
-    globalShortcut.register('ESC', hideSettings);
-  });
-  child.on('ready-to-show', () => {
-    showSettings();
-  });
-};
-
-// IPC handlers
-ipcMain.on('hideSettings', () => {
-  if (!getOptions() || !isRunning()) {
-    return app.quit();
-  }
-  hideSettings();
-});
-
-ipcMain.on('applySettings', async (_event: IpcMainEvent, data: SettingsInput) => {
-  await applySettings(data, { hideOnSuccess: true, showErrorToast: true });
-});
