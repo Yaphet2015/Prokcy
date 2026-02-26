@@ -187,31 +187,6 @@ bar.com https://bar-default.test
 
 > Rule syntax is fully compatible with whistle. See the [whistle rules documentation](https://wproxy.org/whistle/rules/) for the complete syntax reference.
 
-## FAQ
-
-#### 1. Some apps (e.g., Outlook, Word) have network issues after enabling system proxy
-
-Check if the capture interface shows `captureError` requests:
-
-<img width="900" alt="image" src="https://github.com/Yaphet2015/Prokcy/assets/11450939/513ab963-a1a3-447a-ba84-147273451f78">
-
-Add the problematic domains to Settings → Proxy → `Bypass List`:
-
-<img width="460" alt="Bypass List" src="https://github.com/user-attachments/assets/e0250e69-4fe5-4b6f-8638-6e64fdc306c7" />
-
-#### 2. How to update?
-
-- Auto-check: Click the Prokcy menu → `Check Update` → Follow the prompts
-- Manual download: Visit [GitHub Releases](https://github.com/Yaphet2015/Prokcy/releases) and reinstall
-
-#### 3. How to sync previous data?
-
-Prokcy uses a separate storage directory (`~/.whistle_client/`) by default. If you previously used the whistle CLI and want to reuse that data, enable `Use whistle's default storage directory` in Settings → App.
-
-<img width="470" alt="image" src="https://github.com/user-attachments/assets/ef6805d0-e05e-48bf-adbc-88677fd22b0c" />
-
-> Note: Ensure only one Prokcy instance accesses the directory at a time. Running multiple instances concurrently will cause configuration conflicts and data corruption.
-
 ## Keyboard Shortcuts
 
 | Shortcut | Action | Scope |
@@ -224,24 +199,6 @@ Prokcy uses a separate storage directory (`~/.whistle_client/`) by default. If y
 | `Cmd/Ctrl + F` | Search | Values |
 | `Cmd/Ctrl + ,` | Open Settings | Global |
 | `Cmd/Ctrl + B` | Toggle sidebar | Global |
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode (Vite + Electron + TypeScript watch)
-npm run dev
-
-# Build
-npm run build:react    # Frontend only
-npm run build:mac      # macOS
-npm run build:win      # Windows
-npm run build:linux    # Linux
-```
-
-See [CLAUDE.md](./CLAUDE.md) for more development details.
 
 ## License
 
