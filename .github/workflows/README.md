@@ -28,7 +28,8 @@ This directory contains automated CI/CD workflows for Prokcy.
 **Trigger:** Push tags matching `v*` (e.g., `v1.5.6`)
 
 **Jobs:**
-- **Release:** Builds and publishes GitHub releases for all platforms
+- **Build:** Builds release artifacts for all platforms
+- **Release:** Creates a GitHub release from uploaded artifacts
 
 **Purpose:** Automated release creation with binaries
 
@@ -49,14 +50,12 @@ This directory contains automated CI/CD workflows for Prokcy.
 3. **GitHub Actions will:**
    - Detect the new tag (e.g., `v1.5.6`)
    - Build the application for macOS, Windows, and Linux
-   - Create a draft GitHub release
+   - Create a GitHub release
    - Upload all platform-specific binaries
 
 4. **Review and publish:**
    - Go to the Releases page on GitHub
-   - Review the draft release
-   - Add release notes if needed
-   - Publish the release
+   - Verify binaries and release notes
 
 ### Manual Workflow Dispatch
 
@@ -99,7 +98,7 @@ Built artifacts are stored as GitHub Actions artifacts with 30-day retention. Fo
 ### Release Not Created
 - Ensure tag follows semver format: `v1.5.6`
 - Check that the workflow has permissions to create releases
-- Verify the `publish` configuration in package.json
+- Verify the `release` job completed successfully in the Release workflow
 
 ### Platform-Specific Issues
 - macOS builds require macOS runner

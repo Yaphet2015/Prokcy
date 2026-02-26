@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
@@ -58,20 +58,91 @@ jobs:
       - name: Build React app
         run: npm run build:react
 
-      - name: Build and release (macOS)
+      - name: Build package (macOS)
         if: matrix.os == 'macos-latest'
-        run: npx electron-builder --mac --linux -p always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac --publish never
 
-      - name: Build and release (Windows)
+      - name: Build package (Windows)
         if: matrix.os == 'windows-latest'
-        run: npx electron-builder --win --x64 -p always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --x64 --publish never
 
-      - name: Build and release (Linux)
+      - name: Build package (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: npx electron-builder --linux -p always
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-artifacts
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*-mac.yml
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-artifacts
+          path: |
+            dist/*.exe
+            dist/latest*.yml
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload artifacts (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release-artifacts
+          path: |
+            dist/*.AppImage
+            dist/latest-linux*.yml
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Show downloaded artifacts
+        run: ls -R artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            artifacts/macos-release-artifacts/*
+            artifacts/windows-release-artifacts/*
+            artifacts/linux-release-artifacts/*
+          draft: false
+          generate_release_notes: true
+          prerelease: false
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify release exists
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -sS -o /tmp/release.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}")
+          if [ "$STATUS" != "200" ]; then
+            echo "Expected release for tag ${{ github.ref_name }}, got HTTP $STATUS"
+            cat /tmp/release.json
+            exit 1
+          fi
