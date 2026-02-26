@@ -15,18 +15,17 @@ This directory contains automated CI/CD workflows for Prokcy.
 **Purpose:** Continuous integration to catch errors early
 
 ### 2. Build Workflow (`.github/workflows/build.yml`)
-**Trigger:** Push to `main` branch, tags, or manual workflow dispatch
+**Trigger:** Push to `main` branch, pull requests to `main`, or manual workflow dispatch
 
 **Jobs:**
 - **Build:** Builds application for all platforms (macOS, Windows, Linux)
-- **Release:** Creates GitHub releases for tagged versions
 
 **Artifacts:** Uploads built executables as GitHub artifacts (30-day retention)
 
 **Purpose:** Automated building and artifact generation
 
 ### 3. Release Workflow (`.github/workflows/release.yml`)
-**Trigger:** Push tags matching `v*` (e.g., `v1.5.6`) or manual dispatch
+**Trigger:** Push tags matching `v*` (e.g., `v1.5.6`)
 
 **Jobs:**
 - **Release:** Builds and publishes GitHub releases for all platforms
@@ -64,9 +63,9 @@ This directory contains automated CI/CD workflows for Prokcy.
 You can also trigger builds manually from the GitHub Actions tab:
 
 1. Go to **Actions** tab
-2. Select **Build** or **Release** workflow
+2. Select **Build** workflow
 3. Click **Run workflow**
-4. Select branch and optionally specify version
+4. Select branch
 
 ## Platform-Specific Builds
 
