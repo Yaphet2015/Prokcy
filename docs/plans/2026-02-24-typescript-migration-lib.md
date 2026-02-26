@@ -1055,7 +1055,7 @@ export function createWindow(): void {
 
   ctx.setWin(win);
   win.setMenu(null);
-  win.maximize();
+
   win.on('ready-to-show', () => showWin(win));
   win.on('close', (e) => {
     if (beforeQuit) {
