@@ -47,7 +47,7 @@
         margin: 0 auto;
       }
       ul {
-        height: 380px;
+        height: 420px;
         padding: 20px 20px 0 20px;
         margin: 0;
       }
@@ -228,6 +228,14 @@
             <input id="password" class="pass" maxlength="16" placeholder="Password" />
           </label>
         </li>
+        <li class="advanced-item">
+          <label>
+            <span>Window Size:</span>
+            <input id="defaultWidth" type="number" class="name" placeholder="Width" min="800" max="3840" />
+            <i>x</i>
+            <input id="defaultHeight" type="number" class="pass" placeholder="Height" min="800" max="3840" />
+          </label>
+        </li>
         <li class="advanced-button">
           <button id="showAdvanced">Show Advanced &gt;&gt;</button>
         </li>
@@ -353,6 +361,8 @@
           $('#bypass').value = options.bypass;
           $('#useDefaultStorage').checked = options.useDefaultStorage;
           $('#maxHttpHeaderSize').value = options.maxHttpHeaderSize || 256;
+          $('#defaultWidth').value = options.defaultWidth;
+          $('#defaultHeight').value = options.defaultHeight;
           if (options.socksPort || options.host || options.username || options.password) {
             showAdvanced();
           }
@@ -400,6 +410,8 @@
           bypass: $('#bypass').value.trim(),
           useDefaultStorage: $('#useDefaultStorage').checked,
           maxHttpHeaderSize: $('#maxHttpHeaderSize').value,
+          defaultWidth: Number($('#defaultWidth').value) || undefined,
+          defaultHeight: Number($('#defaultHeight').value) || undefined,
         });
       });
     </script>

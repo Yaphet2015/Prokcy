@@ -3,9 +3,9 @@ import {
 } from 'react';
 import type { ChangeEvent } from 'react';
 import {
-  Button, Checkbox, Input, Select,
+  Button, Input, Select, Switch,
 } from '@pikoloo/darwin-ui';
-import { RotateCcw, Save, Settings as SettingsIcon } from 'lucide-react';
+import { Save } from 'lucide-react';
 import ContentHeader from '../../shared/ui/ContentHeader';
 
 // Types
@@ -24,6 +24,8 @@ interface SettingsForm {
   themeMode: string;
   requestFilters: string;
   systemProxyEnabled: boolean;
+  defaultWidth: string;
+  defaultHeight: string;
 }
 
 interface ProxyPayload {
@@ -36,6 +38,8 @@ interface ProxyPayload {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: string;
   requestListLimit: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
 }
 
 interface PreferencesPayload {
@@ -58,9 +62,9 @@ interface SettingsCategory {
 }
 
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
+  { id: 'general', label: 'General', icon: '⚙️' },
   { id: 'proxy', label: 'Proxy', icon: '🌐' },
   { id: 'network', label: 'Network', icon: '🔍' },
-  { id: 'app', label: 'App', icon: '⚙️' },
 ];
 
 interface HeaderSizeOption {
@@ -95,6 +99,12 @@ const DEFAULT_REQUEST_LIST_LIMIT = '500';
 const MIN_REQUEST_LIST_LIMIT = '100';
 const MAX_REQUEST_LIST_LIMIT = '5000';
 
+// Window size constants
+const DEFAULT_WINDOW_WIDTH = '1200';
+const DEFAULT_WINDOW_HEIGHT = '800';
+const MIN_WINDOW_SIZE = '800';
+const MAX_WINDOW_SIZE = '3840';
+
 const DEFAULT_SETTINGS: SettingsForm = {
   port: '8888',
   socksPort: '',
@@ -110,27 +120,33 @@ const DEFAULT_SETTINGS: SettingsForm = {
   themeMode: 'system',
   requestFilters: '',
   systemProxyEnabled: false,
+  defaultWidth: DEFAULT_WINDOW_WIDTH,
+  defaultHeight: DEFAULT_WINDOW_HEIGHT,
 };
 
+// Validation helpers
 const hasWhitespace = (value: string): boolean => /\s/.test(value);
 
-const isPort = (value: string): boolean => {
+const isIntegerInRange = (
+  value: string,
+  min: number,
+  max: number,
+  allowEmpty = false
+): boolean => {
   if (!value) {
-    return true;
-  }
-  const port = Number(value);
-  return Number.isInteger(port) && port > 0 && port < 65536;
-};
-
-const isRequestListLimit = (value: string): boolean => {
-  if (!value) {
-    return false;
+    return allowEmpty;
   }
   const parsed = Number(value);
-  return Number.isInteger(parsed)
-    && parsed >= Number(MIN_REQUEST_LIST_LIMIT)
-    && parsed <= Number(MAX_REQUEST_LIST_LIMIT);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max;
 };
+
+const isPort = (value: string): boolean => isIntegerInRange(value, 1, 65535, true);
+
+const isRequestListLimit = (value: string): boolean =>
+  isIntegerInRange(value, Number(MIN_REQUEST_LIST_LIMIT), Number(MAX_REQUEST_LIST_LIMIT), false);
+
+const isWindowSize = (value: string): boolean =>
+  isIntegerInRange(value, Number(MIN_WINDOW_SIZE), Number(MAX_WINDOW_SIZE), true);
 
 const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm => {
   const maxHttpHeaderSize = String(settings.maxHttpHeaderSize || DEFAULT_SETTINGS.maxHttpHeaderSize);
@@ -140,6 +156,23 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
     && requestListLimitValue <= Number(MAX_REQUEST_LIST_LIMIT)
     ? String(requestListLimitValue)
     : DEFAULT_REQUEST_LIST_LIMIT;
+
+  // Normalize window size values
+  const normalizeSize = (
+    value: unknown,
+    defaultSize: string
+  ): string => {
+    const numValue = Number(value);
+    const minSize = Number(MIN_WINDOW_SIZE);
+    const maxSize = Number(MAX_WINDOW_SIZE);
+    const normalized = Number.isInteger(numValue) && numValue >= minSize && numValue <= maxSize
+      ? String(numValue)
+      : defaultSize;
+    return normalized;
+  };
+
+  const defaultWidth = normalizeSize(settings.defaultWidth, DEFAULT_WINDOW_WIDTH);
+  const defaultHeight = normalizeSize(settings.defaultHeight, DEFAULT_WINDOW_HEIGHT);
 
   return {
     port: String(settings.port || DEFAULT_SETTINGS.port),
@@ -160,6 +193,8 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
       : DEFAULT_SETTINGS.themeMode,
     requestFilters: String(settings.requestFilters || ''),
     systemProxyEnabled: !!settings.systemProxyEnabled,
+    defaultWidth,
+    defaultHeight,
   };
 };
 
@@ -223,6 +258,8 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     const host = form.host.trim();
     const username = form.username.trim();
     const password = form.password.trim();
+    const defaultWidth = form.defaultWidth.trim();
+    const defaultHeight = form.defaultHeight.trim();
 
     if (!port || !isPort(port)) {
       return 'Please input a correct port';
@@ -241,6 +278,12 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     }
     if (!isRequestListLimit(form.requestListLimit.trim())) {
       return `Request list limit must be an integer between ${MIN_REQUEST_LIST_LIMIT} and ${MAX_REQUEST_LIST_LIMIT}`;
+    }
+    if (defaultWidth && !isWindowSize(defaultWidth)) {
+      return `Default width must be an integer between ${MIN_WINDOW_SIZE} and ${MAX_WINDOW_SIZE}`;
+    }
+    if (defaultHeight && !isWindowSize(defaultHeight)) {
+      return `Default height must be an integer between ${MIN_WINDOW_SIZE} and ${MAX_WINDOW_SIZE}`;
     }
     return '';
   };
@@ -272,6 +315,8 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         useDefaultStorage: form.useDefaultStorage,
         maxHttpHeaderSize: form.maxHttpHeaderSize,
         requestListLimit: Number(form.requestListLimit.trim()),
+        defaultWidth: form.defaultWidth ? Number(form.defaultWidth.trim()) : undefined,
+        defaultHeight: form.defaultHeight ? Number(form.defaultHeight.trim()) : undefined,
       },
       preferences: {
         startAtLogin: form.startAtLogin,
@@ -283,14 +328,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
 
     try {
       const result = await window.electron.updateSettings(payload);
-      console.log('[settings] updateSettings result:', result);
-      console.log('[settings] result.settings:', result?.settings);
-      console.log('[settings] result.settings.requestFilters:', result?.settings?.requestFilters);
       if (!result?.success) {
         throw new Error(result?.message || 'Failed to save settings');
       }
       const next = normalizeSettings(result.settings || {});
-      console.log('[settings] normalized next.requestFilters:', next.requestFilters);
       setForm(next);
       setSavedForm(next);
       window.dispatchEvent(new CustomEvent('prokcy-settings-updated', {
@@ -422,7 +463,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {activeCategory === 'proxy' && (
                 <div className="max-w-3xl space-y-6">
                   <section>
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                         Proxy Service
                     </h2>
 
@@ -535,7 +576,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       {/* System Proxy Toggle - full width */}
                       <div className="space-y-1.5 md:col-span-2">
                         <div className="flex items-center gap-3">
-                          <Checkbox
+                          <Switch
                             checked={form.systemProxyEnabled}
                             onChange={handleSystemProxyToggle}
                             disabled={loading}
@@ -555,7 +596,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {activeCategory === 'network' && (
                 <div className="max-w-3xl space-y-6">
                   <section>
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Request Filters
                     </h2>
 
@@ -587,16 +628,16 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                 </div>
               )}
 
-              {/* App Section */}
-              {activeCategory === 'app' && (
+                {/* General Section */}
+                {activeCategory === 'general' && (
                 <div className="max-w-3xl space-y-6">
+                    {/* Storage */}
                   <section>
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Storage
-                    </h2>
-
+                      </h2>
                     <div className="flex flex-col gap-2">
-                      <Checkbox
+                      <Switch
                         checked={form.useDefaultStorage}
                         onChange={(checked) => updateField('useDefaultStorage', checked)}
                         disabled={loading}
@@ -607,20 +648,14 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         Enable this to share settings with the CLI version of Whistle.
                       </p>
                     </div>
-                  </section>
-                </div>
-              )}
+                    </section>
 
-              {/* Appearance Section */}
-              {activeCategory === 'app' && (
-                <div className="max-w-3xl space-y-6">
+                    {/* Appearance */}
                   <section className="mt-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Appearance
-                    </h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {/* Theme */}
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">Theme</span>
                         <Select
@@ -631,22 +666,16 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         />
                       </div>
                     </div>
-                  </section>
-                </div>
-              )}
+                    </section>
 
-              {/* Behavior Section */}
-              {activeCategory === 'app' && (
-                <div className="max-w-3xl space-y-6">
+                    {/* Behavior */}
                   <section className="mt-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-5">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Behavior
-                    </h2>
-
-                    <div className="space-y-4">
-                      {/* Start at login */}
+                      </h2>
+                      <div className="space-y-4">
                       <div className="flex flex-col gap-2">
-                        <Checkbox
+                        <Switch
                           checked={form.startAtLogin}
                           onChange={(checked) => updateField('startAtLogin', checked)}
                           disabled={loading}
@@ -655,11 +684,9 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
                           Automatically launch Prokcy when you log in to your computer.
                         </p>
-                      </div>
-
-                      {/* Hide from Dock */}
+                        </div>
                       <div className="flex flex-col gap-2">
-                        <Checkbox
+                        <Switch
                           checked={form.hideFromDock}
                           onChange={(checked) => updateField('hideFromDock', checked)}
                           disabled={loading}
@@ -670,6 +697,48 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         </p>
                       </div>
                     </div>
+                    </section>
+
+                    {/* Window */}
+                  <section className="mt-4">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
+                      Window
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Default Width</span>
+                        <Input
+                          type="number"
+                          min={MIN_WINDOW_SIZE}
+                          max={MAX_WINDOW_SIZE}
+                          value={form.defaultWidth}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('defaultWidth', e.target.value)}
+                          disabled={loading}
+                          placeholder={DEFAULT_WINDOW_WIDTH}
+                        />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Between {MIN_WINDOW_SIZE} and {MAX_WINDOW_SIZE}
+                        </p>
+                        </div>
+                      <div className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Default Height</span>
+                        <Input
+                          type="number"
+                          min={MIN_WINDOW_SIZE}
+                          max={MAX_WINDOW_SIZE}
+                          value={form.defaultHeight}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('defaultHeight', e.target.value)}
+                          disabled={loading}
+                          placeholder={DEFAULT_WINDOW_HEIGHT}
+                        />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Between {MIN_WINDOW_SIZE} and {MAX_WINDOW_SIZE}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                      Default window size when the app launches. Changes take effect on next app start.
+                    </p>
                   </section>
                 </div>
               )}

@@ -39,6 +39,48 @@ const DEFAULT_REQUEST_LIST_LIMIT = 500;
 const MIN_REQUEST_LIST_LIMIT = 100;
 const MAX_REQUEST_LIST_LIMIT = 5000;
 
+// Window size constants
+const DEFAULT_WINDOW_WIDTH = 1200;
+const DEFAULT_WINDOW_HEIGHT = 800;
+const MIN_WINDOW_SIZE = 800;
+const MAX_WINDOW_SIZE = 3840;
+
+/**
+ * Normalize window size to valid range
+ * @param value - Raw window size value
+ * @param defaultSize - Default size to use if invalid
+ * @returns Normalized size within valid range
+ */
+const normalizeWindowSize = (value: unknown, defaultSize: number): number =>
+  normalizeToRange(value, MIN_WINDOW_SIZE, MAX_WINDOW_SIZE, defaultSize);
+
+/**
+ * Normalize a number to a valid range
+ * @param value - Raw value
+ * @param min - Minimum allowed value
+ * @param max - Maximum allowed value
+ * @param defaultSize - Default to use if invalid
+ * @returns Normalized value within range
+ */
+const normalizeToRange = (
+  value: unknown,
+  min: number,
+  max: number,
+  defaultSize: number
+): number => {
+  const num = Number(value);
+  if (!Number.isInteger(num)) {
+    return defaultSize;
+  }
+  if (num < min) {
+    return min;
+  }
+  if (num > max) {
+    return max;
+  }
+  return num;
+};
+
 // Type for the parsed settings
 export interface ProxySettings {
   port: string;
@@ -54,6 +96,8 @@ export interface ProxySettings {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: number;
   requestListLimit: number;
+  defaultWidth: number;
+  defaultHeight: number;
 }
 
 // Type for settings input (from storage or UI)
@@ -131,19 +175,8 @@ const getValue = (data: SettingsInput, key: string): unknown => {
  * @param value - Raw limit value
  * @returns Normalized limit within valid range
  */
-const normalizeRequestListLimit = (value: unknown): number => {
-  const limit = Number(value);
-  if (!Number.isInteger(limit)) {
-    return DEFAULT_REQUEST_LIST_LIMIT;
-  }
-  if (limit < MIN_REQUEST_LIST_LIMIT) {
-    return MIN_REQUEST_LIST_LIMIT;
-  }
-  if (limit > MAX_REQUEST_LIST_LIMIT) {
-    return MAX_REQUEST_LIST_LIMIT;
-  }
-  return limit;
-};
+const normalizeRequestListLimit = (value: unknown): number =>
+  normalizeToRange(value, MIN_REQUEST_LIST_LIMIT, MAX_REQUEST_LIST_LIMIT, DEFAULT_REQUEST_LIST_LIMIT);
 
 /**
  * Parse settings from storage data
@@ -164,6 +197,8 @@ const parseSettings = (data: SettingsInput): ProxySettings => {
     useDefaultStorage: !!getValue(data, 'useDefaultStorage'),
     maxHttpHeaderSize: HEADER_SIZE_OPTIONS.includes(headerSize) ? headerSize : 256,
     requestListLimit: normalizeRequestListLimit(getValue(data, 'requestListLimit')),
+    defaultWidth: normalizeWindowSize(getValue(data, 'defaultWidth'), DEFAULT_WINDOW_WIDTH),
+    defaultHeight: normalizeWindowSize(getValue(data, 'defaultHeight'), DEFAULT_WINDOW_HEIGHT),
   };
 };
 
@@ -347,7 +382,7 @@ export const showSettingsWindow = (): void => {
     modal: true,
     icon: ICON,
     width: 470,
-    height: isMac ? 460 : 435,
+    height: isMac ? 500 : 475,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

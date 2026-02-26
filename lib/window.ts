@@ -3,6 +3,7 @@ import path from 'path';
 import { ICON, closeWhistle, showWin } from './util';
 import * as ctx from './context';
 import { hideNativeWindowButtons } from './window-controls';
+import { getSettings } from './settings';
 
 // Type imports for modules not yet migrated to TypeScript
 type ProxyModule = {
@@ -74,6 +75,10 @@ export const showWindow = (name?: TabName): void => {
  * Sets up window lifecycle events and loads the React app
  */
 export const createWindow = (): void => {
+  // Get default window size from settings
+  const settings = getSettings();
+  const { defaultWidth, defaultHeight } = settings;
+
   const win = new BrowserWindow({
     title: proxy.getTitle(),
     frame: false,
@@ -82,8 +87,8 @@ export const createWindow = (): void => {
     fullscreen: false,
     fullscreenable: true,
     icon: ICON,
-    width: 1200,
-    height: 800,
+    width: defaultWidth,
+    height: defaultHeight,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
