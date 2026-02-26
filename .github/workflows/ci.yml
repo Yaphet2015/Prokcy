@@ -109,7 +109,4 @@ jobs:
 
       - name: Verify build output
         run: |
-          echo "=== Checking TypeScript build ==="
-          ls -la dist-lib/*.js | head -5
-          echo "=== Checking React build ==="
-          ls -la dist-react/ | head -5
+          node -e "const fs=require('fs'); const path=require('path'); const list=(dir)=>fs.readdirSync(dir).slice(0,5); if(!fs.existsSync('dist-lib')){throw new Error('dist-lib missing');} if(!fs.existsSync('dist-react')){throw new Error('dist-react missing');} const libJs=fs.readdirSync('dist-lib').filter(f=>f.endsWith('.js')); if(libJs.length===0){throw new Error('No JS files in dist-lib');} console.log('=== Checking TypeScript build ==='); console.log(libJs.slice(0,5).map(f=>path.join('dist-lib',f)).join('\n')); console.log('=== Checking React build ==='); console.log(list('dist-react').map(f=>path.join('dist-react',f)).join('\n'));"
