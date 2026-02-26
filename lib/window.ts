@@ -105,7 +105,7 @@ export const createWindow = (): void => {
 
   ctx.setWin(win);
   win.setMenu(null);
-  win.maximize();
+  // win.maximize();
 
   // Show window when ready
   win.on('ready-to-show', () => showWin(win));

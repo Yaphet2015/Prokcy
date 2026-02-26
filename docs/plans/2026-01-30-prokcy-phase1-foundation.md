@@ -707,7 +707,7 @@ const createWindow = () => {
   // ... existing onBeforeFindInPage handler ...
   ctx.setWin(win);
   win.setMenu(null);
-  win.maximize();
+
   win.on('ready-to-show', () => showWin(win));
   win.on('close', (e) => {
     if (beforeQuit) {
