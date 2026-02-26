@@ -398,8 +398,6 @@ export function getDataUrl(url: string): string | null {
 
 export const VERSION = config.version;
 export const BASE_DIR = path.join(getWhistlePath(), '.whistle_client');
-export const CLIENT_PLUGINS_PATH = path.join(getWhistlePath(), '.whistle_client_plugins');
-export const CUSTOM_PLUGINS_PATH = path.join(getWhistlePath(), 'custom_plugins');
 export const ICON = path.join(__dirname, '../public/dock.png');
 export const DOCK_ICON = path.join(__dirname, '../public/dock.png');
 export const TRAY_ICON = isMac ? path.join(__dirname, '../public/dock.png') : ICON;
@@ -1015,7 +1013,7 @@ const handleWillQuit = async (e: Electron.Event): Promise<void> => {
   app.exit();
 };
 
-const TABS = ['Network', 'Rules', 'Values', 'Plugins', 'Settings'];
+const TABS = ['Network', 'Rules', 'Values', 'Settings'];
 
 export function showWindow(name?: string): void {
   if (!willQuit) {
@@ -2057,114 +2055,6 @@ git add lib/ipc.ts dist-lib/
 git commit -m "feat: migrate ipc.js to TypeScript"
 ```
 
----
-
-## Task 15: Migrate plugins.js to TypeScript
-
-**Files:**
-- Create: `lib/plugins.ts`
-- Delete: `lib/plugins.js` (after verification)
-
-**Step 1: Read original plugins.js**
-
-```bash
-cat lib/plugins.js
-```
-
-**Step 2: Create lib/plugins.ts** (based on original)
-
-```typescript
-import { app } from 'electron';
-import path from 'path';
-import { CLIENT_PLUGINS_PATH, CUSTOM_PLUGINS_PATH, PROJECT_PLUGINS_PATH, requireW2, isMac } from './util';
-import { showMessageBox } from './dialog';
-import { getWin } from './context';
-
-const fse = requireW2('fs-extra');
-const npminstall = require('npminstall');
-
-export async function install(pluginNames: string[]): Promise<void> {
-  if (!pluginNames || !pluginNames.length) {
-    return;
-  }
-
-  try {
-    await npminstall({
-      root: CLIENT_PLUGINS_PATH,
-      pkgs: pluginNames.map((name) => `${name}@latest`),
-      registry: 'https://registry.npmmirror.com',
-    });
-
-    // Notify renderer of successful installation
-    const win = getWin();
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('plugins-installed', { plugins: pluginNames });
-    }
-  } catch (err: any) {
-    const msg = err?.message || 'Failed to install plugins';
-    await showMessageBox(msg, {
-      buttons: ['OK'],
-    });
-  }
-}
-
-export async function uninstall(pluginName: string): Promise<void> {
-  if (!pluginName) {
-    return;
-  }
-
-  try {
-    const pluginPath = path.join(CLIENT_PLUGINS_PATH, 'node_modules', pluginName);
-    await fse.remove(pluginPath);
-
-    const win = getWin();
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('plugin-uninstalled', { name: pluginName });
-    }
-  } catch (err: any) {
-    const msg = err?.message || 'Failed to uninstall plugin';
-    await showMessageBox(msg);
-  }
-}
-
-export function getPluginsPath(): string[] {
-  return [path.join(CLIENT_PLUGINS_PATH, 'node_modules'), CUSTOM_PLUGINS_PATH, PROJECT_PLUGINS_PATH].filter(
-    (p) => p
-  ) as string[];
-}
-
-export async function checkPluginUpdate(pluginName: string): Promise<boolean> {
-  try {
-    // Check for updates via npm registry
-    const result = await fetch(`https://registry.npmmirror.com/${pluginName}/latest`);
-    const data = await result.json();
-    return !!data?.version;
-  } catch (e) {
-    return false;
-  }
-}
-```
-
-**Step 3: Compile plugins.ts**
-
-```bash
-npx tsc -p tsconfig.lib.json
-```
-
-**Step 4: Verify compilation**
-
-```bash
-ls -la dist-lib/plugins.*
-```
-
-**Step 5: Commit**
-
-```bash
-git add lib/plugins.ts dist-lib/
-git commit -m "feat: migrate plugins.js to TypeScript"
-```
-
----
 
 ## Task 16: Migrate fork.js to TypeScript
 
@@ -2177,7 +2067,6 @@ git commit -m "feat: migrate plugins.js to TypeScript"
 ```typescript
 import { utilityProcess, app } from 'electron';
 import path from 'path';
-import { install } from './plugins';
 import { getSettings, showSettings } from './settings';
 import { closeWhistle, LOCALHOST } from './util';
 import { willQuitActive } from './window';
@@ -2238,9 +2127,6 @@ export default function forkWhistle(restart?: boolean): void {
       updateMenuRules(data.rules);
       updateIpcRules(data.rules);
       return;
-    }
-    if (type === 'install') {
-      return install(data.plugins);
     }
     if (type === 'checkUpdate') {
       return app.emit('checkUpdateClient');
@@ -2551,11 +2437,9 @@ import path from 'path';
 import fs from 'fs';
 import net from 'net';
 import startWhistle from 'whistle';
-import { PROC_PATH, BASE_DIR, LOCALHOST, CUSTOM_PLUGINS_PATH, CLIENT_PLUGINS_PATH, requireW2 } from './util';
+import { PROC_PATH, BASE_DIR, LOCALHOST, requireW2 } from './util';
 
 const { getBypass } = requireW2('set-global-proxy');
-const PROJECT_PLUGINS_PATH = path.join(__dirname, '../node_modules');
-const pluginsPath = [path.join(CLIENT_PLUGINS_PATH, 'node_modules')];
 const WEB_PAGE = path.join(__dirname, '../public/open.html');
 const SPECIAL_AUTH = `${Math.random()}`;
 const CIDR_RE = /^([(a-z\d:.]+)\/\d{1,2}$/i;
@@ -2662,8 +2546,6 @@ function parseOptions(): any {
     uiAuth,
     maxHttpHeaderSize: options.maxHttpHeaderSize || 256,
     storage: options.useWhistleStorage ? undefined : BASE_DIR,
-    pluginsPath,
-    customPluginsPath: CUSTOM_PLUGINS_PATH,
     allowDisableShadowRules: true,
     shadowRules: getShadowRules(options),
     ...options,
@@ -2957,7 +2839,7 @@ Expected: All TypeScript files compiled to `dist-lib/` without errors
 ls -la dist-lib/
 ```
 
-Expected: All `.js` and `.d.ts` files present (context.js, dialog.js, fork.js, index.js, ipc.js, menu.js, patch.js, plugins.js, preferences.js, proxy.js, settings.js, storage.js, types, util.js, window-controls.js, window.js, whistle.js)
+Expected: All `.js` and `.d.ts` files present (context.js, dialog.js, fork.js, index.js, ipc.js, menu.js, patch.js, preferences.js, proxy.js, settings.js, storage.js, types, util.js, window-controls.js, window.js, whistle.js)
 
 **Step 3: Test application startup**
 
@@ -3039,7 +2921,6 @@ rm lib/index.js
 rm lib/ipc.js
 rm lib/menu.js
 rm lib/patch.js
-rm lib/plugins.js
 rm lib/preferences.js
 rm lib/proxy.js
 rm lib/settings.js

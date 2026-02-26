@@ -143,7 +143,6 @@ const createIcons = () => ({
   network: getIcon('network.png'),
   rules: getIcon('rules.png'),
   values: getIcon('values.png'),
-  plugins: getIcon('plugins.png'),
 });
 
 let icons = createIcons();

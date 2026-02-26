@@ -2,7 +2,7 @@
 
 [中文](./README.md) · English
 
-Prokcy is a cross-platform desktop network debugging proxy tool that provides a modern GUI for capturing, inspecting, and manipulating HTTP/HTTPS requests. It is powered by the [whistle](https://github.com/avwo/whistle) proxy engine under the hood, with a completely custom interface built using Electron + React + TailwindCSS in a macOS Tahoe-inspired design.
+Prokcy is a cross-platform desktop network debugging proxy tool that provides a modern GUI for capturing, inspecting, and manipulating HTTP/HTTPS requests. It is powered by the [whistle](https://github.com/avwo/whistle) proxy engine under the hood, with a completely custom interface built using Electron + React + TailwindCSS + Monaco Editor .
 
 Supported platforms:
 - macOS (Apple Silicon / Intel)
@@ -59,15 +59,13 @@ Select the installation steps for your operating system.
 ##### 1. Select the correct package
 
 Choose the version matching your Mac processor:
-- Apple Silicon (M1/M2/M3 series) → ARM 64-bit: [Prokcy-vx.y.z-mac-arm64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
+- Apple Silicon (M series) → ARM 64-bit: [Prokcy-vx.y.z-mac-arm64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
 - Intel/AMD → x86_64: [Prokcy-vx.y.z-mac-x64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
 
 ##### 2. Install
 
 1. Double-click the downloaded `.dmg` file
 2. Drag the Prokcy icon to the Applications folder
-
-    <img width="520" alt="install mac client" src="https://github.com/user-attachments/assets/ef60276a-520c-4f4c-8612-10bdac2df30a" />
 3. If prompted:
    - "Application already exists" → Select "Overwrite"
    - Unable to overwrite → Quit the running Prokcy first
@@ -96,8 +94,6 @@ Choose the version based on your permission requirements:
 After double-clicking the installer, follow the security prompts:
 
 1. User Account Control → Click "Yes" to continue
-
-  <img width="360" alt="Image" src="https://github.com/user-attachments/assets/c4e78f37-13f3-4d39-bf22-9ee8645178a3" />
 2. Follow the installation wizard to completion
 </details>
 
@@ -121,15 +117,13 @@ After installation:
 1. Click the Prokcy icon on your desktop
 2. Or find Prokcy in your system application menu
 
-### Initial Setup (required on first run)
+### Initial Setup
 
 1. Open the `Prokcy` menu at the top of the client
 2. Click `Install Root CA` to install the system root certificate for HTTPS inspection
 3. Enable `Set As System Proxy` (or toggle it in Settings → Proxy) to capture system web traffic
 
 ### Top Menu
-
-<img width="277" alt="Image" src="https://github.com/user-attachments/assets/ae22a3c9-ecda-4643-a4d5-de5c7173a828" />
 
 | Menu Item | Description |
 |-----------|-------------|
@@ -141,22 +135,6 @@ After installation:
 | `Hide From Dock` | Hide Dock icon (macOS) |
 | `Restart` | Restart the client |
 | `Quit` | Quit the client |
-
-### Installing Plugins
-
-Prokcy supports plugins from the whistle ecosystem to extend functionality:
-
-1. Click the Plugins tab in the left navigation bar
-2. Click the Install button at the top
-3. Enter plugin name(s) in the popup (separate multiple plugins with spaces or newlines)
-
-<img width="1000" alt="install plugins" src="https://github.com/user-attachments/assets/53bfc7b1-81a8-4cdb-b874-c0f9ab58b65a" />
-
-**Example:**
-
-``` txt
-w2 install whistle.script whistle.inspect
-```
 
 ## Rules in Detail
 
