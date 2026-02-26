@@ -89,6 +89,31 @@ interface WhistleOptions {
 }
 
 /**
+ * Map common Whistle exit codes to user-friendly messages
+ */
+const getErrorMessage = (err: number | Error | unknown): string => {
+  if (typeof err === 'number') {
+    switch (err) {
+      case 15:
+        return 'Port already in use. Please change the port in Settings.';
+      case 1:
+        return 'Failed to start, please try again.';
+      case 127:
+        return 'Whistle executable not found. Please reinstall the application.';
+      default:
+        return `Failed to start (exit code: ${err}). Please check Settings or try again.`;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  if (typeof err === 'string') {
+    return err;
+  }
+  return 'Failed to start, please try again.';
+};
+
+/**
  * Handle errors from the Whistle utility process
  * Shows error dialog and offers retry option
  *
@@ -105,7 +130,7 @@ const handleWhistleError = async (err: number | Error | unknown): Promise<void> 
   hasError = true;
   setRunning(false);
   notifyServiceStatus({ running: false });
-  const errorMessage = (err !== 1 && err) || 'Failed to start, please try again';
+  const errorMessage = getErrorMessage(err);
   await showMessageBox(errorMessage, forkWhistle, showSettingsWindow);
   hasError = false;
 };

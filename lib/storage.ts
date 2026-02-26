@@ -16,6 +16,8 @@ export interface ProxySettings {
   useDefaultStorage?: boolean;
   maxHttpHeaderSize?: number;
   requestListLimit?: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
 }
 
 /**
