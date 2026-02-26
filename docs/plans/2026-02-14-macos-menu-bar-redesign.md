@@ -64,3 +64,9 @@ Add `app.setName('Prokcy')` in `lib/index.js` to ensure the menu displays "Prokc
 - `Hide Others` and `Show All` can use Electron's built-in `role: 'hideOthers'` and `role: 'unhide'`
 - `Minimize` and `Zoom` use built-in roles
 - About dialog can use a simple message box or custom window
+
+## 2026-02-26 Update: Menu Bar Theme Source
+
+- Menu bar/tray icon theme follows **system appearance**, not app `themeMode`.
+- Settings-driven app theme changes no longer drive menu-bar icon theme.
+- On macOS, system appearance is sourced from `AppleInterfaceStyle` (`systemPreferences.getUserDefault`), so tray icon assets switch only when OS appearance changes.

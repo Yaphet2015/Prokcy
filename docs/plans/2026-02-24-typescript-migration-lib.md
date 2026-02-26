@@ -1982,7 +1982,11 @@ export function initIpc(win: BrowserWindow): void {
     if (isRunning()) {
       return { success: false, message: 'Service already running' };
     }
-    const forkWhistle = require('./fork');
+    const forkModule = require('./fork') as { default?: () => void } | (() => void);
+    const forkWhistle = typeof forkModule === 'function' ? forkModule : forkModule.default;
+    if (typeof forkWhistle !== 'function') {
+      return { success: false, message: 'Failed to load service starter' };
+    }
     forkWhistle();
     return { success: true };
   });

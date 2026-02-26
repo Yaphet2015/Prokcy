@@ -47,6 +47,11 @@ const electronApi = {
     ipcRenderer.on('service-status-changed', listener);
     return () => ipcRenderer.removeListener('service-status-changed', listener);
   },
+  onOpenSettingsView: (callback) => {
+    const listener = (event) => callback();
+    ipcRenderer.on('open-settings-view', listener);
+    return () => ipcRenderer.removeListener('open-settings-view', listener);
+  },
   getSystemProxyEnabled: () => ipcRenderer.invoke('get-system-proxy-enabled'),
   setSystemProxyEnabled: (enabled) => ipcRenderer.invoke('set-system-proxy-enabled', enabled),
 };

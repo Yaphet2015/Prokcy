@@ -2,7 +2,6 @@ import { utilityProcess, app } from 'electron';
 import path from 'path';
 import {
   getSettings,
-  showSettingsWindow,
   reloadPage,
 } from './settings';
 import { closeWhistle, LOCALHOST } from './util';
@@ -115,7 +114,7 @@ const getErrorMessage = (err: number | Error | unknown): string => {
 
 /**
  * Handle errors from the Whistle utility process
- * Shows error dialog and offers retry option
+ * Shows error dialog with retry option and opens settings view
  *
  * @param err - Error code or message from the failed process
  */
@@ -131,7 +130,14 @@ const handleWhistleError = async (err: number | Error | unknown): Promise<void> 
   setRunning(false);
   notifyServiceStatus({ running: false });
   const errorMessage = getErrorMessage(err);
-  await showMessageBox(errorMessage, forkWhistle, showSettingsWindow);
+
+  // Show message box with retry and settings options
+  const response = await showMessageBox(errorMessage, forkWhistle);
+  // If settings button was clicked (response === 1), open settings view
+  if (response === 1) {
+    win.webContents.send('open-settings-view');
+  }
+
   hasError = false;
 };
 
