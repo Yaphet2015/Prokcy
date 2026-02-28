@@ -104,7 +104,7 @@ interface MonacoEditorOptions {
 
 // Props
 interface MonacoEditorProps {
-  value?: string;
+  value?: unknown;
   onChange?: (value: string) => void;
   language?: string;
   theme?: string;
@@ -126,6 +126,11 @@ export default function MonacoEditor({
   options = {},
 }: MonacoEditorProps): React.JSX.Element {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const safeValue = typeof value === 'string'
+    ? value
+    : value == null
+      ? ''
+      : String(value);
 
   const handleBeforeMount = (monaco: typeof monacoNs) => {
     // Register Whistle language if using Monaco
@@ -178,7 +183,7 @@ export default function MonacoEditor({
   };
 
   const handleChange = (newValue: string | undefined) => {
-    if (onChange && newValue !== value) {
+    if (onChange && newValue !== safeValue) {
       onChange(newValue ?? '');
     }
   };
@@ -189,7 +194,7 @@ export default function MonacoEditor({
         height="100%"
         language={language}
         theme={theme}
-        value={value}
+        value={safeValue}
         onChange={handleChange}
         beforeMount={handleBeforeMount}
         onMount={handleEditorDidMount}
