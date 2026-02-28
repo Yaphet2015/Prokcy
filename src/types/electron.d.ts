@@ -81,6 +81,13 @@ interface SystemProxyResult {
   enabled?: boolean;
 }
 
+interface UpdateCheckResult {
+  success?: boolean;
+  message?: string;
+  status?: 'checking' | 'up-to-date' | 'available' | 'error';
+  version?: string;
+}
+
 // ============= Window Controls API =============
 
 interface WindowControlsAPI {
@@ -146,6 +153,7 @@ interface ValuesAPI {
 interface SystemProxyAPI {
   getSystemProxyEnabled(): Promise<boolean>;
   setSystemProxyEnabled(enabled: boolean): Promise<SystemProxyResult>;
+  checkForUpdates(): Promise<UpdateCheckResult>;
 }
 
 // ============= Complete Electron API =============

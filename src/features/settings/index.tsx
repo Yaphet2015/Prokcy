@@ -204,6 +204,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   const [savedForm, setSavedForm] = useState<SettingsForm>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -363,6 +364,29 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       setMessage(enabled ? 'System proxy enabled' : 'System proxy disabled');
     } catch (err) {
       setError((err as Error)?.message || 'Failed to toggle system proxy');
+    }
+  }, []);
+
+  const handleCheckUpdate = useCallback(async () => {
+    if (!window.electron?.checkForUpdates) {
+      setError('Update API unavailable. Please restart the app.');
+      return;
+    }
+
+    setCheckingUpdate(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const result = await window.electron.checkForUpdates();
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to check for updates');
+      }
+      setMessage(result.message || 'Checking for updates...');
+    } catch (err) {
+      setError((err as Error)?.message || 'Failed to check for updates');
+    } finally {
+      setCheckingUpdate(false);
     }
   }, []);
 
@@ -739,6 +763,29 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
                           By default, Prokcy uses a separate storage directory (~/.whistle_client/).
                           Enable this to share settings with the CLI version of Whistle.
+                        </p>
+                      </div>
+                    </section>
+
+
+
+                    {/* Updates */}
+                    <section className="mt-4">
+                      <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
+                        Updates
+                      </h2>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleCheckUpdate}
+                          disabled={loading || checkingUpdate}
+                          loading={checkingUpdate}
+                        >
+                          Check Update
+                        </Button>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                          Downloads and installs automatically when a new version is available.
                         </p>
                       </div>
                     </section>
