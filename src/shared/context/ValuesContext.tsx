@@ -2,6 +2,7 @@ import {
   createContext, useContext, useState, useCallback, useMemo, useEffect, useRef,
 } from 'react';
 import type { ReactNode } from 'react';
+import { normalizeValuesResponse } from '../../features/values/utils/normalizeValuesResponse';
 
 // Values type - key-value pairs
 type ValuesData = Record<string, string>;
@@ -78,7 +79,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
       if (!window.electron?.getValues) {
         throw new Error('Electron API not available');
       }
-      const data = await window.electron.getValues();
+      const data = normalizeValuesResponse(await window.electron.getValues());
 
       // Clean up empty keys
       const hasEmptyKey = '' in data;

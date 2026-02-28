@@ -25,6 +25,7 @@ export function RulesEditor({
   isLoading,
 }: RulesEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
+  const safeValue = typeof value === 'string' ? value : '';
 
   useMonacoSave(useCallback(() => {
     if (isDirty) {
@@ -60,7 +61,7 @@ export function RulesEditor({
       )}
     >
       <MonacoEditor
-        value={value}
+        value={safeValue}
         onChange={onChange}
         language="whistle"
         theme={getThemeId(isDark)}

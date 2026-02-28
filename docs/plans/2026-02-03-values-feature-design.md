@@ -65,6 +65,7 @@ Styling matches the Rules view exactly for consistency.
 
 **API Integration:**
 - `fetchValues()` calls `getValues()` on mount
+- `fetchValues()` must normalize both Whistle envelope responses (`{ ec, list }`) and plain key-value maps before writing to context state
 - `setValue(key, value)` → `setValue(key, jsonString)` with 300ms debounce
 - `deleteValue(key)` → `deleteValue(key)` after confirmation
 - `createValue(key)` → `setValue(key, '{}')` for new empty JSON object
@@ -112,6 +113,7 @@ src/features/values/
 5. **API failures:** Retry with exponential backoff
 6. **Rename:** Double-click or context menu on key
 7. **Empty value:** Defaults to `{}` for new values
+8. **Unexpected payload types:** Non-string values must be coerced to strings before passing data into Monaco to prevent renderer crashes on initial load
 
 ## Keyboard Shortcuts
 

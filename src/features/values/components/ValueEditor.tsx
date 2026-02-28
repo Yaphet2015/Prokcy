@@ -24,7 +24,8 @@ export default function ValueEditor({
   onValidationChange,
 }: ValueEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
-  const [editorValue, setEditorValue] = useState(value || '{}');
+  const initialValue = typeof value === 'string' && value.length > 0 ? value : '{}';
+  const [editorValue, setEditorValue] = useState(initialValue);
   const [isValid, setIsValid] = useState(true);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
@@ -39,7 +40,7 @@ export default function ValueEditor({
 
   // Sync editor value with prop value
   useEffect(() => {
-    const nextValue = value || '{}';
+    const nextValue = typeof value === 'string' && value.length > 0 ? value : '{}';
     setEditorValue(nextValue);
     const nextValid = validateValue(nextValue);
     setIsValid(nextValid);
