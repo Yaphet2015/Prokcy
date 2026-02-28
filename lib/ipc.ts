@@ -20,6 +20,7 @@ import {
 import { enableProxy, disableProxy, isEnabled, type ProxyOptions } from './proxy';
 import storage from './storage';
 import { refreshProxyStatus, refreshTheme } from './menu';
+import { checkForUpdates } from './updater';
 import type { IpcRequest, NetworkQuery } from './types/electron';
 
 // Module state
@@ -549,6 +550,11 @@ function initIpc(win: BrowserWindow): void {
         message: err instanceof Error ? err.message : 'Failed to toggle system proxy',
       };
     }
+  });
+
+  // Check for app updates (auto-download + auto-install)
+  ipcMain.handle('check-for-updates', async () => {
+    return checkForUpdates();
   });
 
   // Notify renderer when theme changes

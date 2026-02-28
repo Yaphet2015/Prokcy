@@ -18,9 +18,8 @@ import {
 } from './proxy';
 import { showMessageBox } from './dialog';
 import {
-  getJson, getString, requireW2, LOCALHOST, TRAY_ICON,
+  requireW2, LOCALHOST, TRAY_ICON,
   sudoPromptExec as sudoPrompt,
-  getArtifactName,
   isMac,
 } from './util';
 import { getOptions, sendMsg, getWin } from './context';
@@ -34,6 +33,7 @@ import {
   applyThemeMode,
 } from './preferences';
 import storage from './storage';
+import { checkForUpdates } from './updater';
 
 const { getServerProxy } = requireW2('set-global-proxy') as {
   getServerProxy: (
@@ -393,43 +393,12 @@ export const create = async (): Promise<void> => {
     }
   };
 
-  let checking = false;
   const checkUpdate = async () => {
-    if (checking) {
-      return;
-    }
-    checking = true;
-    try {
-      const pkg = await getJson('https://raw.githubusercontent.com/Yaphet2015/Prokcy/main/package.json');
-      const newVersion = getString(pkg && (pkg as { version: string }).version);
-      if (!newVersion) {
-        showMessageBox('Network Error', checkUpdate);
-        return;
-      }
-      if (version === newVersion) {
-        showMessageBox('Prokcy is up to date', {
-          title: '',
-          type: 'info',
-        });
-        return;
-      }
-      showMessageBox(`Prokcy has new version ${newVersion}`, {
-        type: 'info',
-        title: '',
-        buttons: ['Download', 'View CHANGELOG', 'Cancel'],
-        callback() {
-          shell.openExternal(`https://github.com/Yaphet2015/Prokcy/releases/download/v${newVersion}/${getArtifactName(newVersion)}`);
-        },
-        showSettings() {
-          shell.openExternal('https://github.com/Yaphet2015/Prokcy/blob/main/CHANGELOG.md');
-        },
-        handleCancel() {},
-      });
-    } catch (e) {
-      showMessageBox(e, checkUpdate);
-    } finally {
-      checking = false;
-    }
+    const result = await checkForUpdates();
+    showMessageBox(result.message, {
+      title: '',
+      type: result.success ? 'info' : 'error',
+    });
   };
 
   // @ts-ignore - custom event for checking updates
