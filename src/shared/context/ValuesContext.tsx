@@ -3,6 +3,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { normalizeValuesResponse } from '../../features/values/utils/normalizeValuesResponse';
+import { useService } from './ServiceContext';
 
 // Values type - key-value pairs
 type ValuesData = Record<string, string>;
@@ -50,6 +51,7 @@ interface ValuesProviderProps {
 }
 
 export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Element {
+  const { isRunning } = useService();
   const [values, setValuesState] = useState<ValuesData>({});
   const [originalValues, setOriginalValues] = useState<ValuesData>({});
   const originalValuesRef = useRef(originalValues);
@@ -268,10 +270,12 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     }
   }, [values, originalValues, isDirty]);
 
-  // Fetch values on mount
+  // Fetch values when service becomes available
   useEffect(() => {
-    fetchValues();
-  }, [fetchValues]);
+    if (isRunning) {
+      fetchValues();
+    }
+  }, [isRunning, fetchValues]);
 
   // Auto-select first value when values are loaded and nothing is selected
   useEffect(() => {
