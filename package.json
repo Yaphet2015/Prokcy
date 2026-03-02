@@ -1,6 +1,6 @@
 {
   "name": "prokcy",
-  "version": "1.5.6",
+  "version": "1.6.0",
   "description": "Prokcy Desktop Proxy Client",
   "main": "./dist-lib/index.js",
   "author": "Yaphet",
@@ -24,7 +24,12 @@
     "release:mac": "npm run build:react && electron-builder --mac --linux -p always",
     "release:linux": "npm run build:react && electron-builder --linux -p always",
     "lint": "eslint --fix lib",
-    "lintfix": "npm run lint"
+    "lintfix": "npm run lint",
+    "relase": "standard-version",
+    "release": "npm run relase",
+    "release:patch": "npm run relase -- --release-as patch",
+    "release:minor": "npm run relase -- --release-as minor",
+    "release:major": "npm run relase -- --release-as major"
   },
   "build": {
     "productName": "Prokcy",
@@ -107,6 +112,7 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "postcss": "^8.5.6",
+    "standard-version": "^9.5.0",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
