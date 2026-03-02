@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.2](https://github.com/Yaphet2015/Prokcy/compare/v1.6.0...v1.6.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* only fetch values when service is running to prevent 'Service not running' error ([#2](https://github.com/Yaphet2015/Prokcy/issues/2)) ([746adf6](https://github.com/Yaphet2015/Prokcy/commit/746adf6dca256d3d9fcc1ad37f43492497e8ea7d))
+
 ### [1.6.1](https://github.com/Yaphet2015/Prokcy/compare/v1.6.0...v1.6.1) (2026-03-02)
 
 ## [1.6.0](https://github.com/Yaphet2015/Prokcy/compare/v1.5.8...v1.6.0) (2026-03-02)
