@@ -1,3 +1,19 @@
+# Changelog
+
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+## [1.6.0](https://github.com/Yaphet2015/Prokcy/compare/v1.5.8...v1.6.0) (2026-03-02)
+
+
+### Features
+
+* check update ([bd3fb4c](https://github.com/Yaphet2015/Prokcy/commit/bd3fb4cdca79e08e666ef62750ec0d06c06d86cf))
+
+
+### Bug Fixes
+
+* 初始化打开时切换tab报错问题 ([f346e24](https://github.com/Yaphet2015/Prokcy/commit/f346e241cd9481def89841bd5eb3c6a7d33aee0b))
+
 > Get the latest release: https://github.com/avwo/whistle-client/releases
 
 # v1.5.5
