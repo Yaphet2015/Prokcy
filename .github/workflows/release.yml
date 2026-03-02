@@ -47,11 +47,6 @@ jobs:
           echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Update version in package.json
-        run: |
-          npm version ${{ steps.get_version.outputs.version_number }} --no-git-tag-version
-        shell: bash
-
       - name: Build TypeScript
         run: npm run build:lib
 
