@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.3](https://github.com/Yaphet2015/Prokcy/compare/v1.6.2...v1.6.3) (2026-03-03)
+
+
+### Features
+
+* enhance auto-update feature with manual installation and progress tracking ([70523d5](https://github.com/Yaphet2015/Prokcy/commit/70523d5cf3e63960a781160b44d17f858c07f922))
+
 ### [1.6.2](https://github.com/Yaphet2015/Prokcy/compare/v1.6.0...v1.6.2) (2026-03-02)
 
 
