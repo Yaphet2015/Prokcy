@@ -20,12 +20,18 @@ import {
 import { enableProxy, disableProxy, isEnabled, type ProxyOptions } from './proxy';
 import storage from './storage';
 import { refreshProxyStatus, refreshTheme } from './menu';
-import { checkForUpdates } from './updater';
+import {
+  checkForUpdates,
+  getUpdateStatus,
+  installDownloadedUpdate,
+  onUpdateStatusChanged,
+} from './updater';
 import type { IpcRequest, NetworkQuery } from './types/electron';
 
 // Module state
 let mainWindow: BrowserWindow | null = null;
 let currentRules: unknown = null;
+let unsubscribeUpdateStatus: (() => void) | null = null;
 
 const DEFAULT_REQUEST_LIST_LIMIT = 500;
 
@@ -147,6 +153,15 @@ const requestWhistleApi = ({
  */
 function initIpc(win: BrowserWindow): void {
   mainWindow = win;
+
+  if (unsubscribeUpdateStatus) {
+    unsubscribeUpdateStatus();
+  }
+  unsubscribeUpdateStatus = onUpdateStatusChanged((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-status-changed', status);
+    }
+  });
 
   // Bind maximize state events and notify renderer
   bindMaximizeStateEvents(mainWindow, (isMaximized: boolean) => {
@@ -552,9 +567,17 @@ function initIpc(win: BrowserWindow): void {
     }
   });
 
-  // Check for app updates (auto-download + auto-install)
+  // Check for app updates (auto-download + manual install)
   ipcMain.handle('check-for-updates', async () => {
     return checkForUpdates();
+  });
+
+  ipcMain.handle('get-update-status', () => {
+    return getUpdateStatus();
+  });
+
+  ipcMain.handle('install-downloaded-update', async () => {
+    return installDownloadedUpdate();
   });
 
   // Notify renderer when theme changes

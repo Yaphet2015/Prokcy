@@ -7,6 +7,7 @@ import {
 } from '@pikoloo/darwin-ui';
 import { Save } from 'lucide-react';
 import ContentHeader from '../../shared/ui/ContentHeader';
+import { getCheckUpdateFeedback } from './update-feedback';
 
 // Types
 interface SettingsForm {
@@ -52,6 +53,17 @@ interface PreferencesPayload {
 interface SettingsPayload {
   proxy: ProxyPayload;
   preferences: PreferencesPayload;
+}
+
+interface UpdateStatus {
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  message: string;
+  version?: string;
+  progressPercent: number;
+  downloadedFile?: string;
+  checking: boolean;
+  downloading: boolean;
+  canInstall: boolean;
 }
 
 // Settings categories for sidebar navigation
@@ -205,6 +217,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [updateFeedback, setUpdateFeedback] = useState('');
+  const [updateError, setUpdateError] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -242,10 +258,72 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     loadSettings();
   }, [loadSettings]);
 
+  useEffect(() => {
+    if (!window.electron?.getUpdateStatus) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        const current = await window.electron?.getUpdateStatus();
+        if (!cancelled && current) {
+          setUpdateStatus(current);
+        }
+      } catch {
+        // ignore init update status error
+      }
+
+      if (window.electron?.onUpdateStatusChanged) {
+        unsubscribe = window.electron.onUpdateStatusChanged((next) => {
+          if (!cancelled) {
+            setUpdateStatus(next);
+            // Clear one-shot feedback when a streamed status arrives,
+            // so stale "Checking for updates..." text won't linger.
+            setUpdateFeedback('');
+            if (next.phase !== 'error') {
+              setUpdateError('');
+            }
+            if (next.phase === 'error') {
+              setUpdateError(next.message || 'Failed to check for updates');
+            }
+          }
+        });
+      }
+    };
+
+    init();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, []);
+
   const isDirty = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedForm),
     [form, savedForm],
   );
+
+  const isUpdateChecking = !!updateStatus?.checking;
+  const isUpdateDownloading = !!updateStatus?.downloading;
+  const canInstallDownloadedUpdate = !!updateStatus?.canInstall;
+  const updateProgressPercent = useMemo(() => {
+    if (!updateStatus) {
+      return 0;
+    }
+    if (updateStatus.downloading) {
+      return Math.max(0, Math.min(100, Math.round(updateStatus.progressPercent || 0)));
+    }
+    if (updateStatus.canInstall) {
+      return 100;
+    }
+    if (updateStatus.checking) {
+      return 10;
+    }
+    return 0;
+  }, [updateStatus]);
 
   const updateField = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -369,24 +447,47 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
 
   const handleCheckUpdate = useCallback(async () => {
     if (!window.electron?.checkForUpdates) {
-      setError('Update API unavailable. Please restart the app.');
+      setUpdateError('Update API unavailable. Please restart the app.');
       return;
     }
 
     setCheckingUpdate(true);
-    setError('');
-    setMessage('');
+    setUpdateError('');
+    setUpdateFeedback('');
 
     try {
       const result = await window.electron.checkForUpdates();
       if (!result?.success) {
         throw new Error(result?.message || 'Failed to check for updates');
       }
-      setMessage(result.message || 'Checking for updates...');
+      setUpdateFeedback(getCheckUpdateFeedback(result));
     } catch (err) {
-      setError((err as Error)?.message || 'Failed to check for updates');
+      setUpdateError((err as Error)?.message || 'Failed to check for updates');
     } finally {
       setCheckingUpdate(false);
+    }
+  }, []);
+
+  const handleInstallUpdate = useCallback(async () => {
+    if (!window.electron?.installDownloadedUpdate) {
+      setUpdateError('Install update API unavailable. Please restart the app.');
+      return;
+    }
+
+    setInstallingUpdate(true);
+    setUpdateError('');
+    setUpdateFeedback('');
+
+    try {
+      const result = await window.electron.installDownloadedUpdate();
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to start update installation');
+      }
+      setUpdateFeedback(result.message || 'Installing update...');
+    } catch (err) {
+      setUpdateError((err as Error)?.message || 'Failed to start update installation');
+    } finally {
+      setInstallingUpdate(false);
     }
   }, []);
 
@@ -774,19 +875,75 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                       <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                         Updates
                       </h2>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCheckUpdate}
-                          disabled={loading || checkingUpdate}
-                          loading={checkingUpdate}
-                        >
-                          Check Update
-                        </Button>
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                          Downloads and installs automatically when a new version is available.
-                        </p>
+                      <div className="max-w-xl space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleCheckUpdate}
+                            disabled={
+                              loading
+                              || checkingUpdate
+                              || installingUpdate
+                              || isUpdateChecking
+                              || isUpdateDownloading
+                            }
+                            loading={checkingUpdate || isUpdateChecking}
+                          >
+                            Check Update
+                          </Button>
+                          {canInstallDownloadedUpdate && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={handleInstallUpdate}
+                              disabled={loading || installingUpdate}
+                              loading={installingUpdate}
+                            >
+                              Install
+                            </Button>
+                          )}
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                            Auto-downloads new version. Install starts only after you click
+                            {' '}
+                            <span className="font-medium">Install</span>
+                            .
+                          </p>
+                        </div>
+
+                        {(isUpdateChecking || isUpdateDownloading || canInstallDownloadedUpdate) && (
+                          <div className="space-y-1.5">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                              <div
+                                className={`h-full rounded-full bg-emerald-500 transition-all duration-300 ${
+                                  isUpdateChecking ? 'animate-pulse' : ''
+                                }`}
+                                style={{
+                                  width: `${updateProgressPercent}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                              <span>{updateStatus?.message || 'Checking for updates...'}</span>
+                              {isUpdateDownloading && (
+                                <span>{Math.round(updateStatus.progressPercent || 0)}%</span>
+                              )}
+                              {canInstallDownloadedUpdate && <span>100%</span>}
+                            </div>
+                          </div>
+                        )}
+
+                        {updateError && (
+                          <p className="text-xs text-red-500">{updateError}</p>
+                        )}
+                        {!updateError && updateFeedback && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{updateFeedback}</p>
+                        )}
+                        {!updateError && !updateFeedback && updateStatus?.phase === 'up-to-date' && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {updateStatus.message || 'Prokcy is up to date.'}
+                          </p>
+                        )}
                       </div>
                     </section>
 
