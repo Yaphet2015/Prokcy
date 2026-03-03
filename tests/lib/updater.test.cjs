@@ -5,6 +5,7 @@ const Module = require('node:module');
 
 function withUpdaterHarness(t, overrides = {}) {
   const originalLoad = Module._load;
+  const updaterPath = require.resolve('../../lib/updater');
 
   const events = new EventEmitter();
   const calls = {
@@ -32,11 +33,20 @@ function withUpdaterHarness(t, overrides = {}) {
 
   const app = {
     isPackaged: overrides.isPackaged ?? true,
+    getVersion: () => overrides.appVersion ?? '1.0.0',
   };
 
   const showMessageBox = async (message, options) => {
     calls.messageBoxes.push({ message, options });
     return 0;
+  };
+
+  const store = {};
+  const storage = {
+    getProperty: (name) => store[name],
+    setProperty: (name, value) => {
+      store[name] = value;
+    },
   };
 
   Module._load = function patchedLoad(request, parent, isMain) {
@@ -49,17 +59,22 @@ function withUpdaterHarness(t, overrides = {}) {
     if (request === './dialog' || request.endsWith('/lib/dialog')) {
       return { showMessageBox };
     }
+    if (request === './storage' || request.endsWith('/lib/storage')) {
+      return { __esModule: true, default: storage };
+    }
     return originalLoad(request, parent, isMain);
   };
 
   t.after(() => {
     Module._load = originalLoad;
+    delete require.cache[updaterPath];
   });
 
+  delete require.cache[updaterPath];
   // eslint-disable-next-line global-require, import/no-dynamic-require
   const updater = require('../../lib/updater');
 
-  return { updater, calls, events, app };
+  return { updater, calls, events, app, store };
 }
 
 test('checkForUpdates triggers updater check and reports up-to-date state', async (t) => {
@@ -71,7 +86,9 @@ test('checkForUpdates triggers updater check and reports up-to-date state', asyn
 
   assert.equal(calls.checkForUpdates, 1);
   assert.equal(result.success, true);
-  assert.match(result.message, /up to date/i);
+  assert.match(result.message, /checking|up to date/i);
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'up-to-date');
 });
 
 test('checkForUpdates rejects concurrent requests while check is in progress', async (t) => {
@@ -87,13 +104,30 @@ test('checkForUpdates rejects concurrent requests while check is in progress', a
   await first.catch(() => {});
 });
 
-test('downloaded updates trigger immediate install', async (t) => {
+test('downloaded updates do not auto-install and become installable', async (t) => {
   const { updater, calls, events } = withUpdaterHarness(t);
 
   const promise = updater.checkForUpdates();
   events.emit('update-available', { version: '9.9.9' });
-  events.emit('update-downloaded', { version: '9.9.9' });
+  events.emit('update-downloaded', { version: '9.9.9', downloadedFile: __filename });
 
   await promise;
+  assert.equal(calls.quitAndInstall, 0);
+  const status = updater.getUpdateStatus();
+  assert.equal(status.canInstall, true);
+  assert.equal(status.phase, 'downloaded');
+  assert.equal(status.version, '9.9.9');
+});
+
+test('installDownloadedUpdate triggers quitAndInstall for cached update', async (t) => {
+  const { updater, calls, events } = withUpdaterHarness(t);
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '9.9.9' });
+  events.emit('update-downloaded', { version: '9.9.9', downloadedFile: __filename });
+  await promise;
+
+  const result = await updater.installDownloadedUpdate();
+  assert.equal(result.success, true);
   assert.equal(calls.quitAndInstall, 1);
 });

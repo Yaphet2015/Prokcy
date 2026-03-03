@@ -55,6 +55,13 @@ const electronApi = {
   getSystemProxyEnabled: () => ipcRenderer.invoke('get-system-proxy-enabled'),
   setSystemProxyEnabled: (enabled) => ipcRenderer.invoke('set-system-proxy-enabled', enabled),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  installDownloadedUpdate: () => ipcRenderer.invoke('install-downloaded-update'),
+  onUpdateStatusChanged: (callback) => {
+    const listener = (event, status) => callback(status);
+    ipcRenderer.on('update-status-changed', listener);
+    return () => ipcRenderer.removeListener('update-status-changed', listener);
+  },
 };
 
 if (process.contextIsolated) {

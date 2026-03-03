@@ -84,8 +84,19 @@ interface SystemProxyResult {
 interface UpdateCheckResult {
   success?: boolean;
   message?: string;
-  status?: 'checking' | 'up-to-date' | 'available' | 'error';
+  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
   version?: string;
+}
+
+interface UpdateStatusResult {
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  message: string;
+  version?: string;
+  progressPercent: number;
+  downloadedFile?: string;
+  checking: boolean;
+  downloading: boolean;
+  canInstall: boolean;
 }
 
 // ============= Window Controls API =============
@@ -154,6 +165,9 @@ interface SystemProxyAPI {
   getSystemProxyEnabled(): Promise<boolean>;
   setSystemProxyEnabled(enabled: boolean): Promise<SystemProxyResult>;
   checkForUpdates(): Promise<UpdateCheckResult>;
+  getUpdateStatus(): Promise<UpdateStatusResult>;
+  installDownloadedUpdate(): Promise<UpdateCheckResult>;
+  onUpdateStatusChanged(callback: (status: UpdateStatusResult) => void): () => void;
 }
 
 // ============= Complete Electron API =============
