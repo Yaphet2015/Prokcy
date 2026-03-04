@@ -116,14 +116,30 @@ function decodeBase64ToText(base64: unknown, maxBytes = 0): DecodeResult {
   }
 
   if (maxBytes > 0 && estimateBase64Size(base64) > maxBytes) {
-    return { text: '', omitted: true };
+    try {
+      // Decode just enough base64 quartets to reconstruct maxBytes.
+      const fullTriplets = Math.floor(maxBytes / 3);
+      const hasRemainder = maxBytes % 3 !== 0;
+      const previewChars = (fullTriplets * 4) + (hasRemainder ? 4 : 0);
+      const binary = atob(base64.slice(0, previewChars));
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0)).slice(0, maxBytes);
+      return {
+        text: new TextDecoder('utf-8', { fatal: false }).decode(bytes),
+        omitted: true,
+      };
+    } catch {
+      return { text: '', omitted: true };
+    }
   }
 
   try {
     const binary = atob(base64);
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
     if (maxBytes > 0 && bytes.length > maxBytes) {
-      return { text: '', omitted: true };
+      return {
+        text: new TextDecoder('utf-8', { fatal: false }).decode(bytes.slice(0, maxBytes)),
+        omitted: true,
+      };
     }
     // Use 'replace' error mode to handle invalid UTF-8 sequences gracefully
     return {
@@ -234,7 +250,7 @@ export function normalizeRequestDetail(item: RawRequestItem): NormalizedRequest 
     // For text-based content (JSON, JS, HTML, etc.), decode base64 to text
     const decoded = decodeBase64ToText(responseBodyBase64, MAX_DETAIL_TEXT_BODY_BYTES);
     if (decoded.omitted) {
-      responseBody = OMITTED_RESPONSE_BODY_MESSAGE;
+      responseBody = decoded.text ? `${decoded.text}...` : OMITTED_RESPONSE_BODY_MESSAGE;
     } else if (decoded.text) {
       responseBody = decoded.text;
     } else if (responseBodyBase64) {

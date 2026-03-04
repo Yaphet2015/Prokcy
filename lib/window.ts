@@ -2,7 +2,7 @@ import { app, BrowserWindow, Event } from 'electron';
 import path from 'path';
 import { ICON, closeWhistle, showWin } from './util';
 import * as ctx from './context';
-import { hideNativeWindowButtons } from './window-controls';
+import { hideNativeWindowButtons, handleMacHideWindowShortcut } from './window-controls';
 import { getSettings } from './settings';
 
 // Type imports for modules not yet migrated to TypeScript
@@ -115,14 +115,22 @@ export const createWindow = (): void => {
   // Show window when ready
   win.on('ready-to-show', () => showWin(win));
 
-  // Handle window close event
+  // Handle window close event - prevent closing and hide instead on macOS
   win.on('close', (e: Event) => {
-    if (beforeQuit) {
+    // Only allow actual close when app is truly quitting
+    if (willQuit || beforeQuit) {
       return;
     }
-    beforeQuit = false;
+
+    // Prevent the window from actually closing
     e.preventDefault();
     win.hide();
+  });
+
+  // Handle Cmd+W via before-input-event to hide window on macOS
+  // This fires before menu accelerators, allowing us to intercept
+  win.webContents.on('before-input-event', (event, input) => {
+    handleMacHideWindowShortcut(event, input, win);
   });
 
   // Update title when page title changes

@@ -30,6 +30,7 @@ interface UseRuleGroupActionsParams {
 
 interface RuleGroup {
   name: string;
+  selected?: boolean;
 }
 
 interface GroupOperationResult {
@@ -113,7 +114,7 @@ export function useRuleGroupActions({ prompt, confirm }: UseRuleGroupActionsPara
   // Handle double-click to toggle selection
   const handleGroupDoubleClick = useCallback((group: RuleGroup) => {
     if (group?.name) {
-      setRuleGroupSelection(group.name);
+      setRuleGroupSelection(group.name, { selected: getNextSelectionStateFromGroup(group) });
     }
   }, [setRuleGroupSelection]);
 
@@ -130,4 +131,8 @@ export function useRuleGroupActions({ prompt, confirm }: UseRuleGroupActionsPara
     handleGroupDoubleClick,
     setActiveEditorGroup,
   ]);
+}
+
+export function getNextSelectionStateFromGroup(group: RuleGroup): boolean {
+  return !Boolean(group?.selected);
 }

@@ -83,6 +83,7 @@ Split layout: WaterfallTimeline (top 60%) and RequestInspector (bottom 40%).
 - Full request/response details
 - Response tab keeps a pinned metadata row (`Response` + payload size) while body content scrolls independently
 - Text responses use Monaco in a flex container (`flex-1`, `min-h-0`) so the editor fills remaining tab height without fixed pixel sizing
+- Oversized text responses keep the leading preview (up to the detail limit) and append `...` instead of showing only `[Response body omitted: too large]`
 
 ### Rules Section
 

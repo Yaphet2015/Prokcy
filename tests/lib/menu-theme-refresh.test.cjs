@@ -7,6 +7,7 @@ test('menu bar icons follow system theme, not app theme override', async (t) => 
   const originalSetTimeout = global.setTimeout;
   const state = {
     trayTemplate: null,
+    appMenuTemplate: null,
   };
 
   const nativeTheme = {
@@ -24,7 +25,9 @@ test('menu bar icons follow system theme, not app theme override', async (t) => 
     nativeTheme,
     Menu: {
       buildFromTemplate: (template) => ({ template }),
-      setApplicationMenu: () => {},
+      setApplicationMenu: (menu) => {
+        state.appMenuTemplate = menu.template;
+      },
     },
     Tray: class Tray {
       constructor() {}
@@ -131,6 +134,10 @@ test('menu bar icons follow system theme, not app theme override', async (t) => 
   await create();
   const initialIconPath = state.trayTemplate?.[0]?.icon?.path;
   assert.ok(typeof initialIconPath === 'string' && initialIconPath.length > 0);
+  const windowMenu = state.appMenuTemplate?.find((item) => item.label === 'Window');
+  assert.ok(windowMenu, 'Window menu should exist');
+  const closeShortcut = windowMenu.submenu?.find((item) => item.accelerator === 'CmdOrCtrl+W');
+  assert.ok(closeShortcut, 'Window menu should expose CmdOrCtrl+W close shortcut');
 
   // App theme change should not affect menu bar theme.
   nativeTheme.shouldUseDarkColors = !nativeTheme.shouldUseDarkColors;

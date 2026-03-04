@@ -3,6 +3,7 @@ import { Reorder } from 'framer-motion';
 import { Button, Input } from '@pikoloo/darwin-ui';
 import { Plus } from 'lucide-react';
 import { RuleGroupItem, ReorderableGroupItem } from './RuleGroupItem';
+import { shouldToggleGroupSelectionFromClickDetail } from '../utils/clickDetail';
 
 interface RuleGroup {
   name: string;
@@ -166,8 +167,12 @@ export function RulesSidebar({
                   isActive={isActive}
                   isEditorGroup={isEditorGroup}
                   rank={rank}
-                  onSelect={() => onSetActiveEditorGroup(group.name)}
-                  onDoubleClick={() => onGroupDoubleClick(group)}
+                  onSelect={(event) => {
+                    onSetActiveEditorGroup(group.name);
+                    if (shouldToggleGroupSelectionFromClickDetail(event.detail)) {
+                      onGroupDoubleClick(group);
+                    }
+                  }}
                   onCreate={handleStartCreate}
                   onRename={() => onContextRename(group)}
                   onDelete={() => onContextDelete(group)}

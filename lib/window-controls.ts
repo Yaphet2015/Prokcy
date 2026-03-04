@@ -73,3 +73,77 @@ export const hideNativeWindowButtons = (
     win.setWindowButtonVisibility(false);
   }
 };
+
+/**
+ * Minimal keyboard event shape for Electron before-input-event handling.
+ */
+type InputKeyEvent = {
+  type?: string;
+  key?: string;
+  meta?: boolean;
+  shift?: boolean;
+  control?: boolean;
+  alt?: boolean;
+};
+
+/**
+ * Minimal event shape for keyboard shortcut handlers.
+ */
+type PreventableEvent = {
+  preventDefault?: () => void;
+};
+
+/**
+ * Handle macOS Cmd+W by hiding (not quitting) the main window.
+ *
+ * This function is called from the 'before-input-event' handler on webContents,
+ * which fires before menu accelerators are processed. This allows us to intercept
+ * Cmd+W and hide the window instead of triggering the menu's "Close Window" action.
+ *
+ * @returns true when the shortcut was handled, otherwise false
+ */
+export const handleMacHideWindowShortcut = (
+  event: PreventableEvent | null | undefined,
+  input: InputKeyEvent | null | undefined,
+  win: BrowserWindow | null | undefined,
+  platform: NodeJS.Platform = process.platform
+): boolean => {
+  // Only handle on macOS
+  if (platform !== 'darwin') {
+    return false;
+  }
+
+  // Check for keyDown event type
+  if (input?.type !== 'keyDown') {
+    return false;
+  }
+
+  // Check for 'w' key (case-insensitive)
+  const key = String(input?.key || '').toLowerCase();
+  if (key !== 'w') {
+    return false;
+  }
+
+  // Check for pure Cmd+W (Command key pressed, no other modifiers)
+  const isCmdW = input?.meta === true
+    && !input?.shift
+    && !input?.control
+    && !input?.alt;
+
+  if (!isCmdW) {
+    return false;
+  }
+
+  // Validate window state
+  if (!win || (typeof win.isDestroyed === 'function' && win.isDestroyed())) {
+    return false;
+  }
+
+  // Prevent the event from reaching the menu accelerator
+  event?.preventDefault?.();
+
+  // Hide the window (don't close it - this keeps the app running)
+  win.hide();
+
+  return true;
+};

@@ -48,7 +48,7 @@ test('normalizeRequestDetail decodes bodies for selected request only', () => {
   assert.equal(normalized.response?.size, 11);
 });
 
-test('normalizeRequestDetail truncates oversized text body', () => {
+test('normalizeRequestDetail preserves leading content and appends ellipsis for oversized text body', () => {
   const hugeText = 'a'.repeat(400_000);
   const item = {
     ...SAMPLE_ITEM,
@@ -63,5 +63,8 @@ test('normalizeRequestDetail truncates oversized text body', () => {
   const normalized = normalizeRequestDetail(item);
 
   assert.ok(normalized);
-  assert.equal(normalized.response?.body, '[Response body omitted: too large]');
+  assert.ok(normalized.response?.body);
+  assert.equal(normalized.response?.body.length, (256 * 1024) + 3);
+  assert.equal(normalized.response?.body.slice(0, 1024), hugeText.slice(0, 1024));
+  assert.ok(normalized.response?.body.endsWith('...'));
 });

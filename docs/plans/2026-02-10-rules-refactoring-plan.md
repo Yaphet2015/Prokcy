@@ -24,6 +24,12 @@
 - Double-click on `Default` must toggle active/inactive exactly like other rule groups.
 - `Default` is special in Whistle internals and must map to default-enable/default-disable APIs instead of regular group select/unselect APIs.
 
+## Update (2026-03-04, Double-Click Enable Reliability)
+
+- Rule-group double-click toggling must derive target state from the clicked group item (`group.selected`) and pass explicit `selected` to `setRuleGroupSelection`.
+- Do not rely on context-side toggle inference for double-click, because async state updates can produce stale direction when re-enabling.
+- Double-click detection should be driven from click `event.detail === 2` in the same click handler path as editor selection to avoid `onDoubleClick` event loss during interactive list updates.
+
 ---
 
 ## Task 1: Create directory structure for modular components

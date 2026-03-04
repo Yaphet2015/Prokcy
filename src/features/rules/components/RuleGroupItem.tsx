@@ -11,8 +11,7 @@ interface RuleGroupItemProps {
   isActive: boolean;
   isEditorGroup: boolean;
   rank?: number;
-  onSelect: () => void;
-  onDoubleClick: () => void;
+  onSelect: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onCreate: () => void;
   onRename: () => void;
   onDelete: () => void;
@@ -24,7 +23,6 @@ export function RuleGroupItem({
   isEditorGroup,
   rank,
   onSelect,
-  onDoubleClick,
   onCreate,
   onRename,
   onDelete,
@@ -35,7 +33,6 @@ export function RuleGroupItem({
         <motion.button
           type="button"
           onClick={onSelect}
-          onDoubleClick={onDoubleClick}
           className={`w-full px-3 py-2 rounded-lg border transition-all text-left pr-10 ${
             isEditorGroup
               ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'

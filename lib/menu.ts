@@ -610,6 +610,16 @@ export const create = async (): Promise<void> => {
           label: 'Zoom',
           role: 'zoom',
         },
+        {
+          label: 'Close Window',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => {
+            const win = getWin();
+            if (win && !win.isDestroyed()) {
+              win.close();
+            }
+          },
+        },
         SEPARATOR_MENU,
         {
           label: 'Bring All to Front',
