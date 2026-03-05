@@ -20,10 +20,13 @@ interface SettingsForm {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: string;
   requestListLimit: string;
+  lowMemoryMode: boolean;
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  networkPollingCount: string;
+  trackedRequestIdsLimit: string;
   systemProxyEnabled: boolean;
   defaultWidth: string;
   defaultHeight: string;
@@ -39,6 +42,7 @@ interface ProxyPayload {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: string;
   requestListLimit: number;
+  lowMemoryMode: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
 }
@@ -48,6 +52,8 @@ interface PreferencesPayload {
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  networkPollingCount: number;
+  trackedRequestIdsLimit: number;
 }
 
 interface SettingsPayload {
@@ -107,9 +113,15 @@ const THEME_OPTIONS: ThemeOption[] = [
 
 const THEME_MODES = THEME_OPTIONS.map((item) => item.value);
 
-const DEFAULT_REQUEST_LIST_LIMIT = '500';
-const MIN_REQUEST_LIST_LIMIT = '100';
+const DEFAULT_REQUEST_LIST_LIMIT = '600';
+const MIN_REQUEST_LIST_LIMIT = '600';
 const MAX_REQUEST_LIST_LIMIT = '5000';
+const DEFAULT_NETWORK_POLLING_COUNT = '50';
+const MIN_NETWORK_POLLING_COUNT = '10';
+const MAX_NETWORK_POLLING_COUNT = '100';
+const DEFAULT_TRACKED_REQUEST_IDS_LIMIT = '50';
+const MIN_TRACKED_REQUEST_IDS_LIMIT = '0';
+const MAX_TRACKED_REQUEST_IDS_LIMIT = '200';
 
 // Window size constants
 const DEFAULT_WINDOW_WIDTH = '1200';
@@ -127,10 +139,13 @@ const DEFAULT_SETTINGS: SettingsForm = {
   useDefaultStorage: false,
   maxHttpHeaderSize: '256',
   requestListLimit: DEFAULT_REQUEST_LIST_LIMIT,
+  lowMemoryMode: false,
   startAtLogin: false,
   hideFromDock: false,
   themeMode: 'system',
   requestFilters: '',
+  networkPollingCount: DEFAULT_NETWORK_POLLING_COUNT,
+  trackedRequestIdsLimit: DEFAULT_TRACKED_REQUEST_IDS_LIMIT,
   systemProxyEnabled: false,
   defaultWidth: DEFAULT_WINDOW_WIDTH,
   defaultHeight: DEFAULT_WINDOW_HEIGHT,
@@ -156,6 +171,10 @@ const isPort = (value: string): boolean => isIntegerInRange(value, 1, 65535, tru
 
 const isRequestListLimit = (value: string): boolean =>
   isIntegerInRange(value, Number(MIN_REQUEST_LIST_LIMIT), Number(MAX_REQUEST_LIST_LIMIT), false);
+const isNetworkPollingCount = (value: string): boolean =>
+  isIntegerInRange(value, Number(MIN_NETWORK_POLLING_COUNT), Number(MAX_NETWORK_POLLING_COUNT), false);
+const isTrackedRequestIdsLimit = (value: string): boolean =>
+  isIntegerInRange(value, Number(MIN_TRACKED_REQUEST_IDS_LIMIT), Number(MAX_TRACKED_REQUEST_IDS_LIMIT), false);
 
 const isWindowSize = (value: string): boolean =>
   isIntegerInRange(value, Number(MIN_WINDOW_SIZE), Number(MAX_WINDOW_SIZE), true);
@@ -168,6 +187,18 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
     && requestListLimitValue <= Number(MAX_REQUEST_LIST_LIMIT)
     ? String(requestListLimitValue)
     : DEFAULT_REQUEST_LIST_LIMIT;
+  const networkPollingCountValue = Number(settings.networkPollingCount);
+  const networkPollingCount = Number.isInteger(networkPollingCountValue)
+    && networkPollingCountValue >= Number(MIN_NETWORK_POLLING_COUNT)
+    && networkPollingCountValue <= Number(MAX_NETWORK_POLLING_COUNT)
+    ? String(networkPollingCountValue)
+    : DEFAULT_NETWORK_POLLING_COUNT;
+  const trackedRequestIdsLimitValue = Number(settings.trackedRequestIdsLimit);
+  const trackedRequestIdsLimit = Number.isInteger(trackedRequestIdsLimitValue)
+    && trackedRequestIdsLimitValue >= Number(MIN_TRACKED_REQUEST_IDS_LIMIT)
+    && trackedRequestIdsLimitValue <= Number(MAX_TRACKED_REQUEST_IDS_LIMIT)
+    ? String(trackedRequestIdsLimitValue)
+    : DEFAULT_TRACKED_REQUEST_IDS_LIMIT;
 
   // Normalize window size values
   const normalizeSize = (
@@ -198,12 +229,15 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
       ? maxHttpHeaderSize
       : DEFAULT_SETTINGS.maxHttpHeaderSize,
     requestListLimit,
+    lowMemoryMode: !!settings.lowMemoryMode,
     startAtLogin: !!settings.startAtLogin,
     hideFromDock: !!settings.hideFromDock,
     themeMode: THEME_MODES.includes(String(settings.themeMode))
       ? String(settings.themeMode)
       : DEFAULT_SETTINGS.themeMode,
     requestFilters: String(settings.requestFilters || ''),
+    networkPollingCount,
+    trackedRequestIdsLimit,
     systemProxyEnabled: !!settings.systemProxyEnabled,
     defaultWidth,
     defaultHeight,
@@ -358,6 +392,12 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     if (!isRequestListLimit(form.requestListLimit.trim())) {
       return `Request list limit must be an integer between ${MIN_REQUEST_LIST_LIMIT} and ${MAX_REQUEST_LIST_LIMIT}`;
     }
+    if (!isNetworkPollingCount(form.networkPollingCount.trim())) {
+      return `Polling count must be an integer between ${MIN_NETWORK_POLLING_COUNT} and ${MAX_NETWORK_POLLING_COUNT}`;
+    }
+    if (!isTrackedRequestIdsLimit(form.trackedRequestIdsLimit.trim())) {
+      return `Tracked request IDs limit must be an integer between ${MIN_TRACKED_REQUEST_IDS_LIMIT} and ${MAX_TRACKED_REQUEST_IDS_LIMIT}`;
+    }
     if (defaultWidth && !isWindowSize(defaultWidth)) {
       return `Default width must be an integer between ${MIN_WINDOW_SIZE} and ${MAX_WINDOW_SIZE}`;
     }
@@ -394,6 +434,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         useDefaultStorage: form.useDefaultStorage,
         maxHttpHeaderSize: form.maxHttpHeaderSize,
         requestListLimit: Number(form.requestListLimit.trim()),
+        lowMemoryMode: form.lowMemoryMode,
         defaultWidth: form.defaultWidth ? Number(form.defaultWidth.trim()) : undefined,
         defaultHeight: form.defaultHeight ? Number(form.defaultHeight.trim()) : undefined,
       },
@@ -402,6 +443,8 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         hideFromDock: form.hideFromDock,
         themeMode: form.themeMode,
         requestFilters: form.requestFilters,
+        networkPollingCount: Number(form.networkPollingCount.trim()),
+        trackedRequestIdsLimit: Number(form.trackedRequestIdsLimit.trim()),
       },
     };
 
@@ -417,6 +460,9 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
         detail: {
           requestListLimit: Number(next.requestListLimit),
           requestFilters: next.requestFilters,
+          networkPollingCount: Number(next.networkPollingCount),
+          trackedRequestIdsLimit: Number(next.trackedRequestIdsLimit),
+          lowMemoryMode: next.lowMemoryMode,
         },
       }));
       setMessage('Settings saved');
@@ -659,6 +705,24 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           {' '}
                           {MAX_REQUEST_LIST_LIMIT}
                         </p>
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Whistle enforces an effective minimum of
+                          {' '}
+                          {MIN_REQUEST_LIST_LIMIT}
+                          .
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Switch
+                          checked={form.lowMemoryMode}
+                          onChange={(checked) => updateField('lowMemoryMode', checked)}
+                          disabled={loading}
+                          label="Low memory mode (strict capture)"
+                        />
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                          Reduces upstream request body retention to lower RAM usage. Very large payload previews may be truncated.
+                        </p>
                       </div>
 
                       {/* Proxy Username */}
@@ -719,6 +783,46 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
               {/* Network Section */}
               {activeCategory === 'network' && (
                 <div className="max-w-3xl space-y-6">
+                  <section>
+                    <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
+                      Performance
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Polling Count</span>
+                        <Input
+                          type="number"
+                          min={MIN_NETWORK_POLLING_COUNT}
+                          max={MAX_NETWORK_POLLING_COUNT}
+                          value={form.networkPollingCount}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('networkPollingCount', e.target.value)}
+                          disabled={loading}
+                          placeholder={DEFAULT_NETWORK_POLLING_COUNT}
+                        />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Requests fetched per poll. Lower values reduce memory and IPC pressure.
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">Tracked Request IDs</span>
+                        <Input
+                          type="number"
+                          min={MIN_TRACKED_REQUEST_IDS_LIMIT}
+                          max={MAX_TRACKED_REQUEST_IDS_LIMIT}
+                          value={form.trackedRequestIdsLimit}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => updateField('trackedRequestIdsLimit', e.target.value)}
+                          disabled={loading}
+                          placeholder={DEFAULT_TRACKED_REQUEST_IDS_LIMIT}
+                        />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          Number of active requests to keep in update tracking.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
                   <section>
                       <h2 className="text-m font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3 not-first:mt-2">
                       Request Filters

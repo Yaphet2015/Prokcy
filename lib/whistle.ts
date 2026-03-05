@@ -136,6 +136,7 @@ interface WhistleOptions {
   mode?: string;
   disableInstaller?: boolean;
   rootCAFile?: string;
+  lowMemoryMode?: boolean;
 }
 
 // Proxy settings from UI
@@ -155,6 +156,7 @@ interface ParsedOptions {
   requestListLimit?: number;
   maxHttpHeaderSize?: number;
   uiAuth?: UIAuth;
+  lowMemoryMode?: boolean;
   useDefaultStorage?: boolean;
 }
 
@@ -162,6 +164,7 @@ interface ProxySettings {
   username?: string;
   password?: string;
   bypass?: string;
+  lowMemoryMode?: boolean;
 }
 
 const getRulesPayload = (proxy: WhistleProxy): RulesData => {
@@ -264,6 +267,7 @@ const parseOptions = (): WhistleOptions => {
     password: uiAuth.password,
     bypass: options.bypass,
     reqCacheSize: options.requestListLimit,
+    lowMemoryMode: !!options.lowMemoryMode,
     shadowRules: getShadowRules(options),
     useDefaultStorage: options.useDefaultStorage,
   };
@@ -276,7 +280,9 @@ const baseOptions: WhistleOptions = {
   baseDir,
   projectPluginsPath: PROJECT_PLUGINS_PATH,
   specialAuth: SPECIAL_AUTH,
-  mode: 'client|disableUpdateTips|disableAuthUI|enableMultipleRules',
+  mode: newOptions.lowMemoryMode
+    ? 'client|disableUpdateTips|disableAuthUI|enableMultipleRules|strict'
+    : 'client|disableUpdateTips|disableAuthUI|enableMultipleRules',
   ...newOptions,
   disableInstaller: true,
 };

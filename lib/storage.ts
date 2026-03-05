@@ -16,6 +16,9 @@ export interface ProxySettings {
   useDefaultStorage?: boolean;
   maxHttpHeaderSize?: number;
   requestListLimit?: number;
+  lowMemoryMode?: boolean;
+  networkPollingCount?: number;
+  trackedRequestIdsLimit?: number;
   defaultWidth?: number;
   defaultHeight?: number;
 }

@@ -22,6 +22,8 @@ app.setName('Prokcy');
 process.env.PFORK_EXEC_PATH = process.execPath;
 
 const quitApp = (): void => app.quit();
+const DOCK_UPDATE_THROTTLE_MS = 200;
+const DOCK_UPDATE_FALLBACK_MS = 1000;
 
 const handleSquirrel = (uninstall: boolean): void => {
   const updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
@@ -106,6 +108,17 @@ const updateDock = (): void => {
   }
 };
 
+let dockUpdateTimer: NodeJS.Timeout | null = null;
+const scheduleDockUpdate = (): void => {
+  if (dockUpdateTimer) {
+    return;
+  }
+  dockUpdateTimer = setTimeout(() => {
+    dockUpdateTimer = null;
+    updateDock();
+  }, DOCK_UPDATE_THROTTLE_MS);
+};
+
 // Initialize application
 (() => {
   if (isMac) {
@@ -148,14 +161,14 @@ const updateDock = (): void => {
     });
 
     app.on('web-contents-created', (_: ElectronEvent, win: WebContents) => {
-      win.on('page-title-updated', updateDock);
+      win.on('page-title-updated', scheduleDockUpdate);
       // @ts-ignore - 'close' event exists but not in TypeScript definitions
-      win.once('close', updateDock);
+      win.once('close', scheduleDockUpdate);
       // @ts-ignore - 'ready-to-show' event exists but not in WebContents type definitions
-      win.on('ready-to-show', updateDock);
+      win.on('ready-to-show', scheduleDockUpdate);
     });
 
-    setInterval(updateDock, 160);
+    setInterval(scheduleDockUpdate, DOCK_UPDATE_FALLBACK_MS);
   }
 
   app.on('browser-window-created', (_: ElectronEvent, _win: BrowserWindow) => {

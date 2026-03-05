@@ -753,7 +753,6 @@ export const create = async (): Promise<void> => {
         await enableSystemProxy();
       }
       updateTitle();
-      setTimeout(detectProxy, INTERVAL);
     });
     return setTimeout(detectProxy, INTERVAL);
   };

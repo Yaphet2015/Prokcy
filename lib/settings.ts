@@ -23,8 +23,8 @@ const password: string = `pass_${Math.random()}`;
 export const authorization: string = Buffer.from(`${username}:${password}`).toString('base64');
 const DEFAULT_PORT: string = '8888';
 const HEADER_SIZE_OPTIONS: number[] = [512, 1024, 5120, 10240, 51200, 102400];
-const DEFAULT_REQUEST_LIST_LIMIT = 500;
-const MIN_REQUEST_LIST_LIMIT = 100;
+const DEFAULT_REQUEST_LIST_LIMIT = 600;
+const MIN_REQUEST_LIST_LIMIT = 600;
 const MAX_REQUEST_LIST_LIMIT = 5000;
 
 // Window size constants
@@ -84,6 +84,7 @@ export interface ProxySettings {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: number;
   requestListLimit: number;
+  lowMemoryMode: boolean;
   defaultWidth: number;
   defaultHeight: number;
 }
@@ -173,6 +174,7 @@ const parseSettings = (data: SettingsInput): ProxySettings => {
     useDefaultStorage: !!getValue(data, 'useDefaultStorage'),
     maxHttpHeaderSize: HEADER_SIZE_OPTIONS.includes(headerSize) ? headerSize : 256,
     requestListLimit: normalizeRequestListLimit(getValue(data, 'requestListLimit')),
+    lowMemoryMode: !!getValue(data, 'lowMemoryMode'),
     defaultWidth: normalizeWindowSize(getValue(data, 'defaultWidth'), DEFAULT_WINDOW_WIDTH),
     defaultHeight: normalizeWindowSize(getValue(data, 'defaultHeight'), DEFAULT_WINDOW_HEIGHT),
   };
@@ -285,8 +287,10 @@ export const applySettings = async (
   const socksChanged = curSettings.socksPort !== data.socksPort;
   const headerSizeChanged = curSettings.maxHttpHeaderSize !== data.maxHttpHeaderSize;
   const requestListLimitChanged = curSettings.requestListLimit !== data.requestListLimit;
+  const lowMemoryModeChanged = curSettings.lowMemoryMode !== data.lowMemoryMode;
   const needsRestart = !isRunning() || portChanged || hostChanged
-    || socksChanged || storageChanged || headerSizeChanged || requestListLimitChanged;
+    || socksChanged || storageChanged || headerSizeChanged || requestListLimitChanged
+    || lowMemoryModeChanged;
 
   if (needsRestart) {
     app.emit('whistleSettingsChanged', true);

@@ -44,10 +44,16 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = '8888';
 const POLL_INTERVAL = 1000;
 const MAX_RECONNECT_DELAY = 30000;
-const FETCH_COUNT = 120;
-const TRACKED_IDS_COUNT = 200;
-const DEFAULT_REQUEST_LIST_LIMIT = 500;
-const DETAIL_CACHE_LIMIT = 20;
+const MAX_FETCH_COUNT = 100;
+const DEFAULT_FETCH_COUNT = 50;
+const MIN_FETCH_COUNT = 10;
+const DEFAULT_TRACKED_IDS_COUNT = 50;
+const MIN_TRACKED_IDS_COUNT = 0;
+const MAX_TRACKED_IDS_COUNT = 200;
+const DEFAULT_REQUEST_LIST_LIMIT = 600;
+const DETAIL_CACHE_LIMIT = 10;
+const DETAIL_CACHE_BYTES_LIMIT = 4 * 1024 * 1024;
+const TRACKED_STATUS_TRIM_MARKER = '999999999-999999999';
 
 // Helper functions
 function toStringValue(value: unknown, fallback = ''): string {
@@ -60,18 +66,47 @@ function toStringValue(value: unknown, fallback = ''): string {
   return String(value);
 }
 
-function mergeRequestWithDetail(
+export function mergeRequestWithDetail(
   summary: NormalizedRequest,
   detail: NormalizedRequest
 ): NormalizedRequest {
   return {
     ...summary,
+    headers: detail.headers,
+    rules: detail.rules,
     requestBody: detail.requestBody,
     response: detail.response,
   };
 }
 
-function mergeRequests(
+function mergeSummaryRequest(
+  previous: NormalizedRequest,
+  incoming: NormalizedRequest,
+): NormalizedRequest {
+  const isPartial = !incoming.url && !!previous.url;
+  if (!isPartial) {
+    return incoming;
+  }
+
+  const hasIncomingHeaders = Object.keys(incoming.headers.request || {}).length > 0
+    || Object.keys(incoming.headers.response || {}).length > 0;
+  const hasIncomingRules = Object.keys(incoming.rules || {}).length > 0;
+
+  return {
+    ...incoming,
+    url: previous.url,
+    method: incoming.method || previous.method,
+    status: incoming.status || previous.status,
+    statusText: incoming.statusText || previous.statusText,
+    size: incoming.size || previous.size,
+    timings: (incoming.timings?.total || 0) > 0 ? incoming.timings : previous.timings,
+    headers: hasIncomingHeaders ? incoming.headers : previous.headers,
+    rules: hasIncomingRules ? incoming.rules : previous.rules,
+    sortTime: incoming.sortTime || previous.sortTime,
+  };
+}
+
+export function mergeRequests(
   previous: NormalizedRequest[],
   incoming: NormalizedRequest[],
   maxRequests: number
@@ -79,15 +114,68 @@ function mergeRequests(
   if (!incoming.length) {
     return previous.slice(0, maxRequests);
   }
+  const dedupedIncoming = new Map(incoming.map((req) => [req.id, req]));
+  const next = previous.slice(0, maxRequests);
+  const existingIndexById = new Map(next.map((req, index) => [req.id, index]));
 
-  const merged = new Map(previous.map((req) => [req.id, req]));
-  incoming.forEach((req) => {
-    merged.set(req.id, req);
-  });
+  const findInsertIndex = (list: NormalizedRequest[], sortTime: number): number => {
+    let low = 0;
+    let high = list.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (list[mid].sortTime >= sortTime) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  };
 
-  return Array.from(merged.values())
-    .sort((a, b) => b.sortTime - a.sortTime)
-    .slice(0, maxRequests);
+  for (const req of dedupedIncoming.values()) {
+    const existingIndex = existingIndexById.get(req.id);
+    const previousItem = existingIndex != null ? next[existingIndex] : null;
+    const mergedItem = previousItem ? mergeSummaryRequest(previousItem, req) : req;
+    if (existingIndex != null) {
+      next.splice(existingIndex, 1);
+      existingIndexById.delete(req.id);
+      for (let i = existingIndex; i < next.length; i += 1) {
+        existingIndexById.set(next[i].id, i);
+      }
+    }
+    const insertIndex = findInsertIndex(next, mergedItem.sortTime);
+    next.splice(insertIndex, 0, mergedItem);
+    for (let i = insertIndex; i < next.length; i += 1) {
+      existingIndexById.set(next[i].id, i);
+    }
+  }
+
+  if (next.length > maxRequests) {
+    next.length = maxRequests;
+  }
+  return next;
+}
+
+function normalizeInRange(value: unknown, min: number, max: number, fallback: number): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return fallback;
+  }
+  if (parsed < min) {
+    return min;
+  }
+  if (parsed > max) {
+    return max;
+  }
+  return parsed;
+}
+
+function estimateRequestDetailBytes(request: NormalizedRequest): number {
+  const requestBodyBytes = request.requestBody?.content.length || 0;
+  const responseBodyBytes = request.response?.body.length || 0;
+  const requestHeadersBytes = JSON.stringify(request.headers?.request || {}).length;
+  const responseHeadersBytes = JSON.stringify(request.headers?.response || {}).length;
+  return requestBodyBytes + responseBodyBytes + requestHeadersBytes + responseHeadersBytes;
 }
 
 interface NetworkDataPayload {
@@ -174,13 +262,19 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [requestListLimit, setRequestListLimit] = useState(DEFAULT_REQUEST_LIST_LIMIT);
+  const [networkPollingCount, setNetworkPollingCount] = useState(DEFAULT_FETCH_COUNT);
+  const [trackedRequestIdsLimit, setTrackedRequestIdsLimit] = useState(DEFAULT_TRACKED_IDS_COUNT);
 
   const requestsRef = useRef<NormalizedRequest[]>([]);
   const requestListLimitRef = useRef(DEFAULT_REQUEST_LIST_LIMIT);
+  const networkPollingCountRef = useRef(DEFAULT_FETCH_COUNT);
+  const trackedRequestIdsLimitRef = useRef(DEFAULT_TRACKED_IDS_COUNT);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const lastIdRef = useRef('');
   const detailCacheRef = useRef<Map<string, NormalizedRequest>>(new Map());
+  const detailCacheBytesRef = useRef<Map<string, number>>(new Map());
+  const detailCacheTotalBytesRef = useRef(0);
   const detailFetchTokenRef = useRef(0);
   const filterPatternsRef = useRef<string[]>([]);
 
@@ -191,6 +285,14 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   useEffect(() => {
     requestListLimitRef.current = requestListLimit;
   }, [requestListLimit]);
+
+  useEffect(() => {
+    networkPollingCountRef.current = networkPollingCount;
+  }, [networkPollingCount]);
+
+  useEffect(() => {
+    trackedRequestIdsLimitRef.current = trackedRequestIdsLimit;
+  }, [trackedRequestIdsLimit]);
 
   useEffect(() => {
     setRequests((prev) => (prev.length > requestListLimit ? prev.slice(0, requestListLimit) : prev));
@@ -211,14 +313,27 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   }, [requests]);
 
   const setRequestDetailCache = useCallback((request: NormalizedRequest) => {
+    const entryBytes = estimateRequestDetailBytes(request);
+    const previousBytes = detailCacheBytesRef.current.get(request.id) || 0;
+    detailCacheTotalBytesRef.current -= previousBytes;
     detailCacheRef.current.delete(request.id);
+    detailCacheBytesRef.current.delete(request.id);
     detailCacheRef.current.set(request.id, request);
-    while (detailCacheRef.current.size > DETAIL_CACHE_LIMIT) {
+    detailCacheBytesRef.current.set(request.id, entryBytes);
+    detailCacheTotalBytesRef.current += entryBytes;
+
+    while (
+      detailCacheRef.current.size > DETAIL_CACHE_LIMIT
+      || detailCacheTotalBytesRef.current > DETAIL_CACHE_BYTES_LIMIT
+    ) {
       const oldestKey = detailCacheRef.current.keys().next().value;
       if (!oldestKey) {
         break;
       }
       detailCacheRef.current.delete(oldestKey);
+      const removedBytes = detailCacheBytesRef.current.get(oldestKey) || 0;
+      detailCacheBytesRef.current.delete(oldestKey);
+      detailCacheTotalBytesRef.current -= removedBytes;
     }
   }, []);
 
@@ -235,6 +350,24 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     setRequests((prev) => filterRequestsByPatterns(prev, patterns));
   }, []);
 
+  const applyNetworkPerformanceOptions = useCallback((
+    pollingCount: unknown,
+    trackedIdsLimit: unknown,
+  ) => {
+    setNetworkPollingCount(normalizeInRange(
+      pollingCount,
+      MIN_FETCH_COUNT,
+      MAX_FETCH_COUNT,
+      DEFAULT_FETCH_COUNT,
+    ));
+    setTrackedRequestIdsLimit(normalizeInRange(
+      trackedIdsLimit,
+      MIN_TRACKED_IDS_COUNT,
+      MAX_TRACKED_IDS_COUNT,
+      DEFAULT_TRACKED_IDS_COUNT,
+    ));
+  }, []);
+
   const loadRequestListLimit = useCallback(async () => {
     // electronWin removed - using window.electron directly
     if (!window.electron?.getSettings) {
@@ -244,10 +377,11 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
       const settings = await window.electron.getSettings();
       applyRequestListLimit(settings?.requestListLimit);
       applyRequestFilters(settings?.requestFilters);
+      applyNetworkPerformanceOptions(settings?.networkPollingCount, settings?.trackedRequestIdsLimit);
     } catch (error) {
       console.error('Failed to load request list limit:', error);
     }
-  }, [applyRequestListLimit, applyRequestFilters]);
+  }, [applyNetworkPerformanceOptions, applyRequestListLimit, applyRequestFilters]);
 
   useEffect(() => {
     loadRequestListLimit();
@@ -258,12 +392,16 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
       const customEvent = event as CustomEvent;
       applyRequestListLimit(customEvent?.detail?.requestListLimit);
       applyRequestFilters(customEvent?.detail?.requestFilters);
+      applyNetworkPerformanceOptions(
+        customEvent?.detail?.networkPollingCount,
+        customEvent?.detail?.trackedRequestIdsLimit,
+      );
     };
     window.addEventListener('prokcy-settings-updated', handleSettingsUpdated);
     return () => {
       window.removeEventListener('prokcy-settings-updated', handleSettingsUpdated);
     };
-  }, [applyRequestListLimit, applyRequestFilters]);
+  }, [applyNetworkPerformanceOptions, applyRequestListLimit, applyRequestFilters]);
 
   const fetchNetworkData = useCallback(async ({ initial = false } = {}) => {
     const config = await getRuntimeConfig();
@@ -276,19 +414,29 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
 
     const params = new URLSearchParams();
     const activeLimit = Math.max(1, requestListLimitRef.current);
-    params.set('count', String(Math.min(FETCH_COUNT, activeLimit)));
+    const activePollingCount = Math.max(
+      1,
+      Math.min(
+        activeLimit,
+        MAX_FETCH_COUNT,
+        networkPollingCountRef.current,
+      ),
+    );
+    params.set('count', String(activePollingCount));
 
     if (!initial && lastIdRef.current) {
       params.set('startTime', lastIdRef.current);
     }
 
-    const trackedIds = requestsRef.current
-      .slice(0, Math.min(TRACKED_IDS_COUNT, activeLimit))
+    const trackedIdsList = requestsRef.current
+      .slice(0, Math.min(trackedRequestIdsLimitRef.current, activeLimit))
       .map((request) => request.id)
-      .join(',');
+      .filter(Boolean);
+    const trackedIds = trackedIdsList.join(',');
 
     if (trackedIds) {
       params.set('ids', trackedIds);
+      params.set('status', trackedIdsList.map(() => TRACKED_STATUS_TRIM_MARKER).join(','));
     }
 
     const payload = window.electron?.getNetworkData
@@ -352,6 +500,8 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
     // Prevent next poll from reloading old requests after a manual clear.
     lastIdRef.current = String(Date.now());
     detailCacheRef.current.clear();
+    detailCacheBytesRef.current.clear();
+    detailCacheTotalBytesRef.current = 0;
     detailFetchTokenRef.current += 1;
     setRequests([]);
     setSelectedRequest(null);

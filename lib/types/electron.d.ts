@@ -27,5 +27,8 @@ export interface IpcRequest {
 
 export interface NetworkQuery {
   count?: number;
+  ids?: string;
+  startTime?: string;
+  status?: string;
   [key: string]: string | number | undefined;
 }

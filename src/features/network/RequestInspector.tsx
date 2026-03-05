@@ -130,19 +130,19 @@ export default function RequestInspector(): React.JSX.Element | null {
 
         <div className="flex-1 min-h-0">
           <TabsContent className="h-full min-h-0" value="headers">
-            <HeadersTab request={selectedRequest} />
+            {activeTab === 'headers' ? <HeadersTab request={selectedRequest} /> : null}
           </TabsContent>
           <TabsContent className="h-full min-h-0" value="body">
-            <BodyTab request={selectedRequest} />
+            {activeTab === 'body' ? <BodyTab request={selectedRequest} /> : null}
           </TabsContent>
           <TabsContent className="h-full min-h-0" value="response">
-            <ResponseTab request={selectedRequest} />
+            {activeTab === 'response' ? <ResponseTab request={selectedRequest} /> : null}
           </TabsContent>
           <TabsContent className="h-full min-h-0" value="rules">
-            <RulesTab request={selectedRequest} />
+            {activeTab === 'rules' ? <RulesTab request={selectedRequest} /> : null}
           </TabsContent>
           <TabsContent className="h-full min-h-0" value="timeline">
-            <TimelineTab request={selectedRequest} />
+            {activeTab === 'timeline' ? <TimelineTab request={selectedRequest} /> : null}
           </TabsContent>
         </div>
       </Tabs>

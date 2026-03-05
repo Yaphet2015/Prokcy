@@ -394,3 +394,14 @@ if (isDev) win.webContents.openDevTools();
 - Existing Whistle data storage (`~/.whistle_client/`) remains unchanged
 - Whistle utility process continues handling proxy operations
 - Pseudo-protocol `whistle://` preserved for compatibility
+
+## 2026-03 Performance Extension
+
+The original redesign plan now includes a memory/performance hardening extension:
+
+1. Fix background polling loops and high-frequency menu updates in Electron main process.
+2. Add low-memory capture mode that runs Whistle with `strict` mode.
+3. Align request list limit UX with Whistle's effective floor (`600`).
+4. Add advanced network polling controls (poll count + tracked IDs) to reduce steady-state payload pressure.
+5. Reduce renderer retention by keeping summary request objects lightweight and deferring heavy inspector editors.
+6. Add regression tests for timer scheduling and request-limit normalization.

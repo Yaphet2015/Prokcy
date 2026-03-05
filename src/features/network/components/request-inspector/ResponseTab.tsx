@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react';
+import { Button } from '@pikoloo/darwin-ui';
 import { useTheme } from '@/shared/context/ThemeContext';
 import { getThemeId } from '@/features/rules/monaco-themes';
 import type { TabProps } from './types';
 import { formatBytes } from './utils';
 import MonacoEditor from '../../../../shared/ui/MonacoEditor';
+
+const LARGE_RESPONSE_PREVIEW_THRESHOLD = 128 * 1024;
 
 /**
  * Check if a string looks like base64 encoded content.
@@ -32,6 +36,7 @@ function tryDecodeBase64(str: string): string {
 
 export function ResponseTab({ request }: TabProps): React.JSX.Element {
   const { isDark } = useTheme();
+  const [showEditor, setShowEditor] = useState(false);
   const { response } = request ?? {};
   const contentType = response?.headers?.['content-type'] ?? '';
   const isJson = contentType.includes('application/json');
@@ -42,6 +47,13 @@ export function ResponseTab({ request }: TabProps): React.JSX.Element {
   // For images, the body is raw base64; for other content types, it's usually decoded text
   // but may be raw base64 if normalization decoding failed
   let displayContent = isImage ? rawContent : tryDecodeBase64(rawContent);
+  const shouldUsePreview = !isImage
+    && displayContent.length > LARGE_RESPONSE_PREVIEW_THRESHOLD
+    && !showEditor;
+
+  useEffect(() => {
+    setShowEditor(false);
+  }, [request?.id]);
 
   // Format JSON for display
   if (isJson && displayContent) {
@@ -78,17 +90,33 @@ export function ResponseTab({ request }: TabProps): React.JSX.Element {
             </div>
           ) : displayContent ? (
             <div className="flex-1 min-h-0 overflow-hidden">
-              <MonacoEditor
-                value={displayContent}
-                language={isJson ? 'json' : isJavaScript ? 'javascript' : 'plaintext'}
-                theme={getThemeId(isDark)}
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  renderLineHighlight: 'none',
-                }}
-              />
+              {shouldUsePreview ? (
+                <div className="h-full min-h-0 flex flex-col gap-2 p-3 overflow-hidden">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Large payload preview. Open full editor only when needed.
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-auto rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 p-2">
+                    <pre className="text-xs whitespace-pre-wrap break-all">{displayContent.slice(0, LARGE_RESPONSE_PREVIEW_THRESHOLD)}</pre>
+                  </div>
+                  <div>
+                    <Button size="sm" variant="ghost" onClick={() => setShowEditor(true)}>
+                      Open Full Editor
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <MonacoEditor
+                  value={displayContent}
+                  language={isJson ? 'json' : isJavaScript ? 'javascript' : 'plaintext'}
+                  theme={getThemeId(isDark)}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    renderLineHighlight: 'none',
+                  }}
+                />
+              )}
             </div>
           ) : null}
         </div>

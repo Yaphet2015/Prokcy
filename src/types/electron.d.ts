@@ -38,11 +38,16 @@ interface SettingsForm {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: string;
   requestListLimit: string;
+  lowMemoryMode: boolean;
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  networkPollingCount: string;
+  trackedRequestIdsLimit: string;
   systemProxyEnabled: boolean;
+  defaultWidth: string;
+  defaultHeight: string;
 }
 
 interface ProxyPayload {
@@ -55,6 +60,9 @@ interface ProxyPayload {
   useDefaultStorage: boolean;
   maxHttpHeaderSize: string;
   requestListLimit: number;
+  lowMemoryMode: boolean;
+  defaultWidth?: number;
+  defaultHeight?: number;
 }
 
 interface PreferencesPayload {
@@ -62,6 +70,8 @@ interface PreferencesPayload {
   hideFromDock: boolean;
   themeMode: string;
   requestFilters: string;
+  networkPollingCount: number;
+  trackedRequestIdsLimit: number;
 }
 
 interface SettingsPayload {
@@ -144,7 +154,7 @@ interface RulesAPI {
 interface ServiceAPI {
   getServiceStatus(): Promise<ServiceStatusResult>;
   getRuntimeConfig(): Promise<RuntimeConfig>;
-  getNetworkData(query: Record<string, string>): Promise<unknown>;
+  getNetworkData(query: Record<string, string | number>): Promise<unknown>;
   startService(): Promise<ServiceOperationResult>;
   stopService(): Promise<ServiceOperationResult>;
   onServiceStatusChanged(callback: (status: ServiceStatusResult) => void): () => void;

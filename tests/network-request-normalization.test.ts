@@ -35,6 +35,8 @@ test('normalizeRequestSummary strips request/response bodies to avoid memory ret
   assert.ok(normalized);
   assert.equal(normalized.requestBody, null);
   assert.equal(normalized.response, null);
+  assert.deepEqual(normalized.headers, { request: {}, response: {} });
+  assert.deepEqual(normalized.rules, {});
   assert.equal(normalized.method, 'POST');
   assert.equal(normalized.status, 200);
 });
@@ -46,6 +48,25 @@ test('normalizeRequestDetail decodes bodies for selected request only', () => {
   assert.equal(normalized.requestBody?.content, '{"hello":"world"}');
   assert.equal(normalized.response?.body, '{"ok":true}');
   assert.equal(normalized.response?.size, 11);
+  assert.equal(normalized.headers.request['content-type'], 'application/json');
+  assert.equal((normalized.rules as { host?: { value?: string } }).host?.value, '127.0.0.1');
+});
+
+test('normalizeRequestSummary keeps style marker only for list rendering', () => {
+  const item = {
+    ...SAMPLE_ITEM,
+    rules: {
+      style: { value: 'bg-color:#f0f9ff,text-color:#0369a1' },
+      host: { value: '127.0.0.1' },
+    },
+  };
+
+  const normalized = normalizeRequestSummary(item);
+
+  assert.ok(normalized);
+  assert.deepEqual(normalized.rules, {
+    style: { value: 'bg-color:#f0f9ff,text-color:#0369a1' },
+  });
 });
 
 test('normalizeRequestDetail preserves leading content and appends ellipsis for oversized text body', () => {

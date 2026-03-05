@@ -15,6 +15,8 @@ import {
   setHideFromDock,
   applyThemeMode,
   setRequestFilters,
+  setNetworkPollingCount,
+  setTrackedRequestIdsLimit,
   type PreferencesData,
 } from './preferences';
 import { enableProxy, disableProxy, isEnabled, type ProxyOptions } from './proxy';
@@ -33,7 +35,7 @@ let mainWindow: BrowserWindow | null = null;
 let currentRules: unknown = null;
 let unsubscribeUpdateStatus: (() => void) | null = null;
 
-const DEFAULT_REQUEST_LIST_LIMIT = 500;
+const DEFAULT_REQUEST_LIST_LIMIT = 600;
 
 /**
  * Get runtime configuration for Whistle API requests
@@ -395,6 +397,12 @@ function initIpc(win: BrowserWindow): void {
       if (Object.prototype.hasOwnProperty.call(preferences, 'requestFilters')) {
         setRequestFilters(preferences.requestFilters);
       }
+      if (Object.prototype.hasOwnProperty.call(preferences, 'networkPollingCount')) {
+        setNetworkPollingCount((preferences as { networkPollingCount?: number }).networkPollingCount);
+      }
+      if (Object.prototype.hasOwnProperty.call(preferences, 'trackedRequestIdsLimit')) {
+        setTrackedRequestIdsLimit((preferences as { trackedRequestIdsLimit?: number }).trackedRequestIdsLimit);
+      }
       if (Object.prototype.hasOwnProperty.call(preferences, 'themeMode')) {
         // Manually refresh theme after programmatic change
         // nativeTheme.on('updated') only fires on system appearance changes
@@ -437,7 +445,7 @@ function initIpc(win: BrowserWindow): void {
     const safeCount =
       Number.isInteger(requestedCount) && requestedCount > 0
         ? Math.min(requestedCount, requestListLimit)
-        : Math.min(120, requestListLimit);
+        : Math.min(50, requestListLimit);
 
     const search = new URLSearchParams();
     Object.entries(query).forEach(([key, value]) => {

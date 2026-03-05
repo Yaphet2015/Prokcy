@@ -19,8 +19,36 @@ export interface PreferencesData {
   themeMode: ThemeMode;
   rulesOrder: string[];
   requestFilters: string;
+  networkPollingCount: number;
+  trackedRequestIdsLimit: number;
   systemProxyEnabled: boolean;
 }
+
+const DEFAULT_NETWORK_POLLING_COUNT = 50;
+const MIN_NETWORK_POLLING_COUNT = 10;
+const MAX_NETWORK_POLLING_COUNT = 100;
+const DEFAULT_TRACKED_REQUEST_IDS_LIMIT = 50;
+const MIN_TRACKED_REQUEST_IDS_LIMIT = 0;
+const MAX_TRACKED_REQUEST_IDS_LIMIT = 200;
+
+const normalizeNumberPreference = (
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+): number => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return fallback;
+  }
+  if (parsed < min) {
+    return min;
+  }
+  if (parsed > max) {
+    return max;
+  }
+  return parsed;
+};
 
 // Valid theme mode values
 const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
@@ -163,6 +191,42 @@ export const setRequestFilters = (filters: unknown): string => {
   return nextFilters;
 };
 
+export const getNetworkPollingCount = (): number => normalizeNumberPreference(
+  storage.getProperty('networkPollingCount'),
+  MIN_NETWORK_POLLING_COUNT,
+  MAX_NETWORK_POLLING_COUNT,
+  DEFAULT_NETWORK_POLLING_COUNT,
+);
+
+export const setNetworkPollingCount = (value: unknown): number => {
+  const nextValue = normalizeNumberPreference(
+    value,
+    MIN_NETWORK_POLLING_COUNT,
+    MAX_NETWORK_POLLING_COUNT,
+    DEFAULT_NETWORK_POLLING_COUNT,
+  );
+  storage.setProperty('networkPollingCount', nextValue);
+  return nextValue;
+};
+
+export const getTrackedRequestIdsLimit = (): number => normalizeNumberPreference(
+  storage.getProperty('trackedRequestIdsLimit'),
+  MIN_TRACKED_REQUEST_IDS_LIMIT,
+  MAX_TRACKED_REQUEST_IDS_LIMIT,
+  DEFAULT_TRACKED_REQUEST_IDS_LIMIT,
+);
+
+export const setTrackedRequestIdsLimit = (value: unknown): number => {
+  const nextValue = normalizeNumberPreference(
+    value,
+    MIN_TRACKED_REQUEST_IDS_LIMIT,
+    MAX_TRACKED_REQUEST_IDS_LIMIT,
+    DEFAULT_TRACKED_REQUEST_IDS_LIMIT,
+  );
+  storage.setProperty('trackedRequestIdsLimit', nextValue);
+  return nextValue;
+};
+
 /**
  * Get whether system proxy is automatically configured
  * @returns true if system proxy auto-configuration is enabled
@@ -181,5 +245,7 @@ export const getPreferences = (): PreferencesData => ({
   themeMode: getThemeMode(),
   rulesOrder: getRulesOrder(),
   requestFilters: getRequestFilters(),
+  networkPollingCount: getNetworkPollingCount(),
+  trackedRequestIdsLimit: getTrackedRequestIdsLimit(),
   systemProxyEnabled: getSystemProxyEnabled(),
 });

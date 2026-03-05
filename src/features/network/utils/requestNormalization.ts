@@ -68,6 +68,12 @@ interface DecodeResult {
   omitted: boolean;
 }
 
+interface CommonFieldOptions {
+  includeHeaders: boolean;
+  includeRules: boolean;
+  estimateSizeFromBase64: boolean;
+}
+
 const MAX_DETAIL_TEXT_BODY_BYTES = 256 * 1024;
 const MAX_DETAIL_IMAGE_BASE64_CHARS = 512 * 1024;
 
@@ -95,6 +101,15 @@ function getHeaderValue(headers: Record<string, string> | undefined, name: strin
   }
   const value = headers[key];
   return Array.isArray(value) ? value.join(', ') : toStringValue(value, '');
+}
+
+function getStyleOnlyRules(rules: unknown): Record<string, unknown> {
+  if (!rules || typeof rules !== 'object') {
+    return {};
+  }
+  const styleRule = (rules as { style?: { value?: unknown } }).style;
+  const styleValue = typeof styleRule?.value === 'string' ? styleRule.value : '';
+  return styleValue ? { style: { value: styleValue } } : {};
 }
 
 function estimateBase64Size(base64: unknown): number {
@@ -180,7 +195,10 @@ function getTimings(item: TimingItem): RequestTimings {
   };
 }
 
-function getCommonFields(item: RawRequestItem): Omit<NormalizedRequest, 'requestBody' | 'response'> | null {
+function getCommonFields(
+  item: RawRequestItem,
+  options: CommonFieldOptions,
+): Omit<NormalizedRequest, 'requestBody' | 'response'> | null {
   if (!item || typeof item !== 'object') {
     return null;
   }
@@ -190,10 +208,19 @@ function getCommonFields(item: RawRequestItem): Omit<NormalizedRequest, 'request
     return null;
   }
 
-  const requestHeaders = item.req?.headers && typeof item.req.headers === 'object' ? item.req.headers : {};
-  const responseHeaders = item.res?.headers && typeof item.res.headers === 'object' ? item.res.headers : {};
-  const responseBodyBase64 = toStringValue(item.res?.base64, '');
-  const responseSize = Number(item.res?.size) || estimateBase64Size(responseBodyBase64);
+  const requestHeaders = options.includeHeaders
+    && item.req?.headers
+    && typeof item.req.headers === 'object'
+    ? item.req.headers
+    : {};
+  const responseHeaders = options.includeHeaders
+    && item.res?.headers
+    && typeof item.res.headers === 'object'
+    ? item.res.headers
+    : {};
+  const responseBodyBase64 = options.estimateSizeFromBase64 ? toStringValue(item.res?.base64, '') : '';
+  const responseSize = Number(item.res?.size)
+    || (options.estimateSizeFromBase64 ? estimateBase64Size(responseBodyBase64) : 0);
 
   return {
     id,
@@ -207,13 +234,17 @@ function getCommonFields(item: RawRequestItem): Omit<NormalizedRequest, 'request
       request: requestHeaders,
       response: responseHeaders,
     },
-    rules: item.rules || {},
+    rules: options.includeRules ? (item.rules || {}) : getStyleOnlyRules(item.rules),
     sortTime: Number(item.startTime) || Date.now(),
   };
 }
 
 export function normalizeRequestSummary(item: RawRequestItem): NormalizedRequest | null {
-  const common = getCommonFields(item);
+  const common = getCommonFields(item, {
+    includeHeaders: false,
+    includeRules: false,
+    estimateSizeFromBase64: false,
+  });
   if (!common) {
     return null;
   }
@@ -226,7 +257,11 @@ export function normalizeRequestSummary(item: RawRequestItem): NormalizedRequest
 }
 
 export function normalizeRequestDetail(item: RawRequestItem): NormalizedRequest | null {
-  const common = getCommonFields(item);
+  const common = getCommonFields(item, {
+    includeHeaders: true,
+    includeRules: true,
+    estimateSizeFromBase64: true,
+  });
   if (!common) {
     return null;
   }
