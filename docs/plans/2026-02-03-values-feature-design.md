@@ -117,6 +117,7 @@ src/features/values/
 
 ## Keyboard Shortcuts
 
+- `Cmd/Ctrl+S`: Save dirty values (blocked while saving or when any dirty key is invalid JSON)
 - `Cmd/Ctrl+N`: Create new value
 - `Cmd/Ctrl+Shift+R`: Rename selected key
 - `Cmd/Ctrl+D`: Delete selected key

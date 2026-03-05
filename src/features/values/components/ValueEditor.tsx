@@ -14,6 +14,10 @@ interface ValueEditorProps {
   selectedKey: string | null;
   value: string;
   onChange: (value: string) => void;
+  isDirty: boolean;
+  onSave: () => void;
+  isSaving: boolean;
+  hasUnsavableDirtyValues: boolean;
   onValidationChange?: (key: string, isValid: boolean) => void;
 }
 
@@ -21,6 +25,10 @@ export default function ValueEditor({
   selectedKey,
   value,
   onChange,
+  isDirty,
+  onSave,
+  isSaving,
+  hasUnsavableDirtyValues,
   onValidationChange,
 }: ValueEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
@@ -51,10 +59,10 @@ export default function ValueEditor({
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
   useMonacoSave(useCallback(() => {
-    if (isValid && editorValue !== value) {
-      onChange(editorValue);
+    if (isDirty && !isSaving && !hasUnsavableDirtyValues && isValid) {
+      onSave();
     }
-  }, [isValid, editorValue, value, onChange]));
+  }, [isDirty, isSaving, hasUnsavableDirtyValues, isValid, onSave]));
 
   const handleBeforeMount = useCallback((monaco: typeof Monaco) => {
     initJson5Language(monaco);

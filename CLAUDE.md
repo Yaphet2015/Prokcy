@@ -184,9 +184,4 @@ Message types are defined in `lib/whistle.ts` (worker receiving) and `lib/fork.t
 
 ## Documentation
 
-Additional design and implementation plans are in `docs/plans/`:
-- `2026-01-30-prokcy-redesign-design.md` - Full UI redesign overview
-- `2026-01-30-prokcy-phase1-foundation.md` - Foundation implementation plan
-- `2026-02-03-values-feature-design.md` - Values feature design
-- `2026-02-10-rules-refactoring-plan.md` - Rules modular refactoring
-- `2025-02-10-glassmorphism-frameless-window-design.md` - Window chrome design
+Remember to review and update the existing design doc in docs/plans when you make any changes about the features of this app.

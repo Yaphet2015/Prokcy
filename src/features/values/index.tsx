@@ -238,6 +238,10 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
               selectedKey={selectedKey}
               value={selectedKey ? (values[selectedKey] ?? '') : ''}
               onChange={handleValueChange}
+              isDirty={isDirty}
+              onSave={saveValues}
+              isSaving={isSaving}
+              hasUnsavableDirtyValues={hasUnsavableDirtyValues}
               onValidationChange={handleValidationChange}
             />
           </main>
