@@ -100,7 +100,7 @@ let curTitle: string | undefined;
  * Constants
  */
 const INTERVAL = 5000;
-const REPO_URL = 'https://github.com/Yaphet2015/Prokcy';
+// const REPO_URL = 'https://github.com/Yaphet2015/Prokcy';
 let tray: Tray | null = null; // Prevent GC (https://github.com/amhoho/electron-cn-docs/blob/master/faq.md)
 const ICON_SIZE = { width: 15 };
 const SEPARATOR_MENU: MenuItemConstructorOptions = { type: 'separator' };
