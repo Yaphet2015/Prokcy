@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import * as monacoNs from 'monaco-editor';
@@ -241,17 +241,4 @@ export default function MonacoEditor({
       />
     </div>
   );
-}
-
-/**
- * Hook to trigger save from parent component
- */
-export function useMonacoSave(callback?: () => void): void {
-  useEffect(() => {
-    const handler = () => {
-      callback?.();
-    };
-    window.addEventListener('monaco-save', handler);
-    return () => window.removeEventListener('monaco-save', handler);
-  }, [callback]);
 }

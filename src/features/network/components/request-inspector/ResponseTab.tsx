@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@pikoloo/darwin-ui';
 import { useTheme } from '@/shared/context/ThemeContext';
 import { getThemeId } from '@/features/rules/monaco-themes';
+import MonacoEditor from '@/shared/ui/LazyMonacoEditor';
 import type { TabProps } from './types';
 import { formatBytes } from './utils';
-import MonacoEditor from '../../../../shared/ui/MonacoEditor';
 
 const LARGE_RESPONSE_PREVIEW_THRESHOLD = 128 * 1024;
 
@@ -105,17 +105,21 @@ export function ResponseTab({ request }: TabProps): React.JSX.Element {
                   </div>
                 </div>
               ) : (
-                <MonacoEditor
-                  value={displayContent}
-                  language={isJson ? 'json' : isJavaScript ? 'javascript' : 'plaintext'}
-                  theme={getThemeId(isDark)}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    renderLineHighlight: 'none',
-                  }}
-                />
+                <Suspense
+                  fallback={<div className="h-full flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">Loading editor...</div>}
+                >
+                  <MonacoEditor
+                    value={displayContent}
+                    language={isJson ? 'json' : isJavaScript ? 'javascript' : 'plaintext'}
+                    theme={getThemeId(isDark)}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      renderLineHighlight: 'none',
+                    }}
+                  />
+                </Suspense>
               )}
             </div>
           ) : null}

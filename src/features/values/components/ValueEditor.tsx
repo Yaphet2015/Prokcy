@@ -1,14 +1,13 @@
 import {
-  lazy, Suspense, useEffect, useState, useCallback,
+  Suspense, useEffect, useState, useCallback,
 } from 'react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import { initJson5Language, JSON5_LANGUAGE_ID } from '../constants';
-import { useMonacoSave } from '../../../shared/ui/MonacoEditor';
+import MonacoEditor from '../../../shared/ui/LazyMonacoEditor';
+import { useMonacoSave } from '../../../shared/ui/useMonacoSave';
 import Modal from '../../../shared/ui/Modal';
 import { getThemeId } from '../../rules/monaco-themes';
-
-const MonacoEditor = lazy(() => import('../../../shared/ui/MonacoEditor').then((m) => ({ default: m.default })));
 
 interface ValueEditorProps {
   selectedKey: string | null;

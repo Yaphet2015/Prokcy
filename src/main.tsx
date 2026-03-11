@@ -9,9 +9,6 @@ import {
 } from '@pikoloo/darwin-ui';
 import App from './App';
 import { ThemeProvider } from './shared/context/ThemeContext';
-import { NetworkProvider } from './shared/context/NetworkContext';
-import { RulesProvider } from './shared/context/RulesContext';
-import { ValuesProvider } from './shared/context/ValuesContext';
 import { ServiceProvider } from './shared/context/ServiceContext';
 
 // Ensure root element exists before rendering
@@ -27,13 +24,7 @@ ReactDOM.createRoot(rootElement).render(
         <ToastProvider>
           <ThemeProvider>
             <ServiceProvider>
-              <NetworkProvider>
-                <RulesProvider>
-                  <ValuesProvider>
-                    <App />
-                  </ValuesProvider>
-                </RulesProvider>
-              </NetworkProvider>
+              <App />
             </ServiceProvider>
           </ThemeProvider>
         </ToastProvider>

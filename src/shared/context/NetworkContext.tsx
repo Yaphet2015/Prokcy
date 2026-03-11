@@ -42,7 +42,8 @@ interface NetworkContextValue {
 // Constants
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = '8888';
-const POLL_INTERVAL = 1000;
+const ACTIVE_POLL_INTERVAL = 1000;
+const INACTIVE_POLL_INTERVAL = 5000;
 const MAX_RECONNECT_DELAY = 30000;
 const MAX_FETCH_COUNT = 100;
 const DEFAULT_FETCH_COUNT = 50;
@@ -114,46 +115,19 @@ export function mergeRequests(
   if (!incoming.length) {
     return previous.slice(0, maxRequests);
   }
-  const dedupedIncoming = new Map(incoming.map((req) => [req.id, req]));
-  const next = previous.slice(0, maxRequests);
-  const existingIndexById = new Map(next.map((req, index) => [req.id, index]));
+  const nextById = new Map(previous.slice(0, maxRequests).map((request) => [request.id, request]));
 
-  const findInsertIndex = (list: NormalizedRequest[], sortTime: number): number => {
-    let low = 0;
-    let high = list.length;
-    while (low < high) {
-      const mid = Math.floor((low + high) / 2);
-      if (list[mid].sortTime >= sortTime) {
-        low = mid + 1;
-      } else {
-        high = mid;
-      }
-    }
-    return low;
-  };
-
-  for (const req of dedupedIncoming.values()) {
-    const existingIndex = existingIndexById.get(req.id);
-    const previousItem = existingIndex != null ? next[existingIndex] : null;
-    const mergedItem = previousItem ? mergeSummaryRequest(previousItem, req) : req;
-    if (existingIndex != null) {
-      next.splice(existingIndex, 1);
-      existingIndexById.delete(req.id);
-      for (let i = existingIndex; i < next.length; i += 1) {
-        existingIndexById.set(next[i].id, i);
-      }
-    }
-    const insertIndex = findInsertIndex(next, mergedItem.sortTime);
-    next.splice(insertIndex, 0, mergedItem);
-    for (let i = insertIndex; i < next.length; i += 1) {
-      existingIndexById.set(next[i].id, i);
-    }
+  for (const incomingRequest of incoming) {
+    const previousRequest = nextById.get(incomingRequest.id);
+    nextById.set(
+      incomingRequest.id,
+      previousRequest ? mergeSummaryRequest(previousRequest, incomingRequest) : incomingRequest,
+    );
   }
 
-  if (next.length > maxRequests) {
-    next.length = maxRequests;
-  }
-  return next;
+  return [...nextById.values()]
+    .sort((a, b) => b.sortTime - a.sortTime)
+    .slice(0, maxRequests);
 }
 
 function normalizeInRange(value: unknown, min: number, max: number, fallback: number): number {
@@ -251,9 +225,13 @@ const NetworkContext = createContext<NetworkContextValue>({
 
 interface NetworkProviderProps {
   children: ReactNode;
+  isActive?: boolean;
 }
 
-export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.Element {
+export function NetworkProvider({
+  children,
+  isActive = true,
+}: NetworkProviderProps): React.JSX.Element {
   const { isApiAvailable } = useService();
   const [requests, setRequests] = useState<NormalizedRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<NormalizedRequest | null>(null);
@@ -277,6 +255,9 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   const detailCacheTotalBytesRef = useRef(0);
   const detailFetchTokenRef = useRef(0);
   const filterPatternsRef = useRef<string[]>([]);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(
+    typeof document === 'undefined' ? true : document.visibilityState !== 'hidden',
+  );
 
   useEffect(() => {
     requestsRef.current = requests;
@@ -293,6 +274,17 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
   useEffect(() => {
     trackedRequestIdsLimitRef.current = trackedRequestIdsLimit;
   }, [trackedRequestIdsLimit]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsDocumentVisible(document.visibilityState !== 'hidden');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     setRequests((prev) => (prev.length > requestListLimit ? prev.slice(0, requestListLimit) : prev));
@@ -548,6 +540,10 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
 
     let stopped = false;
 
+    const pollInterval = isActive && isDocumentVisible
+      ? ACTIVE_POLL_INTERVAL
+      : INACTIVE_POLL_INTERVAL;
+
     const scheduleReconnect = () => {
       const delay = Math.min(1000 * (2 ** reconnectAttemptsRef.current), MAX_RECONNECT_DELAY);
       reconnectAttemptsRef.current += 1;
@@ -566,7 +562,7 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
           if (!stopped) {
             poll(false);
           }
-        }, POLL_INTERVAL);
+        }, pollInterval);
       } catch (error) {
         console.error('Failed to fetch network requests:', error);
         setIsConnected(false);
@@ -575,7 +571,12 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
       }
     };
 
-    poll(true);
+    const initialDelay = isActive && isDocumentVisible ? 0 : pollInterval;
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (!stopped) {
+        void poll(true);
+      }
+    }, initialDelay);
 
     return () => {
       stopped = true;
@@ -583,7 +584,7 @@ export function NetworkProvider({ children }: NetworkProviderProps): React.JSX.E
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [fetchNetworkData, isApiAvailable]);
+  }, [fetchNetworkData, isApiAvailable, isActive, isDocumentVisible]);
 
   const selectRequest = useCallback((request: NormalizedRequest | null) => {
     setSelectedRequest(request);

@@ -1,13 +1,17 @@
 import {
-  useCallback, useEffect, useRef, useState,
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 import { Minus, Maximize2, X } from 'lucide-react';
 import Sidebar from './shared/ui/Sidebar';
 // import ContentHeader from './shared/ui/ContentHeader';
 import Network from './features/network';
-import Rules from './features/rules';
-import Values from './features/values';
-import Settings from './features/settings';
+import { NetworkProvider } from './shared/context/NetworkContext';
+import { scheduleMonacoWarmup } from './shared/ui/monaco-loader';
 import {
   getSidebarResizeState,
   getSidebarWidthTransitionClass,
@@ -20,6 +24,44 @@ interface ViewProps {
 }
 
 type ViewComponent = React.ComponentType<ViewProps>;
+
+const Settings = lazy(() => import('./features/settings'));
+
+const Rules = lazy(async () => {
+  const [{ default: RulesView }, { RulesProvider }] = await Promise.all([
+    import('./features/rules'),
+    import('./shared/context/RulesContext'),
+  ]);
+
+  function RulesScreen(props: ViewProps): React.JSX.Element {
+    return (
+      <RulesProvider>
+        <RulesView {...props} />
+      </RulesProvider>
+    );
+  }
+
+  RulesScreen.displayName = 'RulesScreen';
+  return { default: RulesScreen };
+});
+
+const Values = lazy(async () => {
+  const [{ default: ValuesView }, { ValuesProvider }] = await Promise.all([
+    import('./features/values'),
+    import('./shared/context/ValuesContext'),
+  ]);
+
+  function ValuesScreen(props: ViewProps): React.JSX.Element {
+    return (
+      <ValuesProvider>
+        <ValuesView {...props} />
+      </ValuesProvider>
+    );
+  }
+
+  ValuesScreen.displayName = 'ValuesScreen';
+  return { default: ValuesScreen };
+});
 
 const VIEWS: Record<ViewType, ViewComponent> = {
   network: Network,
@@ -48,6 +90,17 @@ const SIDEBAR_MAX_WIDTH = 300;
 const SIDEBAR_COLLAPSE_THRESHOLD = 70;
 const SIDEBAR_EXPAND_THRESHOLD = 166;
 
+function ViewLoadingFallback(): React.JSX.Element {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading view...</span>
+      </div>
+    </div>
+  );
+}
+
 function App(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ViewType>('network');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -67,6 +120,8 @@ function App(): React.JSX.Element {
     isSidebarCollapsedRef.current = isSidebarCollapsed;
     previousIsSidebarCollapsedRef.current = isSidebarCollapsed;
   }, [isSidebarCollapsed]);
+
+  useEffect(() => scheduleMonacoWarmup(), []);
 
   const handleSidebarResizeStart = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
@@ -185,54 +240,58 @@ function App(): React.JSX.Element {
   const sidebarWidthValue = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
 
   return (
-    <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
+    <NetworkProvider isActive={activeView === 'network'}>
+      <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
 
-      <Sidebar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
-        width={sidebarWidthValue}
-        isResizing={isResizingSidebar}
-        onResizeStart={handleSidebarResizeStart}
-        widthTransitionClass={sidebarWidthTransitionClass}
-      />
+        <Sidebar
+          activeView={activeView}
+          onViewChange={setActiveView}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+          width={sidebarWidthValue}
+          isResizing={isResizingSidebar}
+          onResizeStart={handleSidebarResizeStart}
+          widthTransitionClass={sidebarWidthTransitionClass}
+        />
 
-      <div className="min-w-0 min-h-0 flex-1 flex flex-col">
-        {/* <ContentHeader activeView={activeView} /> */}
-        <main className="min-h-0 flex-1 overflow-hidden w-full">
-          <ActiveComponent isSidebarCollapsed={isSidebarCollapsed} />
-        </main>
+        <div className="min-w-0 min-h-0 flex-1 flex flex-col">
+          {/* <ContentHeader activeView={activeView} /> */}
+          <main className="min-h-0 flex-1 overflow-hidden w-full">
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <ActiveComponent isSidebarCollapsed={isSidebarCollapsed} />
+            </Suspense>
+          </main>
+        </div>
+
+        {/* Window controls - fixed at top-left, below the sidebar */}
+        <div className={`fixed top-4 left-4 z-9999 flex justify-start items-center gap-2 app-drag`}>
+          <button
+            type="button"
+            aria-label="Close window"
+            onClick={() => window.electron?.closeWindow?.()}
+            className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
+          >
+            <X className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
+          <button
+            type="button"
+            aria-label="Minimize window"
+            onClick={() => window.electron?.minimizeWindow?.()}
+            className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
+          >
+            <Minus className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
+          <button
+            type="button"
+            aria-label="Toggle maximize window"
+            onClick={() => window.electron?.toggleMaximizeWindow?.()}
+            className="app-no-drag group relative h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
+          >
+            <Maximize2 className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
+        </div>
       </div>
-
-      {/* Window controls - fixed at top-left, below the sidebar */}
-      <div className={`fixed top-4 left-4 z-9999 flex justify-start items-center gap-2 app-drag`}>
-        <button
-          type="button"
-          aria-label="Close window"
-          onClick={() => window.electron?.closeWindow?.()}
-          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-95"
-        >
-          <X className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-        </button>
-        <button
-          type="button"
-          aria-label="Minimize window"
-          onClick={() => window.electron?.minimizeWindow?.()}
-          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#ffbd2e] hover:brightness-95"
-        >
-          <Minus className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-        </button>
-        <button
-          type="button"
-          aria-label="Toggle maximize window"
-          onClick={() => window.electron?.toggleMaximizeWindow?.()}
-          className="app-no-drag group relative h-3 w-3 rounded-full bg-[#28c840] hover:brightness-95"
-        >
-          <Maximize2 className="absolute inset-0 m-auto h-2 w-2 text-black/65 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
-        </button>
-      </div>
-    </div>
+    </NetworkProvider>
   );
 }
 

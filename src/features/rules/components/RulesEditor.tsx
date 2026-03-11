@@ -1,13 +1,12 @@
 import {
-  lazy, Suspense, useCallback,
+  Suspense, useCallback,
 } from 'react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
-import { useMonacoSave } from '../../../shared/ui/MonacoEditor';
+import MonacoEditor from '../../../shared/ui/LazyMonacoEditor';
+import { useMonacoSave } from '../../../shared/ui/useMonacoSave';
 import { registerTahoeThemes, getThemeId } from '../monaco-themes';
 import { initWhistleLanguage } from '../whistle-language';
-
-const MonacoEditor = lazy(() => import('../../../shared/ui/MonacoEditor').then((module) => ({ default: module.default })));
 
 interface RulesEditorProps {
   value: string;
