@@ -192,7 +192,8 @@ const reportIssue = (): void => {
  * View documentation
  */
 const viewDocumentation = (): void => {
-  shell.openExternal('https://github.com/Yaphet2015/Prokcy#readme');
+  shell.openExternal('https://wproxy.org/docs/rules/rule.html');
+  // shell.openExternal('https://github.com/Yaphet2015/Prokcy#readme');
 };
 
 // Configure context menu
@@ -632,18 +633,18 @@ export const create = async (): Promise<void> => {
       label: 'Help',
       submenu: [
         {
-          label: 'Prokcy Documentation',
+          label: 'Whistle Documentation',
           click: viewDocumentation,
         },
-        {
-          label: 'View on GitHub',
-          click: showRepo,
-        },
-        SEPARATOR_MENU,
-        {
-          label: 'Report an Issue',
-          click: reportIssue,
-        },
+        // {
+        //   label: 'View on GitHub',
+        //   click: showRepo,
+        // },
+        // SEPARATOR_MENU,
+        // {
+        //   label: 'Report an Issue',
+        //   click: reportIssue,
+        // },
       ],
     };
 
