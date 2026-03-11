@@ -166,9 +166,9 @@ let icons = createIcons();
 /**
  * Show the GitHub repository in browser
  */
-const showRepo = (): void => {
-  shell.openExternal(REPO_URL);
-};
+// const showRepo = (): void => {
+//   shell.openExternal(REPO_URL);
+// };
 
 /**
  * Show About dialog
@@ -184,9 +184,9 @@ const showAboutDialog = (): void => {
 /**
  * Report an issue on GitHub
  */
-const reportIssue = (): void => {
-  shell.openExternal('https://github.com/Yaphet2015/Prokcy/issues/new');
-};
+// const reportIssue = (): void => {
+//   shell.openExternal('https://github.com/Yaphet2015/Prokcy/issues/new');
+// };
 
 /**
  * View documentation
