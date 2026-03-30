@@ -1,5 +1,8 @@
-import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
+import {
+  ipcMain, nativeTheme, BrowserWindow, shell,
+} from 'electron';
 import http from 'http';
+import fs from 'node:fs';
 import { toggleMaximize, bindMaximizeStateEvents } from './window-controls';
 import {
   getOptions,
@@ -29,6 +32,7 @@ import {
   onUpdateStatusChanged,
 } from './updater';
 import type { IpcRequest, NetworkQuery } from './types/electron';
+import { resolveFileProtocolTarget } from './file-target';
 
 // Module state
 let mainWindow: BrowserWindow | null = null;
@@ -212,6 +216,46 @@ function initIpc(win: BrowserWindow): void {
   ipcMain.handle('window:is-maximized', () => (
     !!(mainWindow && !mainWindow.isDestroyed() && mainWindow.isMaximized())
   ));
+
+  ipcMain.handle('open-file-protocol-target', async (_event, target: string) => {
+    try {
+      const resolvedTarget = resolveFileProtocolTarget(target);
+      if (resolvedTarget.kind !== 'local-file') {
+        return {
+          success: false,
+          code: resolvedTarget.code,
+          message: resolvedTarget.message,
+        };
+      }
+
+      if (!fs.existsSync(resolvedTarget.path)) {
+        return {
+          success: false,
+          code: 'file_not_found',
+          message: resolvedTarget.path,
+        };
+      }
+
+      const message = await shell.openPath(resolvedTarget.path);
+      if (message) {
+        return {
+          success: false,
+          code: 'open_failed',
+          message,
+        };
+      }
+      return {
+        success: true,
+        code: 'success',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        code: 'open_failed',
+        message: error instanceof Error ? error.message : 'Failed to open file target',
+      };
+    }
+  });
 
   // Get current rules
   ipcMain.handle('get-rules', () => currentRules);

@@ -113,6 +113,10 @@ interface MonacoEditorProps {
   theme?: string;
   loading?: boolean;
   beforeMount?: (monaco: typeof monacoNs) => void;
+  onEditorMount?: (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: typeof monacoNs,
+  ) => void;
   options?: MonacoEditorOptions;
 }
 
@@ -126,6 +130,7 @@ export default function MonacoEditor({
   theme = 'tahoe-dark',
   loading = false,
   beforeMount,
+  onEditorMount,
   options = {},
 }: MonacoEditorProps): React.JSX.Element {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -232,6 +237,8 @@ export default function MonacoEditor({
         pasteCleanupRef.current = null;
       }
     });
+
+    onEditorMount?.(editor, monaco);
   };
 
   const handleChange = (newValue: string | undefined) => {

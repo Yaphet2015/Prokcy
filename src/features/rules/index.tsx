@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@pikoloo/darwin-ui';
 import { Power, Save } from 'lucide-react';
 import { usePrompt } from '../../shared/ui/Modal';
@@ -7,8 +7,14 @@ import ContentHeader from '../../shared/ui/ContentHeader';
 import { useRules } from '../../shared/context/RulesContext';
 import { RulesSidebar, RulesEditor } from './components';
 import { useRuleGroupActions, useRuleGroupsDragDrop } from './hooks';
+import { getFileNavigationFeedbackMessage } from './utils/fileNavigationFeedback';
 
-function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
+interface RulesProps {
+  isSidebarCollapsed: boolean;
+  onNavigateToValueKey?: (key: string) => void;
+}
+
+function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.JSX.Element {
   // Get rules state and operations from context
   const {
     rules,
@@ -29,6 +35,7 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
   // Dialog hooks
   const [showPrompt, promptElement] = usePrompt();
   const [showConfirm, confirmElement] = useConfirm();
+  const [fileNavigationMessage, setFileNavigationMessage] = useState<string | null>(null);
 
   // Custom hooks for complex logic
   const actions = useRuleGroupActions({ prompt: showPrompt, confirm: showConfirm });
@@ -41,6 +48,13 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
       selectedGroups.map((group, idx) => [group.name, idx + 1] as [string, number]),
     );
   }, [dragDrop.localRuleGroups]);
+
+  const statusMessage = (
+    <>
+      {fileNavigationMessage && <span className="text-xs text-amber-500">{fileNavigationMessage}</span>}
+      {error && <span className="text-xs text-red-500">{error}</span>}
+    </>
+  );
 
   return (
     <>
@@ -62,7 +76,7 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
           //     {isEnabled ? 'Enabled' : 'Disabled'}
           //   </Button>
           // )}
-          statusMessage={error && <span className="text-xs text-red-500">{error}</span>}
+          statusMessage={(fileNavigationMessage || error) ? statusMessage : null}
           rightActions={(
             <Button
               variant={isDirty ? "primary" : "ghost"}
@@ -100,6 +114,10 @@ function Rules({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.J
               isDirty={isDirty}
               onSave={saveRules}
               isLoading={isLoading}
+              onNavigateToValueKey={onNavigateToValueKey}
+              onFileNavigationResult={(result) => {
+                setFileNavigationMessage(getFileNavigationFeedbackMessage(result));
+              }}
             />
           </div>
         </div>

@@ -21,6 +21,9 @@ import type { ViewType } from './types/ui';
 // View components mapping
 interface ViewProps {
   isSidebarCollapsed: boolean;
+  pendingValueKey?: string | null;
+  onPendingValueNavigationHandled?: () => void;
+  onNavigateToValueKey?: (key: string) => void;
 }
 
 type ViewComponent = React.ComponentType<ViewProps>;
@@ -103,6 +106,7 @@ function ViewLoadingFallback(): React.JSX.Element {
 
 function App(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ViewType>('network');
+  const [pendingValueKey, setPendingValueKey] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -238,6 +242,14 @@ function App(): React.JSX.Element {
   }, [isResizingSidebar]);
 
   const sidebarWidthValue = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
+  const handleNavigateToValueKey = useCallback((key: string) => {
+    setPendingValueKey(key);
+    setActiveView('values');
+  }, []);
+
+  const handlePendingValueNavigationHandled = useCallback(() => {
+    setPendingValueKey(null);
+  }, []);
 
   return (
     <NetworkProvider isActive={activeView === 'network'}>
@@ -258,7 +270,12 @@ function App(): React.JSX.Element {
           {/* <ContentHeader activeView={activeView} /> */}
           <main className="min-h-0 flex-1 overflow-hidden w-full">
             <Suspense fallback={<ViewLoadingFallback />}>
-              <ActiveComponent isSidebarCollapsed={isSidebarCollapsed} />
+              <ActiveComponent
+                isSidebarCollapsed={isSidebarCollapsed}
+                pendingValueKey={pendingValueKey}
+                onPendingValueNavigationHandled={handlePendingValueNavigationHandled}
+                onNavigateToValueKey={handleNavigateToValueKey}
+              />
             </Suspense>
           </main>
         </div>

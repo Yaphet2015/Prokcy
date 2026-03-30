@@ -9,6 +9,7 @@ import ContentHeader from '../../shared/ui/ContentHeader';
 import { useValues } from '../../shared/context/ValuesContext';
 import KeysList, { type KeysListHandle } from './components/KeysList';
 import ValueEditor from './components/ValueEditor';
+import { resolveValuesSelectionFromPendingNavigation } from './utils/pendingNavigation';
 
 // Types for event handling
 interface ValuesRenameEventDetail {
@@ -16,7 +17,17 @@ interface ValuesRenameEventDetail {
   newKey: string;
 }
 
-export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }): React.JSX.Element {
+interface ValuesProps {
+  isSidebarCollapsed: boolean;
+  pendingValueKey?: string | null;
+  onPendingValueNavigationHandled?: () => void;
+}
+
+export default function Values({
+  isSidebarCollapsed,
+  pendingValueKey = null,
+  onPendingValueNavigationHandled,
+}: ValuesProps): React.JSX.Element {
   const {
     values,
     originalValues,
@@ -33,8 +44,11 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
     error,
   } = useValues();
   const [invalidKeys, setInvalidKeys] = useState<Set<string>>(new Set());
+  const [focusRequestId, setFocusRequestId] = useState(0);
+  const [suppressAutoSelectOnce, setSuppressAutoSelectOnce] = useState(false);
 
   const keysListRef = useRef<KeysListHandle>(null);
+  const valueKeys = useMemo(() => Object.keys(values).filter((key) => key !== ''), [values]);
 
   // Dialog hooks
   const [showPrompt, promptElement] = usePrompt();
@@ -79,6 +93,47 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
     window.addEventListener('values-rename', handler);
     return () => window.removeEventListener('values-rename', handler);
   }, [renameKey]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const nextSelection = resolveValuesSelectionFromPendingNavigation({
+      keys: valueKeys,
+      selectedKey,
+      pendingKey: pendingValueKey,
+      suppressAutoSelectOnce,
+    });
+
+    if (pendingValueKey !== null) {
+      setSuppressAutoSelectOnce(nextSelection.suppressAutoSelectOnce);
+      if (nextSelection.nextSelectedKey !== selectedKey) {
+        selectKey(nextSelection.nextSelectedKey);
+      }
+      if (nextSelection.nextSelectedKey) {
+        setFocusRequestId((prev) => prev + 1);
+      }
+      onPendingValueNavigationHandled?.();
+      return;
+    }
+
+    if (suppressAutoSelectOnce !== nextSelection.suppressAutoSelectOnce) {
+      setSuppressAutoSelectOnce(nextSelection.suppressAutoSelectOnce);
+    }
+
+    if (nextSelection.nextSelectedKey !== selectedKey) {
+      selectKey(nextSelection.nextSelectedKey);
+    }
+  }, [
+    isLoading,
+    onPendingValueNavigationHandled,
+    pendingValueKey,
+    selectKey,
+    selectedKey,
+    suppressAutoSelectOnce,
+    valueKeys,
+  ]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -243,6 +298,7 @@ export default function Values({ isSidebarCollapsed }: { isSidebarCollapsed: boo
               isSaving={isSaving}
               hasUnsavableDirtyValues={hasUnsavableDirtyValues}
               onValidationChange={handleValidationChange}
+              focusRequestId={focusRequestId}
             />
           </main>
         </div>

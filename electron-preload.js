@@ -34,6 +34,7 @@ const electronApi = {
   getValues: () => ipcRenderer.invoke('get-values'),
   setValue: (name, value) => ipcRenderer.invoke('set-value', { name, value }),
   deleteValue: (name) => ipcRenderer.invoke('delete-value', { name }),
+  openFileProtocolTarget: (target) => ipcRenderer.invoke('open-file-protocol-target', target),
   startService: () => ipcRenderer.invoke('start-service'),
   stopService: () => ipcRenderer.invoke('stop-service'),
   onRulesUpdated: (callback) => {

@@ -94,6 +94,8 @@ Full-height Monaco Editor with toolbar (Save, Revert, Enable/Disable All). Statu
 - Tahoe-themed syntax highlighting
 - Cmd/Ctrl+S to save
 - Cmd/Ctrl+/ to toggle comments
+- Cmd/Ctrl+Click on Whistle local file targets opens the target with the OS default application via Electron main-process IPC, including `file:///absolute/path`, `file://~/path`, and Windows drive paths such as `file://C:/tmp/a.js`
+- Cmd/Ctrl+Click on `protocol://{valueKey}` including `file://{valueKey}` switches to Values, selects the referenced key, and focuses the Value editor
 - Paste handling uses a renderer-side fallback only for the Monaco text surface; find widget and other Monaco input controls keep native paste behavior
 - Error squiggles for invalid syntax
 
@@ -134,6 +136,12 @@ Add a fixed-width group list panel to the left side of the Rules editor to manag
 ### Values Section
 
 Two-column layout: KeysList (left 30%) and ValueEditor (right 70%). Values support strings, numbers, and JSON objects with inline editing.
+
+**Cross-view navigation:**
+- Rules can hand off a pending Values navigation request through the App shell instead of a global router
+- When the referenced key exists, Values selects it and focuses the Monaco editor
+- When the referenced key is missing, Values keeps selection empty for that navigation cycle and does not auto-select the first key
+- Unsupported non-local `file://` targets such as temp aliases or wrapped remote URLs stay in Rules and show a visible status message instead of failing silently
 
 ## Visual Design: macOS Tahoe
 

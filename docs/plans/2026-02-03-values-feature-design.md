@@ -75,6 +75,12 @@ Styling matches the Rules view exactly for consistency.
 - Shows "Saving..." during API call
 - On success: "Saved" for 2 seconds, then clears
 
+**Pending Navigation Behavior:**
+- The App shell can enter Values with a pending key from Rules `Cmd/Ctrl+Click` navigation
+- If the key exists, Values selects it immediately and focuses the Monaco editor
+- If the key does not exist, Values clears selection for that navigation cycle and suppresses the usual first-key auto-select once
+- Non-local Whistle `file://` targets do not enter Values and instead surface an inline Rules status message
+
 ## Component Structure
 
 ```
@@ -103,6 +109,7 @@ src/features/values/
 - Language: JSON5 (comments allowed, trailing commas)
 - Theme: `tahoe-dark` or `tahoe-light` (syncs with system)
 - Options: `minimap: { enabled: false }`, `scrollBeyondLastLine: false`
+- Focus can be requested programmatically after cross-view navigation from Rules
 
 ## Edge Cases
 
@@ -114,6 +121,7 @@ src/features/values/
 6. **Rename:** Double-click or context menu on key
 7. **Empty value:** Defaults to `{}` for new values
 8. **Unexpected payload types:** Non-string values must be coerced to strings before passing data into Monaco to prevent renderer crashes on initial load
+9. **Missing cross-view target:** Navigating from Rules to a missing `{valueKey}` keeps the empty state instead of selecting an unrelated first key
 
 ## Keyboard Shortcuts
 

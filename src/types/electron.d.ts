@@ -12,6 +12,7 @@ interface ServiceStatusResult {
 
 interface ServiceOperationResult {
   success?: boolean;
+  code?: string;
   message?: string;
 }
 
@@ -140,6 +141,7 @@ interface RulesAPI {
   getRulesOrder(): Promise<string[]>;
   setRulesOrder(order: string[]): Promise<void>;
   setRules(content: string, name: string): Promise<void>;
+  openFileProtocolTarget(target: string): Promise<ServiceOperationResult>;
   setRulesEnabled(enabled: boolean): Promise<void>;
   setRuleSelection(name: string, selected: boolean): Promise<void>;
   createRulesGroup(name: string, content: string): Promise<void>;

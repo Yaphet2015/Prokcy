@@ -18,6 +18,7 @@ interface ValueEditorProps {
   isSaving: boolean;
   hasUnsavableDirtyValues: boolean;
   onValidationChange?: (key: string, isValid: boolean) => void;
+  focusRequestId?: number;
 }
 
 export default function ValueEditor({
@@ -29,12 +30,14 @@ export default function ValueEditor({
   isSaving,
   hasUnsavableDirtyValues,
   onValidationChange,
+  focusRequestId = 0,
 }: ValueEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
   const initialValue = typeof value === 'string' && value.length > 0 ? value : '{}';
   const [editorValue, setEditorValue] = useState(initialValue);
   const [isValid, setIsValid] = useState(true);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(null);
 
   const validateValue = useCallback((input: string): boolean => {
     try {
@@ -91,6 +94,14 @@ export default function ValueEditor({
     setIsRenameModalOpen(false);
   }, []);
 
+  useEffect(() => {
+    if (!editorInstance || !selectedKey || focusRequestId < 1) {
+      return;
+    }
+
+    editorInstance.focus();
+  }, [editorInstance, focusRequestId, selectedKey]);
+
   if (!selectedKey) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -121,6 +132,7 @@ export default function ValueEditor({
             language={JSON5_LANGUAGE_ID}
             theme={getThemeId(isDark)}
             beforeMount={handleBeforeMount}
+            onEditorMount={setEditorInstance}
             options={{
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
