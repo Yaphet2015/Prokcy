@@ -94,6 +94,7 @@ Full-height Monaco Editor with toolbar (Save, Revert, Enable/Disable All). Statu
 - Tahoe-themed syntax highlighting
 - Cmd/Ctrl+S to save
 - Cmd/Ctrl+/ to toggle comments
+- Paste handling uses a renderer-side fallback only for the Monaco text surface; find widget and other Monaco input controls keep native paste behavior
 - Error squiggles for invalid syntax
 
 ### Rules Grouping Panel (Left of Editor)
@@ -225,6 +226,13 @@ Using `@monaco-editor/react`:
   }}
 />
 ```
+
+### Clipboard Behavior
+
+- Keep native paste behavior for Monaco overlay inputs such as the built-in find widget
+- Only intercept paste for the main Monaco text surface when Electron's clipboard fallback is needed
+- Do not register a blanket `Cmd/Ctrl+V` override that redirects paste into the editor model regardless of focus target
+- In Electron, provide Monaco `overrideServices.productService = { quality: 'stable' }` so Monaco's built-in paste command can execute without hitting a missing service error
 
 ### Custom Language
 

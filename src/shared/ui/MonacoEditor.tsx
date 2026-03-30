@@ -1,8 +1,10 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import * as monacoNs from 'monaco-editor';
 import { registerWhistleLanguage } from '../../features/rules/whistle-language';
+import { getCustomPasteText, shouldUseCustomMonacoPaste } from './monaco-paste';
+import { createMonacoOverrideServices } from './monaco-services';
 
 // Use local Monaco instance to avoid CDN fetch issues in Electron desktop runtime.
 // The loader.config({ monaco }) tells @monaco-editor/react to use the bundled
@@ -77,6 +79,7 @@ if (typeof window !== 'undefined') {
 // Editor options from Monaco
 interface MonacoEditorOptions {
   minimap?: { enabled: boolean };
+  readOnly?: boolean;
   scrollBeyondLastLine?: boolean;
   padding?: { top: number; bottom: number };
   renderLineHighlight?: 'none' | 'gap' | 'all' | 'line' | 'full';
@@ -126,11 +129,18 @@ export default function MonacoEditor({
   options = {},
 }: MonacoEditorProps): React.JSX.Element {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const pasteCleanupRef = useRef<(() => void) | null>(null);
   const safeValue = typeof value === 'string'
     ? value
     : value == null
       ? ''
       : String(value);
+  const isReadOnly = options.readOnly === true;
+
+  useEffect(() => () => {
+    pasteCleanupRef.current?.();
+    pasteCleanupRef.current = null;
+  }, []);
 
   const handleBeforeMount = (monaco: typeof monacoNs) => {
     // Register Whistle language if using Monaco
@@ -146,6 +156,8 @@ export default function MonacoEditor({
     monaco: typeof monacoNs,
   ) => {
     editorRef.current = editor;
+    pasteCleanupRef.current?.();
+    pasteCleanupRef.current = null;
 
     // Set editor font to SF Mono for authentic macOS feel
     editor.updateOptions({
@@ -167,17 +179,57 @@ export default function MonacoEditor({
       if (action) action.run();
     });
 
-    // Custom paste command using Electron's clipboard API
-    // This bypasses Monaco's internal service resolution that fails in Electron
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
-      const electron = (window as { require?: (module: string) => { clipboard?: { readText: () => string } } }).require?.('electron');
-      const clipboard = electron?.clipboard;
+    const domNode = editor.getDomNode();
+    if (!domNode || isReadOnly) {
+      return;
+    }
 
-      if (clipboard && typeof clipboard.readText === 'function') {
-        const text = clipboard.readText();
-        if (text) {
-          editor.trigger('keyboard', 'type', { text });
+    const readFallbackText = () => {
+      const electron = (
+        window as Window & {
+          require?: (module: string) => {
+            clipboard?: { readText: () => string };
+          };
         }
+      ).require?.('electron');
+
+      return electron?.clipboard?.readText?.() ?? '';
+    };
+
+    const handlePaste = (event: ClipboardEvent) => {
+      if (!shouldUseCustomMonacoPaste({
+        hasTextFocus: editor.hasTextFocus(),
+        isReadOnly,
+        eventTarget: event.target,
+      })) {
+        return;
+      }
+
+      const text = getCustomPasteText({
+        clipboardData: event.clipboardData,
+        readFallbackText,
+      });
+
+      if (!text) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      editor.trigger('keyboard', 'type', { text });
+    };
+
+    domNode.addEventListener('paste', handlePaste, true);
+
+    const cleanupPasteHandler = () => {
+      domNode.removeEventListener('paste', handlePaste, true);
+    };
+
+    pasteCleanupRef.current = cleanupPasteHandler;
+    editor.onDidDispose(() => {
+      cleanupPasteHandler();
+      if (pasteCleanupRef.current === cleanupPasteHandler) {
+        pasteCleanupRef.current = null;
       }
     });
   };
@@ -198,6 +250,7 @@ export default function MonacoEditor({
         onChange={handleChange}
         beforeMount={handleBeforeMount}
         onMount={handleEditorDidMount}
+        overrideServices={createMonacoOverrideServices()}
         options={{
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
