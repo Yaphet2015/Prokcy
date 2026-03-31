@@ -30,7 +30,7 @@ Styling matches the Rules view exactly for consistency.
 - Selection: `border-tahoe-accent bg-tahoe-accent/10`
 
 **Status Indicators:**
-- "Saving..." / "Saved" / "Unsaved changes"
+- "Saving..." / "Unsaved changes"
 - Error display: `text-xs text-red-500`
 - Loading spinner: `w-8 h-8 border-2 border-tahoe-accent border-t-transparent rounded-full animate-spin`
 
@@ -49,10 +49,10 @@ Styling matches the Rules view exactly for consistency.
   // Actions
   fetchValues(),
   selectKey(key),
-  setValue(key, value),      // Auto-saves
-  deleteValue(key),          // With confirmation
-  createValue(key),
-  renameKey(oldKey, newKey),
+  setValue(key, value),      // Local draft only
+  deleteValue(key),          // Confirm, then persist immediately
+  createValue(key),          // Persist immediately
+  renameKey(oldKey, newKey), // Persist immediately
   setSearchQuery(query)
 }
 ```
@@ -66,14 +66,16 @@ Styling matches the Rules view exactly for consistency.
 **API Integration:**
 - `fetchValues()` calls `getValues()` on mount
 - `fetchValues()` must normalize both Whistle envelope responses (`{ ec, list }`) and plain key-value maps before writing to context state
-- `setValue(key, value)` → `setValue(key, jsonString)` with 300ms debounce
-- `deleteValue(key)` → `deleteValue(key)` after confirmation
-- `createValue(key)` → `setValue(key, '{}')` for new empty JSON object
+- `setValue(key, value)` updates local draft state only
+- `deleteValue(key)` calls `deleteValue(key)` after confirmation and updates the persisted baseline on success
+- `createValue(key)` calls `setValue(key, '{}')` immediately and updates the persisted baseline on success
+- `renameKey(oldKey, newKey)` calls `setValue(newKey, currentValue)` then `deleteValue(oldKey)`, and updates the persisted baseline on success
 
-**Auto-save Behavior:**
-- Changes trigger save after 300ms delay
-- Shows "Saving..." during API call
-- On success: "Saved" for 2 seconds, then clears
+**Save Behavior:**
+- JSON text edits stay local until the user clicks `Save` or presses `Cmd/Ctrl+S`
+- Structural operations (`create`, `delete`, `rename`) persist immediately after their confirm action succeeds
+- Immediate structural saves must not flush unrelated unsaved editor drafts
+- Save actions are blocked while any dirty key is invalid JSON
 
 **Pending Navigation Behavior:**
 - The App shell can enter Values with a pending key from Rules `Cmd/Ctrl+Click` navigation
@@ -115,7 +117,7 @@ src/features/values/
 
 1. **No values:** Empty state with hint message
 2. **Invalid JSON while dirty:** Monaco shows syntax errors, key list shows filled circle marker, save is disabled
-3. **Delete confirmation:** Native `confirm()` dialog
+3. **Delete confirmation:** Dialog confirmation triggers immediate delete persistence
 4. **Duplicate key:** Inline error in create dialog
 5. **API failures:** Retry with exponential backoff
 6. **Rename:** Double-click or context menu on key

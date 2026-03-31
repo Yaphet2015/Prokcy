@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement the Values key-value management feature with two-column layout, Monaco Editor for JSON5, and auto-save functionality.
+**Goal:** Implement the Values key-value management feature with two-column layout, Monaco Editor for JSON5, immediate persistence for structural actions, and manual save for JSON edits.
 
 **Architecture:** Two-column split layout (KeysList left 30%, ValueEditor right 70%) with React Context state management, Whistle HTTP API integration, and Monaco Editor for JSON5 editing.
 
@@ -111,81 +111,91 @@ const fetchValues = useCallback(async () => {
 }, []);
 ```
 
-**Step 3: Implement setValue with auto-save**
+**Step 3: Implement setValue as local draft editing**
 
 ```javascript
-const setValue = useCallback(async (key, value) => {
-  setValuesState((prev) => ({ ...prev, [key]: value }));
+const setValue = useCallback((key, value) => {
+  setValuesState((prev) => {
+    const nextValues = { ...prev, [key]: value };
+    setIsDirty(hasDirtyValues(nextValues, originalValuesRef.current));
+    return nextValues;
+  });
+}, []);
+```
+
+**Step 4: Implement deleteValue with immediate persistence**
+
+```javascript
+const deleteValue = useCallback(async (key) => {
   setIsSaving(true);
   setError(null);
   try {
-    const { setValue: apiSetValue } = await import('../api/whistle');
-    await apiSetValue(key, value);
+    const { deleteValue: apiDeleteValue } = await import('../api/whistle');
+    await apiDeleteValue(key);
+    const next = deletePersistedValueState({
+      values: valuesRef.current,
+      originalValues: originalValuesRef.current,
+      key,
+    });
+    setValuesState(next.values);
+    setOriginalValues(next.originalValues);
+    setIsDirty(next.isDirty);
+    setSelectedKey((current) => (current === key ? null : current));
+    return true;
   } catch (err) {
-    console.error('Failed to save value:', err);
-    setError(err.message || 'Failed to save value');
+    console.error('Failed to delete value:', err);
+    setError(err.message || 'Failed to delete value');
+    return false;
   } finally {
     setIsSaving(false);
   }
 }, []);
 ```
 
-**Step 4: Implement deleteValue with confirmation**
-
-```javascript
-const deleteValue = useCallback(async (key) => {
-  if (!window.confirm(`Delete "${key}"?`)) {
-    return;
-  }
-  setIsSaving(true);
-  setError(null);
-  try {
-    const { deleteValue: apiDeleteValue } = await import('../api/whistle');
-    await apiDeleteValue(key);
-    setValuesState((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-    if (selectedKey === key) {
-      setSelectedKey(null);
-    }
-  } catch (err) {
-    console.error('Failed to delete value:', err);
-    setError(err.message || 'Failed to delete value');
-  } finally {
-    setIsSaving(false);
-  }
-}, [selectedKey]);
-```
-
-**Step 5: Implement createValue**
+**Step 5: Implement createValue with immediate persistence**
 
 ```javascript
 const createValue = useCallback(async (key) => {
-  if (!key || values[key]) {
+  if (!key || key in valuesRef.current) {
     return false;
   }
   const emptyValue = '{}';
-  await setValue(key, emptyValue);
-  setSelectedKey(key);
+  await window.electron.setValue(key, emptyValue);
+  const next = createPersistedValueState({
+    values: valuesRef.current,
+    originalValues: originalValuesRef.current,
+    key,
+    value: emptyValue,
+  });
+  setValuesState(next.values);
+  setOriginalValues(next.originalValues);
+  setIsDirty(next.isDirty);
   return true;
-}, [values, setValue]);
+}, []);
 ```
 
-**Step 6: Implement renameKey**
+**Step 6: Implement renameKey with persisted baseline sync**
 
 ```javascript
 const renameKey = useCallback(async (oldKey, newKey) => {
-  if (!oldKey || !newKey || oldKey === newKey || values[newKey]) {
+  if (!oldKey || !newKey || oldKey === newKey || newKey in valuesRef.current) {
     return false;
   }
-  const value = values[oldKey];
-  await setValue(newKey, value);
-  await deleteValue(oldKey);
+  const value = valuesRef.current[oldKey];
+  await window.electron.setValue(newKey, value);
+  await window.electron.deleteValue(oldKey);
+  const next = renamePersistedValueState({
+    values: valuesRef.current,
+    originalValues: originalValuesRef.current,
+    oldKey,
+    newKey,
+  });
+  setValuesState(next.values);
+  setOriginalValues(next.originalValues);
+  setIsDirty(next.isDirty);
   setSelectedKey(newKey);
   return true;
-}, [values, setValue, deleteValue]);
+}, []);
 ```
 
 **Step 7: Add useEffect to fetch on mount**
@@ -207,7 +217,7 @@ git add src/shared/context/ValuesContext.jsx
 git commit -m "feat: enhance ValuesContext with API integration
 
 Add fetchValues, createValue, renameKey actions, loading/error states,
-and auto-save on setValue changes.
+immediate persistence for structural actions, and manual-save drafts for JSON editing.
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ```
@@ -581,7 +591,7 @@ git add src/features/values/Values.jsx
 git commit -m "feat: implement main Values component
 
 Add two-column layout with KeysList and ValueEditor, loading states,
-and auto-save integration.
+manual save for JSON editing, and immediate persistence for create/delete.
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ```
@@ -705,11 +715,12 @@ Open the app in development mode and check browser console for errors.
 
 - [ ] Values load on mount
 - [ ] Create new value
-- [ ] Edit value (auto-saves)
+- [ ] Edit value, then save with the header button or `Cmd/Ctrl+S`
 - [ ] Delete value (with confirmation)
 - [ ] Search/filter keys
 - [ ] Rename key
 - [ ] Invalid JSON shows error
+- [ ] Create/delete still work while another value has invalid unsaved JSON
 - [ ] Keyboard shortcuts work
 
 **Step 4: Final commit**
@@ -728,7 +739,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ## Notes
 
 - **JSON5 Support:** Monaco's built-in JSON language with `allowComments: true` enables JSON5-like behavior
-- **Auto-save:** Debounced save happens after 300ms in ValuesContext, showing "Saving..." indicator
+- **Save semantics:** JSON edits remain local until `Save`/`Cmd+S`; create, delete, and rename persist immediately
 - **Styling:** Matches Rules view exactly - same toolbar, borders, glass effects
 - **Empty State:** Shows hint message when no values exist
 - **Error Handling:** API errors show in toolbar, validation errors show per-field

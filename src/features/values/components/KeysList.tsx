@@ -13,7 +13,7 @@ interface KeysListProps {
   selectedKey: string | null;
   unsavableDirtyKeys?: Set<string>;
   onSelectKey: (key: string) => void;
-  onCreateValue: (name: string) => void;
+  onCreateValue: (name: string) => Promise<boolean>;
   onContextRename?: (key: string) => void;
   onContextDelete?: (key: string) => void;
 }
@@ -29,6 +29,7 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
 }, ref) => {
   const [searchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingValue, setIsCreatingValue] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,22 +80,32 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCreating]);
 
-  const handleNewKeyConfirm = () => {
+  const handleNewKeyConfirm = async () => {
     const name = newKeyName.trim();
     if (!name) {
       setIsCreating(false);
       setNewKeyName('');
       return;
     }
-    onCreateValue(name);
-    onSelectKey(name);
-    setIsCreating(false);
-    setNewKeyName('');
+
+    setIsCreatingValue(true);
+    try {
+      const created = await onCreateValue(name);
+      if (!created) {
+        return;
+      }
+
+      onSelectKey(name);
+      setIsCreating(false);
+      setNewKeyName('');
+    } finally {
+      setIsCreatingValue(false);
+    }
   };
 
-  const handleNewKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleNewKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleNewKeyConfirm();
+      await handleNewKeyConfirm();
     } else if (e.key === 'Escape') {
       setIsCreating(false);
       setNewKeyName('');
@@ -125,15 +136,23 @@ const KeysList = forwardRef<KeysListHandle, KeysListProps>(({
               onKeyDown={handleNewKeyDown}
               size="sm"
               autoComplete="off"
+              disabled={isCreatingValue}
             />
             <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="primary" onClick={handleNewKeyConfirm}>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => { void handleNewKeyConfirm(); }}
+                loading={isCreatingValue}
+                disabled={isCreatingValue}
+              >
                 Add
               </Button>
               <Button
                 className="hover:dark:text-zinc-950"
                 size="sm"
                 variant="ghost"
+                disabled={isCreatingValue}
                 onClick={() => {
                   setIsCreating(false);
                   setNewKeyName('');

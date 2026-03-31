@@ -144,7 +144,7 @@ export default function Values({
       if (isMod && e.key === 's' && !e.shiftKey) {
         e.preventDefault();
         if (isDirty && !isSaving && !hasUnsavableDirtyValues) {
-          saveValues();
+          void saveValues();
         }
       }
 
@@ -207,7 +207,7 @@ export default function Values({
       return;
     }
 
-    deleteValue(key);
+    await deleteValue(key);
   };
 
   if (isLoading) {
