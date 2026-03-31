@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/Yaphet2015/Prokcy/compare/v1.7.1...v1.8.0) (2026-03-31)
+
+
+### Features
+
+* 自持点击打开本地文件 ([c8f5e94](https://github.com/Yaphet2015/Prokcy/commit/c8f5e94cec0bd5d126fac7b444816bb09f658af2))
+
+
+### Bug Fixes
+
+* 编辑器搜索无法粘贴问题 ([b8a0b4a](https://github.com/Yaphet2015/Prokcy/commit/b8a0b4a192ac9ce457f600ec24756c498cb7156f))
+
 ### 1.7.1 (2026-03-11)
 
 
