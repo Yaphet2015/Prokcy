@@ -1,6 +1,6 @@
 {
   "name": "prokcy",
-  "version": "1.8.1",
+  "version": "1.8.2-alpha.0",
   "description": "Prokcy Desktop Proxy Client",
   "main": "./dist-lib/index.js",
   "author": "Yaphet",
@@ -29,7 +29,8 @@
     "release": "npm run relase",
     "release:patch": "npm run relase -- --release-as patch",
     "release:minor": "npm run relase -- --release-as minor",
-    "release:major": "npm run relase -- --release-as major"
+    "release:major": "npm run relase -- --release-as major",
+    "release:alpha": "npm run relase -- --prerelease alpha"
   },
   "build": {
     "productName": "Prokcy",
