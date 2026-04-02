@@ -9,6 +9,7 @@ import {
   hasDirtyValues,
   renamePersistedValueState,
 } from '../../features/values/utils/persistedState';
+import { persistValuesSave } from '../../features/values/utils/valueJson5';
 import { useService } from './ServiceContext';
 
 // Values type - key-value pairs
@@ -291,26 +292,24 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
       if (!window.electron?.setValue || !window.electron?.deleteValue) {
         throw new Error('Electron API not available');
       }
+      const electronApi = window.electron;
 
-      const originalKeys = new Set(Object.keys(originalValues));
-      const currentKeys = new Set(Object.keys(values));
-
-      // Delete keys that were removed
-      for (const key of originalKeys) {
-        if (!currentKeys.has(key)) {
-          await window.electron.deleteValue(key);
-        }
-      }
-
-      // Save or update all current values
-      for (const key of currentKeys) {
-        await window.electron.setValue(key, values[key]);
-      }
+      const nextValues = await persistValuesSave({
+        values: valuesRef.current,
+        originalValues: originalValuesRef.current,
+        deleteValue: async (key: string) => {
+          await electronApi.deleteValue(key);
+        },
+        setValue: async (key: string, value: string) => {
+          await electronApi.setValue(key, value);
+        },
+      });
 
       // Update original values to current values
-      valuesRef.current = values;
-      originalValuesRef.current = values;
-      setOriginalValues(values);
+      valuesRef.current = nextValues;
+      originalValuesRef.current = nextValues;
+      setValuesState(nextValues);
+      setOriginalValues(nextValues);
       setIsDirty(false);
     } catch (err) {
       const error = err as Error;
@@ -319,7 +318,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     } finally {
       setIsSaving(false);
     }
-  }, [values, originalValues, isDirty]);
+  }, [isDirty]);
 
   // Fetch values when service becomes available
   useEffect(() => {

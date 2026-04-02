@@ -1,5 +1,5 @@
 import {
-  useEffect, useRef, useState, useMemo, useCallback,
+  useEffect, useRef, useState, useMemo,
 } from 'react';
 import { Button } from '@pikoloo/darwin-ui';
 import { Plus, Save } from 'lucide-react';
@@ -30,7 +30,6 @@ export default function Values({
 }: ValuesProps): React.JSX.Element {
   const {
     values,
-    originalValues,
     selectedKey,
     selectKey,
     setValue,
@@ -43,7 +42,6 @@ export default function Values({
     saveValues,
     error,
   } = useValues();
-  const [invalidKeys, setInvalidKeys] = useState<Set<string>>(new Set());
   const [focusRequestId, setFocusRequestId] = useState(0);
   const [suppressAutoSelectOnce, setSuppressAutoSelectOnce] = useState(false);
 
@@ -59,29 +57,6 @@ export default function Values({
       setValue(selectedKey, newValue);
     }
   };
-
-  const handleValidationChange = useCallback((key: string, isValid: boolean) => {
-    setInvalidKeys((prev) => {
-      const next = new Set(prev);
-      if (isValid) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
-  const unsavableDirtyKeys = useMemo(() => {
-    const keys = Object.keys(values);
-    return new Set(keys.filter((key) => {
-      const isNewKey = !(key in originalValues);
-      const hasChanged = isNewKey || values[key] !== originalValues[key];
-      return hasChanged && invalidKeys.has(key);
-    }));
-  }, [values, originalValues, invalidKeys]);
-
-  const hasUnsavableDirtyValues = unsavableDirtyKeys.size > 0;
 
   // Handle rename event from ValueEditor
   useEffect(() => {
@@ -143,7 +118,7 @@ export default function Values({
       // Cmd/Ctrl+S: Save values
       if (isMod && e.key === 's' && !e.shiftKey) {
         e.preventDefault();
-        if (isDirty && !isSaving && !hasUnsavableDirtyValues) {
+        if (isDirty && !isSaving) {
           void saveValues();
         }
       }
@@ -167,7 +142,7 @@ export default function Values({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedKey, isDirty, isSaving, hasUnsavableDirtyValues, saveValues]);
+  }, [isDirty, isSaving, saveValues]);
 
   // Handle rename from context menu
   const handleContextRename = async (key: string) => {
@@ -233,9 +208,6 @@ export default function Values({
           statusMessage={(
             <>
               {isSaving && <span className="text-xs text-blue-500">Saving...</span>}
-              {hasUnsavableDirtyValues && (
-                <span className="text-xs text-amber-500">Invalid JSON: fix marked values before saving</span>
-              )}
               {error && <span className="text-xs text-red-500">{error}</span>}
             </>
           )}
@@ -243,8 +215,8 @@ export default function Values({
             <Button
               variant={isDirty ? "primary" : "ghost"}
               size="sm"
-              onClick={saveValues}
-              disabled={!isDirty || isSaving || hasUnsavableDirtyValues}
+              onClick={() => { void saveValues(); }}
+              disabled={!isDirty || isSaving}
               leftIcon={<Save className="w-4 h-4" />}
               title="Save values (Cmd+S)"
               loading={isSaving}
@@ -280,7 +252,6 @@ export default function Values({
               ref={keysListRef}
               values={values}
               selectedKey={selectedKey}
-              unsavableDirtyKeys={unsavableDirtyKeys}
               onSelectKey={selectKey}
               onCreateValue={createValue}
               onContextRename={handleContextRename}
@@ -296,8 +267,6 @@ export default function Values({
               isDirty={isDirty}
               onSave={saveValues}
               isSaving={isSaving}
-              hasUnsavableDirtyValues={hasUnsavableDirtyValues}
-              onValidationChange={handleValidationChange}
               focusRequestId={focusRequestId}
             />
           </main>

@@ -240,6 +240,7 @@ Using `@monaco-editor/react`:
 - Keep native paste behavior for Monaco overlay inputs such as the built-in find widget
 - Only intercept paste for the main Monaco text surface when Electron's clipboard fallback is needed
 - Do not register a blanket `Cmd/Ctrl+V` override that redirects paste into the editor model regardless of focus target
+- If Monaco find or replace inputs are focused, the custom `Cmd/Ctrl+V` fallback must be disabled so Edit menu and context-menu paste stay native
 - In Electron, provide Monaco `overrideServices.productService = { quality: 'stable' }` so Monaco's built-in paste command can execute without hitting a missing service error
 
 ### Custom Language

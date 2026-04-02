@@ -3,8 +3,18 @@ import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import * as monacoNs from 'monaco-editor';
 import { registerWhistleLanguage } from '../../features/rules/whistle-language';
-import { getCustomPasteText, shouldUseCustomMonacoPaste } from './monaco-paste';
+import { ensureMonacoProductServiceRegistered } from './monaco-product-service';
+import {
+  CUSTOM_MONACO_PASTE_COMMAND_CONTEXT,
+  getCustomPasteText,
+  isFindWidgetTarget,
+  pasteMonacoClipboardText,
+  readMonacoClipboardText,
+  shouldUseCustomMonacoPaste,
+} from './monaco-paste';
 import { createMonacoOverrideServices } from './monaco-services';
+
+ensureMonacoProductServiceRegistered();
 
 // Use local Monaco instance to avoid CDN fetch issues in Electron desktop runtime.
 // The loader.config({ monaco }) tells @monaco-editor/react to use the bundled
@@ -201,7 +211,28 @@ export default function MonacoEditor({
       return electron?.clipboard?.readText?.() ?? '';
     };
 
+    const readClipboardText = () => readMonacoClipboardText({
+      readElectronClipboardText: window.electron?.readClipboardText,
+      navigatorClipboard: typeof navigator !== 'undefined' ? navigator.clipboard : null,
+      readFallbackText,
+    });
+
     const handlePaste = (event: ClipboardEvent) => {
+      // Handle paste for find widget inputs — Electron has no native paste support for these
+      if (isFindWidgetTarget(event.target)) {
+        const text = getCustomPasteText({
+          clipboardData: event.clipboardData,
+          readFallbackText,
+        });
+        if (text && event.target instanceof HTMLInputElement) {
+          event.preventDefault();
+          event.stopPropagation();
+          // execCommand preserves cursor/selection and triggers Monaco's input listeners
+          document.execCommand('insertText', false, text);
+        }
+        return;
+      }
+
       if (!shouldUseCustomMonacoPaste({
         hasTextFocus: editor.hasTextFocus(),
         isReadOnly,
@@ -221,10 +252,27 @@ export default function MonacoEditor({
 
       event.preventDefault();
       event.stopPropagation();
-      editor.trigger('keyboard', 'type', { text });
+      editor.trigger('keyboard', 'paste', {
+        text,
+        pasteOnNewLine: false,
+        multicursorText: null,
+      });
     };
 
     domNode.addEventListener('paste', handlePaste, true);
+
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+      () => {
+        void pasteMonacoClipboardText({
+          readClipboardText,
+          editorTrigger: (source, handler, payload) => {
+            editor.trigger(source, handler, payload);
+          },
+        });
+      },
+      CUSTOM_MONACO_PASTE_COMMAND_CONTEXT,
+    );
 
     const cleanupPasteHandler = () => {
       domNode.removeEventListener('paste', handlePaste, true);
@@ -261,6 +309,7 @@ export default function MonacoEditor({
         options={{
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
+          fixedOverflowWidgets: true,
           padding: { top: 16, bottom: 16 },
           renderLineHighlight: 'none',
           cursorBlinking: 'smooth',

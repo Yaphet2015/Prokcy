@@ -57,11 +57,11 @@ Styling matches the Rules view exactly for consistency.
 }
 ```
 
-**Unsavable Dirty State (UI-level):**
+**Draft Editing State (UI-level):**
 - The editor always writes text changes to local state so dirty tracking stays accurate.
-- If the edited value is syntactically invalid JSON, the key is marked as `unsavable-dirty`.
-- Save actions (button and Cmd/Ctrl+S) are blocked while any key is `unsavable-dirty`.
-- The key list shows a filled circle marker for each `unsavable-dirty` key.
+- Temporary syntax errors are allowed while typing so the editor never interrupts partial JSON5 edits.
+- The key list does not show a special invalid marker for draft-only syntax errors.
+- Save actions stay available while dirty drafts exist and validation is deferred to explicit save.
 
 **API Integration:**
 - `fetchValues()` calls `getValues()` on mount
@@ -75,7 +75,9 @@ Styling matches the Rules view exactly for consistency.
 - JSON text edits stay local until the user clicks `Save` or presses `Cmd/Ctrl+S`
 - Structural operations (`create`, `delete`, `rename`) persist immediately after their confirm action succeeds
 - Immediate structural saves must not flush unrelated unsaved editor drafts
-- Save actions are blocked while any dirty key is invalid JSON
+- On explicit save, every dirty value is validated and formatted as JSON5 before any persistence call
+- If one dirty value is invalid JSON5, the entire save fails, no values are persisted, and the error message names the offending key
+- Successful saves replace dirty drafts with their formatted JSON5 text before promoting them to the persisted baseline
 
 **Pending Navigation Behavior:**
 - The App shell can enter Values with a pending key from Rules `Cmd/Ctrl+Click` navigation
@@ -111,12 +113,16 @@ src/features/values/
 - Language: JSON5 (comments allowed, trailing commas)
 - Theme: `tahoe-dark` or `tahoe-light` (syncs with system)
 - Options: `minimap: { enabled: false }`, `scrollBeyondLastLine: false`
+- The shared Monaco wrapper must register Monaco standalone `productService` before the first editor instance is created; `overrideServices` alone is not enough because standalone Monaco ignores overrides for services it never registered
+- Paste handling must continue to avoid blanket `Cmd/Ctrl+V` interception and only customize the main Monaco text surface when native clipboard fallback is needed
+- In Electron, the editable Monaco wrapper must provide a `Cmd/Ctrl+V` fallback that reads clipboard text from the preload-exposed API and forwards it through Monaco's `paste` handler when the built-in native command path inserts nothing
+- When Monaco find or replace inputs are focused, that custom `Cmd/Ctrl+V` fallback must be disabled so native paste continues to target the overlay input instead of the editor buffer
 - Focus can be requested programmatically after cross-view navigation from Rules
 
 ## Edge Cases
 
 1. **No values:** Empty state with hint message
-2. **Invalid JSON while dirty:** Monaco shows syntax errors, key list shows filled circle marker, save is disabled
+2. **Invalid JSON5 while dirty:** Monaco can show syntax errors, but editing continues uninterrupted until the user explicitly saves
 3. **Delete confirmation:** Dialog confirmation triggers immediate delete persistence
 4. **Duplicate key:** Inline error in create dialog
 5. **API failures:** Retry with exponential backoff
@@ -127,7 +133,7 @@ src/features/values/
 
 ## Keyboard Shortcuts
 
-- `Cmd/Ctrl+S`: Save dirty values (blocked while saving or when any dirty key is invalid JSON)
+- `Cmd/Ctrl+S`: Save dirty values (blocked only while a save is already in progress)
 - `Cmd/Ctrl+N`: Create new value
 - `Cmd/Ctrl+Shift+R`: Rename selected key
 - `Cmd/Ctrl+D`: Delete selected key

@@ -7,6 +7,7 @@ import { initJson5Language, JSON5_LANGUAGE_ID } from '../constants';
 import MonacoEditor from '../../../shared/ui/LazyMonacoEditor';
 import { useMonacoSave } from '../../../shared/ui/useMonacoSave';
 import Modal from '../../../shared/ui/Modal';
+import { VALUE_EDITOR_OPTIONS } from '../utils/valueEditorOptions';
 import { getThemeId } from '../../rules/monaco-themes';
 
 interface ValueEditorProps {
@@ -16,8 +17,6 @@ interface ValueEditorProps {
   isDirty: boolean;
   onSave: () => void;
   isSaving: boolean;
-  hasUnsavableDirtyValues: boolean;
-  onValidationChange?: (key: string, isValid: boolean) => void;
   focusRequestId?: number;
 }
 
@@ -28,43 +27,26 @@ export default function ValueEditor({
   isDirty,
   onSave,
   isSaving,
-  hasUnsavableDirtyValues,
-  onValidationChange,
   focusRequestId = 0,
 }: ValueEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
   const initialValue = typeof value === 'string' && value.length > 0 ? value : '{}';
   const [editorValue, setEditorValue] = useState(initialValue);
-  const [isValid, setIsValid] = useState(true);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(null);
-
-  const validateValue = useCallback((input: string): boolean => {
-    try {
-      JSON.parse(input);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
 
   // Sync editor value with prop value
   useEffect(() => {
     const nextValue = typeof value === 'string' && value.length > 0 ? value : '{}';
     setEditorValue(nextValue);
-    const nextValid = validateValue(nextValue);
-    setIsValid(nextValid);
-    if (selectedKey) {
-      onValidationChange?.(selectedKey, nextValid);
-    }
-  }, [selectedKey, value, onValidationChange, validateValue]);
+  }, [value]);
 
   // Handle save from Monaco's keyboard shortcut (Cmd+S when editor is focused)
   useMonacoSave(useCallback(() => {
-    if (isDirty && !isSaving && !hasUnsavableDirtyValues && isValid) {
+    if (isDirty && !isSaving) {
       onSave();
     }
-  }, [isDirty, isSaving, hasUnsavableDirtyValues, isValid, onSave]));
+  }, [isDirty, isSaving, onSave]));
 
   const handleBeforeMount = useCallback((monaco: typeof Monaco) => {
     initJson5Language(monaco);
@@ -74,12 +56,7 @@ export default function ValueEditor({
     const newValueStr = newValue ?? '{}';
     setEditorValue(newValueStr);
     onChange(newValueStr);
-    const nextValid = validateValue(newValueStr);
-    setIsValid(nextValid);
-    if (selectedKey) {
-      onValidationChange?.(selectedKey, nextValid);
-    }
-  }, [onChange, onValidationChange, selectedKey, validateValue]);
+  }, [onChange]);
 
   const handleRenameConfirm = useCallback((newName: string) => {
     if (newName && newName.trim() && newName.trim() !== selectedKey) {
@@ -133,14 +110,7 @@ export default function ValueEditor({
             theme={getThemeId(isDark)}
             beforeMount={handleBeforeMount}
             onEditorMount={setEditorInstance}
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 13,
-              fontFamily: 'SF Mono, Monaco, monospace',
-              padding: { top: 16, bottom: 16 },
-              readOnly: false,
-            }}
+            options={VALUE_EDITOR_OPTIONS}
           />
         </Suspense>
       </div>

@@ -169,6 +169,7 @@ interface ValuesAPI {
   getValues(): Promise<Record<string, string>>;
   setValue(name: string, value: string): Promise<void>;
   deleteValue(name: string): Promise<void>;
+  readClipboardText(): Promise<string>;
 }
 
 // ============= System Proxy API =============

@@ -1,8 +1,5 @@
 import type { editor } from 'monaco-editor';
-
-const MONACO_PRODUCT_SERVICE = {
-  quality: 'stable',
-};
+import { MONACO_PRODUCT_SERVICE } from './monaco-product-service';
 
 export function createMonacoOverrideServices(): editor.IEditorOverrideServices {
   return {
