@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.2](https://github.com/Yaphet2015/Prokcy/compare/v1.8.2-alpha.1...v1.8.2) (2026-04-10)
+
+
+### Bug Fixes
+
+* paste event in editor ([a378675](https://github.com/Yaphet2015/Prokcy/commit/a378675627d99744e819c9f6c3a32f62fa5057f7))
+
 ### [1.8.2-alpha.1](https://github.com/Yaphet2015/Prokcy/compare/v1.8.2-alpha.0...v1.8.2-alpha.1) (2026-04-02)
 
 ### [1.8.2-alpha.0](https://github.com/Yaphet2015/Prokcy/compare/v1.8.1...v1.8.2-alpha.0) (2026-04-02)
