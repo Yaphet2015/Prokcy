@@ -261,6 +261,25 @@ export default function MonacoEditor({
 
     domNode.addEventListener('paste', handlePaste, true);
 
+    // Cmd+V keydown handler for find widget inputs.
+    const handleFindWidgetKeydown = (event: KeyboardEvent) => {
+      const isCmdV = (event.metaKey || event.ctrlKey) && event.key === 'v';
+      if (!isCmdV || !isFindWidgetTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const text = readFallbackText();
+      if (text && event.target instanceof HTMLInputElement) {
+        event.target.focus();
+        document.execCommand('insertText', false, text);
+      }
+    };
+
+    document.addEventListener('keydown', handleFindWidgetKeydown, true);
+
     editor.addCommand(
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
       () => {
@@ -276,6 +295,7 @@ export default function MonacoEditor({
 
     const cleanupPasteHandler = () => {
       domNode.removeEventListener('paste', handlePaste, true);
+      document.removeEventListener('keydown', handleFindWidgetKeydown, true);
     };
 
     pasteCleanupRef.current = cleanupPasteHandler;
