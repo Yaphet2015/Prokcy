@@ -5,8 +5,7 @@ import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import MonacoEditor from '../../../shared/ui/LazyMonacoEditor';
 import { useMonacoSave } from '../../../shared/ui/useMonacoSave';
-import { registerTahoeThemes, getThemeId } from '../monaco-themes';
-import { initWhistleLanguage } from '../whistle-language';
+import { getThemeId } from '../monaco-themes';
 import { getRulesNavigationTarget } from '../utils/navigationTarget';
 
 interface RulesEditorProps {
@@ -37,11 +36,6 @@ export function RulesEditor({
       onSave();
     }
   }, [isDirty, onSave]));
-
-  const handleBeforeMount = useCallback((monaco: typeof Monaco) => {
-    registerTahoeThemes(monaco);
-    initWhistleLanguage(monaco);
-  }, []);
 
   useEffect(() => {
     if (!editorInstance) {
@@ -120,7 +114,6 @@ export function RulesEditor({
         onChange={onChange}
         language="whistle"
         theme={getThemeId(isDark)}
-        beforeMount={handleBeforeMount}
         onEditorMount={setEditorInstance}
         options={{
           readOnly: false,

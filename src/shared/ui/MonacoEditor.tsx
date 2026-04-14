@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import * as monacoNs from 'monaco-editor';
-import { registerWhistleLanguage } from '../../features/rules/whistle-language';
 import { ensureMonacoProductServiceRegistered } from './monaco-product-service';
 import {
   CUSTOM_MONACO_PASTE_COMMAND_CONTEXT,
@@ -11,8 +10,10 @@ import {
   pasteMonacoClipboardText,
   readMonacoClipboardText,
   shouldUseCustomMonacoPaste,
+  tryInsertTextIntoInput,
 } from './monaco-paste';
 import { createMonacoOverrideServices } from './monaco-services';
+import { prepareMonacoBeforeMount } from './monaco-bootstrap';
 
 ensureMonacoProductServiceRegistered();
 
@@ -158,12 +159,7 @@ export default function MonacoEditor({
   }, []);
 
   const handleBeforeMount = (monaco: typeof monacoNs) => {
-    // Register Whistle language if using Monaco
-    if (language === 'whistle') {
-      registerWhistleLanguage(monaco);
-    }
-    // Call provided beforeMount callback
-    beforeMount?.(monaco);
+    prepareMonacoBeforeMount(monaco, { language, beforeMount });
   };
 
   const handleEditorDidMount = (
@@ -224,11 +220,9 @@ export default function MonacoEditor({
           clipboardData: event.clipboardData,
           readFallbackText,
         });
-        if (text && event.target instanceof HTMLInputElement) {
+        if (tryInsertTextIntoInput(event.target, text)) {
           event.preventDefault();
           event.stopPropagation();
-          // execCommand preserves cursor/selection and triggers Monaco's input listeners
-          document.execCommand('insertText', false, text);
         }
         return;
       }
@@ -261,7 +255,6 @@ export default function MonacoEditor({
 
     domNode.addEventListener('paste', handlePaste, true);
 
-    // Cmd+V keydown handler for find widget inputs.
     const handleFindWidgetKeydown = (event: KeyboardEvent) => {
       const isCmdV = (event.metaKey || event.ctrlKey) && event.key === 'v';
       if (!isCmdV || !isFindWidgetTarget(event.target)) {
@@ -271,11 +264,8 @@ export default function MonacoEditor({
       event.preventDefault();
       event.stopPropagation();
 
-      const text = readFallbackText();
-      if (text && event.target instanceof HTMLInputElement) {
-        event.target.focus();
-        document.execCommand('insertText', false, text);
-      }
+      const text = getCustomPasteText({ readFallbackText });
+      tryInsertTextIntoInput(event.target, text);
     };
 
     document.addEventListener('keydown', handleFindWidgetKeydown, true);

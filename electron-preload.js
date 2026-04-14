@@ -1,6 +1,14 @@
-const { contextBridge, ipcRenderer, clipboard } = require('electron');
+const {
+  contextBridge,
+  ipcRenderer,
+  clipboard,
+  nativeTheme,
+} = require('electron');
 
 const electronApi = {
+  initialTheme: {
+    isDark: nativeTheme.shouldUseDarkColors,
+  },
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),

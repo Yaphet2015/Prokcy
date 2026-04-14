@@ -91,6 +91,17 @@ export function getCustomPasteText(input: {
   return readFallbackText?.() ?? '';
 }
 
+export function tryInsertTextIntoInput(
+  eventTarget: EventTarget | null,
+  text: string,
+): boolean {
+  if (text && eventTarget instanceof HTMLInputElement) {
+    document.execCommand('insertText', false, text);
+    return true;
+  }
+  return false;
+}
+
 export async function readMonacoClipboardText(input: {
   readElectronClipboardText?: (() => Promise<string>) | null;
   navigatorClipboard?: { readText: () => Promise<string> } | null;

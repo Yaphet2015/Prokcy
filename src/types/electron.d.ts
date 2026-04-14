@@ -123,6 +123,7 @@ interface WindowControlsAPI {
 // ============= Theme API =============
 
 interface ThemeAPI {
+  initialTheme: { isDark?: boolean };
   getTheme(): Promise<{ isDark?: boolean }>;
   onThemeChanged(callback: (theme: { isDark?: boolean }) => void): () => void;
 }

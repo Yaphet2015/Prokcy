@@ -1,9 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-
-interface Theme {
-  isDark: boolean;
-}
+import { applyDocumentThemeClass, getInitialIsDark } from './theme-state';
 
 interface ThemeContextValue {
   isDark: boolean;
@@ -13,12 +10,20 @@ const ThemeContext = createContext<ThemeContextValue>({
   isDark: false,
 });
 
+const initialIsDark = typeof window === 'undefined'
+  ? false
+  : getInitialIsDark(window.electron);
+
+if (typeof document !== 'undefined') {
+  applyDocumentThemeClass(document.documentElement, initialIsDark);
+}
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(initialIsDark);
 
   useEffect(() => {
     // Get initial theme
@@ -47,11 +52,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
 
   useEffect(() => {
     // Apply dark mode class to document
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyDocumentThemeClass(document.documentElement, isDark);
   }, [isDark]);
 
   return (

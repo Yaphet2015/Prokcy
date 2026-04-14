@@ -867,9 +867,18 @@ Create `electron-preload.js`:
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
+  initialTheme: {
+    isDark: nativeTheme.shouldUseDarkColors,
+  },
   getTheme: () => ipcRenderer.invoke('get-theme'),
 });
 ```
+
+**2026-04-14 amendment**
+
+- The renderer must receive a synchronous `initialTheme` snapshot from preload so the root `dark` class can be applied before the first React paint.
+- `ThemeProvider` still uses `getTheme()` and `theme-changed` for post-mount correction and runtime updates, but it must not start from a hard-coded light default.
+- Tahoe Monaco themes must be registered in the shared Monaco bootstrap path, not only in the Rules editor, so Values and request body/response editors render the correct theme on first open.
 
 **Step 8: Update Electron window with preload**
 
