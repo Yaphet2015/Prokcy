@@ -80,7 +80,18 @@ The workflows use GitHub's built-in `GITHUB_TOKEN`, which automatically has:
 - ✅ Artifact write access
 - ✅ Release creation access
 
-**No additional secrets needed!**
+### macOS signing note
+
+Unsigned macOS artifacts can be built with no extra secrets.
+
+Signed and notarized macOS releases require Apple Developer credentials and certificates, for example:
+- `CSC_LINK`
+- `CSC_KEY_PASSWORD`
+- `APPLE_ID`
+- `APPLE_APP_SPECIFIC_PASSWORD`
+- `APPLE_TEAM_ID`
+
+Without those credentials, the workflow now explicitly builds **unsigned** macOS artifacts so Gatekeeper shows the usual "developer cannot be verified" flow instead of a broken ad-hoc signature.
 
 ## 📊 Workflow Status
 
@@ -110,6 +121,7 @@ npm run build:mac  # or build:win, build:linux
 
 ### Platform-Specific Issues
 - **macOS:** Needs macOS runner (automatic)
+- **macOS signing/notarization:** Requires Apple Developer credentials; otherwise the generated `.dmg` is unsigned
 - **Windows:** Paths use backslashes
 - **Linux:** Uses AppImage format
 

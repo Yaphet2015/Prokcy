@@ -82,7 +82,13 @@ You can also trigger builds manually from the GitHub Actions tab:
 
 ## Secrets Required
 
-The workflows use GitHub's built-in `GITHUB_TOKEN`, which is automatically provided. No additional secrets configuration is needed.
+The workflows use GitHub's built-in `GITHUB_TOKEN`, which is automatically provided for repository access and release uploads.
+
+For macOS only:
+- Unsigned artifacts need no extra secrets
+- Signed and notarized artifacts require Apple Developer credentials such as `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`
+
+The current workflows explicitly disable auto-discovered signing identities on macOS when those credentials are not configured, so the release produces unsigned artifacts instead of broken ad-hoc signed bundles.
 
 ## Artifacts
 
@@ -102,5 +108,6 @@ Built artifacts are stored as GitHub Actions artifacts with 30-day retention. Fo
 
 ### Platform-Specific Issues
 - macOS builds require macOS runner
+- Signed/notarized macOS distribution requires Apple Developer credentials
 - Windows builds may have different path handling
 - Linux builds use AppImage format for portability

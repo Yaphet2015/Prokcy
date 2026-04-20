@@ -72,6 +72,10 @@ Choose the version matching your Mac processor:
 
 ##### 3. Security Tips
 
+The current GitHub macOS releases are **unsigned** builds, not Apple-notarized distributions.
+- If macOS says the developer cannot be verified, right-click the app in Finder and choose "Open"
+- If macOS says the app is "damaged", that usually means you downloaded an older ad-hoc signed artifact; download a newer release package instead
+
 Some enterprise security software may flag the app. Suggestions:
 - Select "Allow" when running for the first time
 - If continuously blocked, ask your IT department to whitelist Prokcy
