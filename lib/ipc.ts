@@ -8,6 +8,8 @@ import {
   getOptions,
   getChild,
   isServiceRunning,
+  setChild,
+  setRunning,
 } from './context';
 import { getSettings, applySettings, type ProxySettings } from './settings';
 import {
@@ -40,6 +42,12 @@ let currentRules: unknown = null;
 let unsubscribeUpdateStatus: (() => void) | null = null;
 
 const DEFAULT_REQUEST_LIST_LIMIT = 600;
+const SERVICE_HEALTH_PATH = '/cgi-bin/values/list2';
+const SERVICE_HEALTH_TIMEOUT = 1000;
+const SERVICE_STATUS_CACHE_MS = 1000;
+let serviceStatusPromise: Promise<boolean> | null = null;
+let serviceStatusCacheValue = false;
+let serviceStatusCacheExpiresAt = 0;
 
 /**
  * Get runtime configuration for Whistle API requests
@@ -63,6 +71,66 @@ const getRuntimeConfig = (): {
     username: options.username || uiAuth.username || '',
     password: options.password || uiAuth.password || '',
   };
+};
+
+const setCachedServiceStatus = (running: boolean): void => {
+  serviceStatusCacheValue = running;
+  serviceStatusCacheExpiresAt = Date.now() + SERVICE_STATUS_CACHE_MS;
+};
+
+const reconcileServiceRunningState = (running: boolean): boolean => {
+  const previous = isServiceRunning();
+  if (previous === running) {
+    return running;
+  }
+  setRunning(running);
+  notifyServiceStatus({ running });
+  return running;
+};
+
+const checkServiceHealth = async (force = false): Promise<boolean> => {
+  const shouldProbe = isServiceRunning() || !!getChild();
+  if (!shouldProbe) {
+    setCachedServiceStatus(false);
+    return reconcileServiceRunningState(false);
+  }
+
+  if (!force && serviceStatusPromise) {
+    return serviceStatusPromise;
+  }
+
+  if (!force && Date.now() < serviceStatusCacheExpiresAt) {
+    return serviceStatusCacheValue;
+  }
+
+  serviceStatusPromise = requestWhistleApi({
+    ...getRuntimeConfig(),
+    method: 'GET',
+    path: SERVICE_HEALTH_PATH,
+    timeout: SERVICE_HEALTH_TIMEOUT,
+  })
+    .then(() => {
+      setCachedServiceStatus(true);
+      return reconcileServiceRunningState(true);
+    })
+    .catch(() => {
+      setCachedServiceStatus(false);
+      return reconcileServiceRunningState(false);
+    })
+    .finally(() => {
+      serviceStatusPromise = null;
+    });
+
+  return serviceStatusPromise;
+};
+
+const clearTrackedServiceProcess = (): void => {
+  const child = getChild();
+  if (child) {
+    child.kill();
+  }
+  setChild(null);
+  setCachedServiceStatus(false);
 };
 
 /**
@@ -375,16 +443,16 @@ function initIpc(win: BrowserWindow): void {
   });
 
   // Get service status
-  ipcMain.handle('get-service-status', () => {
-    return { running: isServiceRunning() };
+  ipcMain.handle('get-service-status', async () => {
+    return { running: await checkServiceHealth() };
   });
 
   // Get runtime proxy config for renderer API calls
-  ipcMain.handle('get-runtime-config', () => {
+  ipcMain.handle('get-runtime-config', async () => {
     const config = getRuntimeConfig();
 
     return {
-      running: isServiceRunning(),
+      running: await checkServiceHealth(),
       host: config.host,
       port: config.port,
       username: config.username,
@@ -553,8 +621,12 @@ function initIpc(win: BrowserWindow): void {
 
   // Start whistle service
   ipcMain.handle('start-service', async () => {
-    if (isServiceRunning()) {
+    if (await checkServiceHealth(true)) {
       return { success: false, message: 'Service already running' };
+    }
+    if (getChild()) {
+      clearTrackedServiceProcess();
+      reconcileServiceRunningState(false);
     }
     // Dynamic import to avoid circular dependency
     const forkModule = require('./fork') as { default?: () => void } | (() => void);
@@ -568,18 +640,12 @@ function initIpc(win: BrowserWindow): void {
 
   // Stop whistle service
   ipcMain.handle('stop-service', async () => {
-    if (!isServiceRunning()) {
+    await checkServiceHealth(true);
+    if (!getChild()) {
       return { success: false, message: 'Service not running' };
     }
-    const child = getChild();
-    if (child) {
-      child.kill();
-    }
-    // Dynamic import to avoid circular dependency
-    const { setChild, setRunning } = require('./context');
-    setChild(null);
-    setRunning(false);
-    notifyServiceStatus({ running: false });
+    clearTrackedServiceProcess();
+    reconcileServiceRunningState(false);
     return { success: true };
   });
 

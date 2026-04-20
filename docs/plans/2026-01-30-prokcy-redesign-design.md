@@ -23,7 +23,7 @@ Prokxy is a fork of the Whistle Client desktop application. This redesign replac
 
 ### Process Structure
 
-The application preserves Electron's multi-process architecture. The main process loads the React frontend; a utility process continues running the Whistle proxy server. Processes communicate via HTTP to the Whistle API and SSE for real-time updates.
+The application preserves Electron's multi-process architecture. The main process loads the React frontend; a utility process continues running the Whistle proxy server. Processes communicate via HTTP to the Whistle API and SSE for real-time updates. Service status shown in the renderer is health-based: the main process treats Whistle as "running" only when its HTTP API is still reachable, not merely because a child process was started earlier.
 
 ### Frontend Structure
 
@@ -61,7 +61,7 @@ A collapsible, resizable sidebar (left) provides navigation. The main content ar
 - Rules (code icon)
 - Values (key-value icon)
 
-Each item uses `rounded-xl` hover states with subtle `hover:bg-white/10` effects.
+Each item uses `rounded-xl` hover states with subtle `hover:bg-white/10` effects. The sidebar footer `Proxy Service` switch reflects the current Whistle service health status and periodically re-syncs with the main process, so it automatically falls back to off if the backend becomes unreachable. This status is independent from system proxy settings; this design does not change or imply automatic system proxy control.
 
 ### Network Section
 

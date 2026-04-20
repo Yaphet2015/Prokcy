@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 // Constants
 const API_CHECK_INTERVAL = 100;
 const API_CHECK_TIMEOUT = 5000;
+const SERVICE_STATUS_POLL_INTERVAL = 2000;
 
 interface ServiceContextValue {
   isRunning: boolean;
@@ -40,21 +41,36 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
 
   const apiCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const apiCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const servicePollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const syncServiceStatus = useCallback(async (): Promise<boolean> => {
+  const applyServiceStatus = useCallback((running: boolean, clearTransition: boolean) => {
+    setIsRunning(running);
+    if (clearTransition) {
+      setIsStarting(false);
+      setIsStopping(false);
+    }
+    setError(null);
+  }, []);
+
+  const syncServiceStatus = useCallback(async (clearTransition = false): Promise<boolean> => {
     if (!window.electron?.getServiceStatus) {
       return false;
     }
     try {
       const result = await window.electron.getServiceStatus();
       const running = result?.running ?? false;
-      setIsRunning(running);
+      applyServiceStatus(running, clearTransition);
       return running;
     } catch (err) {
       console.error('Failed to sync service status:', err);
+      if (clearTransition) {
+        setIsStarting(false);
+        setIsStopping(false);
+      }
+      setIsRunning(false);
       return false;
     }
-  }, []);
+  }, [applyServiceStatus]);
 
   // Poll for API availability on mount
   useEffect(() => {
@@ -104,8 +120,20 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
   // Load initial service status when API is available
   useEffect(() => {
     if (!isApiAvailable) return;
-    syncServiceStatus();
-  }, [isApiAvailable, syncServiceStatus]);
+    void syncServiceStatus(true);
+
+    servicePollIntervalRef.current = setInterval(() => {
+      const shouldClearTransition = !isStarting && !isStopping;
+      void syncServiceStatus(shouldClearTransition);
+    }, SERVICE_STATUS_POLL_INTERVAL);
+
+    return () => {
+      if (servicePollIntervalRef.current) {
+        clearInterval(servicePollIntervalRef.current);
+        servicePollIntervalRef.current = null;
+      }
+    };
+  }, [isApiAvailable, isStarting, isStopping, syncServiceStatus]);
 
   // Listen for service status changes from Whistle utility process
   useEffect(() => {
@@ -113,16 +141,13 @@ export function ServiceProvider({ children }: ServiceProviderProps): React.JSX.E
 
     const unsubscribe = window.electron?.onServiceStatusChanged?.((status) => {
       const running = status?.running ?? false;
-      setIsRunning(running);
-      setIsStarting(false);
-      setIsStopping(false);
-      setError(null);
+      applyServiceStatus(running, true);
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [isApiAvailable]);
+  }, [applyServiceStatus, isApiAvailable]);
 
   const startService = useCallback(async () => {
     if (!isApiAvailable || !window.electron) {
