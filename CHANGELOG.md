@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.4](https://github.com/Yaphet2015/Prokcy/compare/v1.8.3...v1.8.4) (2026-04-20)
+
+
+### Bug Fixes
+
+* 代理服务状态同步问题 ([cccea63](https://github.com/Yaphet2015/Prokcy/commit/cccea63f7b1fb227132adc55494bcc3358b1e00d))
+
 ### [1.8.3](https://github.com/Yaphet2015/Prokcy/compare/v1.8.2...v1.8.3) (2026-04-14)
 
 ### [1.8.2](https://github.com/Yaphet2015/Prokcy/compare/v1.8.2-alpha.1...v1.8.2) (2026-04-10)
