@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.9](https://github.com/Yaphet2015/Prokcy/compare/v1.8.8...v1.8.9) (2026-04-21)
+
+
+### Bug Fixes
+
+* guard preload against undefined nativeTheme in Electron 39+ ([3da20c9](https://github.com/Yaphet2015/Prokcy/commit/3da20c99001232c4d24fe26e1e6b441cf958edda))
+
 ### [1.8.8](https://github.com/Yaphet2015/Prokcy/compare/v1.8.7...v1.8.8) (2026-04-21)
 
 
