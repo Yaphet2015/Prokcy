@@ -1,6 +1,6 @@
 {
   "name": "prokcy",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "description": "Prokcy Desktop Proxy Client",
   "main": "./dist-lib/index.js",
   "author": "Yaphet",
