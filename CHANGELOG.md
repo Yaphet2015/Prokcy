@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.8](https://github.com/Yaphet2015/Prokcy/compare/v1.8.7...v1.8.8) (2026-04-21)
+
+
+### Bug Fixes
+
+* **mac:** ad-hoc re-sign unsigned app bundle for Apple Silicon launch ([da782e1](https://github.com/Yaphet2015/Prokcy/commit/da782e1d264e88d4435cd1da5cd513edc2a9d1b8))
+
 ### [1.8.7](https://github.com/Yaphet2015/Prokcy/compare/v1.8.6...v1.8.7) (2026-04-21)
 
 ### [1.8.6](https://github.com/Yaphet2015/Prokcy/compare/v1.8.5...v1.8.6) (2026-04-20)
