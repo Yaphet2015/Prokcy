@@ -5,12 +5,12 @@ import storage from './storage';
 interface UpdateResult {
   success: boolean;
   message: string;
-  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
   version?: string;
 }
 
 interface UpdateStatus {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
   message: string;
   version?: string;
   progressPercent: number;
@@ -18,6 +18,11 @@ interface UpdateStatus {
   checking: boolean;
   downloading: boolean;
   canInstall: boolean;
+}
+
+interface UpdateCheckOptions {
+  silent?: boolean;
+  source?: 'manual' | 'startup' | 'settings';
 }
 
 interface PersistedDownloadedUpdate {
@@ -102,7 +107,7 @@ const clearDownloadedUpdate = (): void => {
 const ensureDownloadedUpdateValid = (): PersistedDownloadedUpdate | null => {
   const downloaded = readDownloadedUpdate();
   if (!downloaded) {
-    if (status.canInstall || status.phase === 'downloaded') {
+    if (status.canInstall || status.phase === 'downloaded' || status.phase === 'installing') {
       updateStatus({
         canInstall: false,
         downloadedFile: undefined,
@@ -274,8 +279,22 @@ const ensureAutoUpdater = (): any | null => {
   return autoUpdaterRef;
 };
 
-export const checkForUpdates = async (): Promise<UpdateResult> => {
+export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise<UpdateResult> => {
+  const source = options.source || 'manual';
+  const isAutomaticCheck = source !== 'manual';
+
+  if (status.phase === 'installing') {
+    return createSuccess(status.message || 'Installing update...', 'installing', status.version);
+  }
+
+  if (status.phase === 'downloading') {
+    return createSuccess(status.message || 'Downloading update...', 'downloading', status.version);
+  }
+
   if (checking) {
+    if (isAutomaticCheck) {
+      return createSuccess(status.message || 'Checking for updates...', 'checking', status.version);
+    }
     return createFailure('Update check is already checking in progress.');
   }
 
@@ -320,7 +339,7 @@ export const checkForUpdates = async (): Promise<UpdateResult> => {
 
 export const getUpdateStatus = (): UpdateStatus => {
   const downloaded = ensureDownloadedUpdateValid();
-  if (downloaded && status.phase !== 'downloaded') {
+  if (downloaded && status.phase === 'idle') {
     updateStatus({
       phase: 'downloaded',
       message: `Update ${downloaded.version} downloaded. Ready to install.`,
@@ -347,19 +366,33 @@ export const installDownloadedUpdate = async (): Promise<UpdateResult> => {
   }
 
   try {
+    updateStatus({
+      phase: 'installing',
+      message: `Installing update ${downloaded.version}...`,
+      version: downloaded.version,
+      progressPercent: 100,
+      downloadedFile: downloaded.downloadedFile,
+      checking: false,
+      downloading: false,
+      canInstall: false,
+    });
     updater.quitAndInstall();
     return createSuccess(
       `Installing update ${downloaded.version}...`,
-      'downloaded',
+      'installing',
       downloaded.version,
     );
   } catch (error) {
     const message = (error as Error)?.message || 'Failed to start update installation.';
     updateStatus({
-      phase: 'error',
-      message,
+      phase: 'downloaded',
+      message: `Update ${downloaded.version} downloaded. Ready to install.`,
+      version: downloaded.version,
+      progressPercent: 100,
+      downloadedFile: downloaded.downloadedFile,
       checking: false,
       downloading: false,
+      canInstall: true,
     });
     return createFailure(message);
   }
@@ -378,4 +411,4 @@ export const onUpdateStatusChanged = (listener: (next: UpdateStatus) => void): (
 
 restoreDownloadedState();
 
-export type { UpdateResult, UpdateStatus };
+export type { UpdateCheckOptions, UpdateResult, UpdateStatus };

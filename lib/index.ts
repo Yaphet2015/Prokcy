@@ -14,6 +14,7 @@ import { showMessageBox } from './dialog';
 import { createWindow, restart, showWindow } from './window';
 import { applyThemeMode } from './preferences';
 import forkWhistle from './fork';
+import { checkForUpdates } from './updater';
 import { version } from '../package.json';
 
 // Set app name early so menu displays "Prokcy" instead of "Electron"
@@ -179,6 +180,7 @@ const scheduleDockUpdate = (): void => {
     app.userAgentFallback = `${app.userAgentFallback} Prokcy/${version}`;
     applyThemeMode();
     createWindow();
+    void checkForUpdates({ silent: true, source: 'startup' });
     forkWhistle();
     // @ts-ignore - custom event for whistle settings changes
     app.on('whistleSettingsChanged', forkWhistle);

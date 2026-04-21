@@ -7,7 +7,10 @@ import {
 } from '@pikoloo/darwin-ui';
 import { Save } from 'lucide-react';
 import ContentHeader from '../../shared/ui/ContentHeader';
-import { getCheckUpdateFeedback } from './update-feedback';
+import {
+  getCheckUpdateFeedback,
+  getUpdateProgressState,
+} from './update-feedback';
 
 // Types
 interface SettingsForm {
@@ -62,7 +65,7 @@ interface SettingsPayload {
 }
 
 interface UpdateStatus {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
   message: string;
   version?: string;
   progressPercent: number;
@@ -70,6 +73,11 @@ interface UpdateStatus {
   checking: boolean;
   downloading: boolean;
   canInstall: boolean;
+}
+
+interface UpdateCheckOptions {
+  silent?: boolean;
+  source?: 'manual' | 'startup' | 'settings';
 }
 
 // Settings categories for sidebar navigation
@@ -342,22 +350,9 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
 
   const isUpdateChecking = !!updateStatus?.checking;
   const isUpdateDownloading = !!updateStatus?.downloading;
+  const isUpdateInstalling = updateStatus?.phase === 'installing';
   const canInstallDownloadedUpdate = !!updateStatus?.canInstall;
-  const updateProgressPercent = useMemo(() => {
-    if (!updateStatus) {
-      return 0;
-    }
-    if (updateStatus.downloading) {
-      return Math.max(0, Math.min(100, Math.round(updateStatus.progressPercent || 0)));
-    }
-    if (updateStatus.canInstall) {
-      return 100;
-    }
-    if (updateStatus.checking) {
-      return 10;
-    }
-    return 0;
-  }, [updateStatus]);
+  const updateProgress = useMemo(() => getUpdateProgressState(updateStatus), [updateStatus]);
 
   const updateField = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -491,28 +486,53 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
     }
   }, []);
 
-  const handleCheckUpdate = useCallback(async () => {
+  const runUpdateCheck = useCallback(async (
+    options: UpdateCheckOptions = { source: 'manual' }
+  ) => {
     if (!window.electron?.checkForUpdates) {
-      setUpdateError('Update API unavailable. Please restart the app.');
+      if (options.source === 'manual') {
+        setUpdateError('Update API unavailable. Please restart the app.');
+      }
       return;
     }
 
-    setCheckingUpdate(true);
-    setUpdateError('');
     setUpdateFeedback('');
+    setUpdateError('');
+
+    if (options.source === 'manual') {
+      setCheckingUpdate(true);
+    }
 
     try {
-      const result = await window.electron.checkForUpdates();
+      const result = await window.electron.checkForUpdates(options);
       if (!result?.success) {
         throw new Error(result?.message || 'Failed to check for updates');
       }
-      setUpdateFeedback(getCheckUpdateFeedback(result));
+      if (options.source === 'manual') {
+        setUpdateFeedback(getCheckUpdateFeedback(result));
+      }
     } catch (err) {
-      setUpdateError((err as Error)?.message || 'Failed to check for updates');
+      const message = (err as Error)?.message || 'Failed to check for updates';
+      if (
+        options.source !== 'manual'
+        && (
+          /already checking/i.test(message)
+          || /only available in packaged builds/i.test(message)
+        )
+      ) {
+        return;
+      }
+      setUpdateError(message);
     } finally {
-      setCheckingUpdate(false);
+      if (options.source === 'manual') {
+        setCheckingUpdate(false);
+      }
     }
   }, []);
+
+  const handleCheckUpdate = useCallback(async () => {
+    await runUpdateCheck({ source: 'manual' });
+  }, [runUpdateCheck]);
 
   const handleInstallUpdate = useCallback(async () => {
     if (!window.electron?.installDownloadedUpdate) {
@@ -536,6 +556,10 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       setInstallingUpdate(false);
     }
   }, []);
+
+  useEffect(() => {
+    void runUpdateCheck({ silent: true, source: 'settings' });
+  }, [runUpdateCheck]);
 
   // Handle keyboard shortcuts (Cmd+S or Ctrl+S to save)
   useEffect(() => {
@@ -991,6 +1015,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                               || installingUpdate
                               || isUpdateChecking
                               || isUpdateDownloading
+                              || isUpdateInstalling
                             }
                             loading={checkingUpdate || isUpdateChecking}
                           >
@@ -1001,7 +1026,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                               variant="primary"
                               size="sm"
                               onClick={handleInstallUpdate}
-                              disabled={loading || installingUpdate}
+                              disabled={loading || installingUpdate || isUpdateInstalling}
                               loading={installingUpdate}
                             >
                               Install
@@ -1015,24 +1040,24 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                           </p>
                         </div>
 
-                        {(isUpdateChecking || isUpdateDownloading || canInstallDownloadedUpdate) && (
+                        {updateProgress.showProgress && (
                           <div className="space-y-1.5">
                             <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                               <div
                                 className={`h-full rounded-full bg-emerald-500 transition-all duration-300 ${
-                                  isUpdateChecking ? 'animate-pulse' : ''
+                                  updateProgress.indeterminate ? 'animate-pulse' : ''
                                 }`}
                                 style={{
-                                  width: `${updateProgressPercent}%`,
+                                  width: `${updateProgress.progressPercent}%`,
                                 }}
                               />
                             </div>
                             <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
                               <span>{updateStatus?.message || 'Checking for updates...'}</span>
-                              {isUpdateDownloading && (
+                              {updateProgress.showPercent && isUpdateDownloading && (
                                 <span>{Math.round(updateStatus.progressPercent || 0)}%</span>
                               )}
-                              {canInstallDownloadedUpdate && <span>100%</span>}
+                              {updateProgress.showPercent && canInstallDownloadedUpdate && <span>100%</span>}
                             </div>
                           </div>
                         )}
@@ -1046,6 +1071,11 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         {!updateError && !updateFeedback && updateStatus?.phase === 'up-to-date' && (
                           <p className="text-xs text-zinc-500 dark:text-zinc-400">
                             {updateStatus.message || 'Prokcy is up to date.'}
+                          </p>
+                        )}
+                        {!updateError && !updateFeedback && isUpdateInstalling && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {updateStatus?.message || 'Installing update...'}
                           </p>
                         )}
                       </div>

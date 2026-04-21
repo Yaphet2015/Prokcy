@@ -95,12 +95,17 @@ interface SystemProxyResult {
 interface UpdateCheckResult {
   success?: boolean;
   message?: string;
-  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
   version?: string;
 }
 
+interface UpdateCheckOptions {
+  silent?: boolean;
+  source?: 'manual' | 'startup' | 'settings';
+}
+
 interface UpdateStatusResult {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'error';
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
   message: string;
   version?: string;
   progressPercent: number;
@@ -178,7 +183,7 @@ interface ValuesAPI {
 interface SystemProxyAPI {
   getSystemProxyEnabled(): Promise<boolean>;
   setSystemProxyEnabled(enabled: boolean): Promise<SystemProxyResult>;
-  checkForUpdates(): Promise<UpdateCheckResult>;
+  checkForUpdates(options?: UpdateCheckOptions): Promise<UpdateCheckResult>;
   getUpdateStatus(): Promise<UpdateStatusResult>;
   installDownloadedUpdate(): Promise<UpdateCheckResult>;
   onUpdateStatusChanged(callback: (status: UpdateStatusResult) => void): () => void;

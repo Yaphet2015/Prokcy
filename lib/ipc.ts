@@ -32,6 +32,7 @@ import {
   getUpdateStatus,
   installDownloadedUpdate,
   onUpdateStatusChanged,
+  type UpdateCheckOptions,
 } from './updater';
 import type { IpcRequest, NetworkQuery } from './types/electron';
 import { resolveFileProtocolTarget } from './file-target';
@@ -686,8 +687,8 @@ function initIpc(win: BrowserWindow): void {
   });
 
   // Check for app updates (auto-download + manual install)
-  ipcMain.handle('check-for-updates', async () => {
-    return checkForUpdates();
+  ipcMain.handle('check-for-updates', async (_event, options?: UpdateCheckOptions) => {
+    return checkForUpdates(options);
   });
 
   ipcMain.handle('get-update-status', () => {

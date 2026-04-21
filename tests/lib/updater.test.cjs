@@ -24,6 +24,9 @@ function withUpdaterHarness(t, overrides = {}) {
     },
     checkForUpdates: async () => {
       calls.checkForUpdates += 1;
+      if (typeof overrides.autoUpdaterCheckForUpdates === 'function') {
+        return overrides.autoUpdaterCheckForUpdates({ calls, events });
+      }
       return null;
     },
     quitAndInstall: () => {
@@ -130,4 +133,39 @@ test('installDownloadedUpdate triggers quitAndInstall for cached update', async 
   const result = await updater.installDownloadedUpdate();
   assert.equal(result.success, true);
   assert.equal(calls.quitAndInstall, 1);
+});
+
+test('automatic checks reuse an in-flight update check', async (t) => {
+  let resolveCheck;
+  const { updater, calls } = withUpdaterHarness(t, {
+    autoUpdaterCheckForUpdates: () => new Promise((resolve) => {
+      resolveCheck = resolve;
+    }),
+  });
+
+  const first = updater.checkForUpdates({ silent: true, source: 'startup' });
+  const second = await updater.checkForUpdates({ silent: true, source: 'settings' });
+
+  assert.equal(calls.checkForUpdates, 1);
+  assert.equal(second.success, true);
+  assert.equal(second.status, 'checking');
+
+  resolveCheck(null);
+  await first;
+});
+
+test('installDownloadedUpdate updates status to installing before quitting', async (t) => {
+  const { updater, events } = withUpdaterHarness(t);
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '9.9.9' });
+  events.emit('update-downloaded', { version: '9.9.9', downloadedFile: __filename });
+  await promise;
+
+  await updater.installDownloadedUpdate();
+
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'installing');
+  assert.equal(status.canInstall, false);
+  assert.equal(status.downloading, false);
 });
