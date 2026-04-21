@@ -5,9 +5,29 @@ const {
   nativeTheme,
 } = require('electron');
 
+// `nativeTheme` is a main-process module. In newer Electron versions it is
+// `undefined` inside the preload renderer context, so guard every access and
+// fall back to the DOM `prefers-color-scheme` media query.
+const getInitialIsDark = () => {
+  try {
+    if (nativeTheme && typeof nativeTheme.shouldUseDarkColors === 'boolean') {
+      return nativeTheme.shouldUseDarkColors;
+    }
+  } catch {
+    // fall through to matchMedia
+  }
+  try {
+    return typeof window !== 'undefined'
+      && !!window.matchMedia
+      && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch {
+    return false;
+  }
+};
+
 const electronApi = {
   initialTheme: {
-    isDark: nativeTheme.shouldUseDarkColors,
+    isDark: getInitialIsDark(),
   },
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximizeWindow: () => ipcRenderer.invoke('window:toggle-maximize'),
