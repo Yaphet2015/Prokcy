@@ -128,14 +128,35 @@ function runCodesign(args, target) {
 //   Mach-O leaves explicitly, then each nested bundle deepest-first, then the
 //   outer .app produces a fully ad-hoc-signed tree that runs on arm64 while
 //   still showing the standard "unidentified developer" Gatekeeper flow.
+function isBundlePrimaryExecutable(filePath) {
+  // <Name>.app/Contents/MacOS/<binary> is a bundle primary executable.
+  // Signing it directly makes codesign promote the operation to the bundle
+  // level and demand its subcomponents already be signed, which breaks the
+  // bottom-up order. Let the container pass seal these via the enclosing
+  // `<Name>.app`.
+  const parent = path.dirname(filePath);
+  if (path.basename(parent) !== 'MacOS') return false;
+  const contents = path.dirname(parent);
+  if (path.basename(contents) !== 'Contents') return false;
+  return path.basename(path.dirname(contents)).endsWith('.app');
+}
+
 function resignAdhocMacAppBundle(appPath) {
   const adhocArgs = ['--force', '--sign', '-', '--timestamp=none'];
 
-  for (const filePath of listAllFiles(appPath)) {
-    const ext = path.extname(filePath);
-    const isLeafCandidate = ext === '.dylib' || ext === '.node' || ext === '.so' || ext === '';
-    if (!isLeafCandidate) continue;
-    if (!isMachOFile(filePath)) continue;
+  const leafCandidates = listAllFiles(appPath)
+    .filter((filePath) => {
+      const ext = path.extname(filePath);
+      const isLeafCandidate = ext === '.dylib' || ext === '.node' || ext === '.so' || ext === '';
+      if (!isLeafCandidate) return false;
+      if (isBundlePrimaryExecutable(filePath)) return false;
+      return isMachOFile(filePath);
+    })
+    // Deepest first: sign leaves inside Libraries/Helpers before anything that
+    // might need them to already be sealed.
+    .sort((a, b) => b.length - a.length);
+
+  for (const filePath of leafCandidates) {
     runCodesign(adhocArgs, filePath);
   }
 
