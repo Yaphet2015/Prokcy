@@ -54,12 +54,13 @@ src/
 
 ### App Shell
 
-A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `300px`). Collapse/expand during drag uses hysteresis to avoid jitter: drag below `70px` to collapse, then drag back to `>=166px` to expand, without ending the active drag. During a single drag gesture, the resize anchor is fixed at pointer-down (not reset on collapse/expand), so repeated toggles do not shift the expand trigger. Width follows pointer while expanded and clamps at the max bound (`300px`) when dragged beyond range. Width transition is state-driven: expanding uses `ease-in` with `150ms` delay and `50ms` duration; collapsing uses `ease-out` with `0ms` delay and `50ms` duration; otherwise transition is disabled for pointer-following behavior.
+A collapsible, resizable sidebar (left) provides navigation. The main content area displays the selected feature. The sidebar uses glass effects (`backdrop-filter: blur(20px)`) with semi-transparent backgrounds, and users can drag its right edge to resize it within bounded limits (`200px` to `300px`). Collapse/expand during drag uses hysteresis to avoid jitter: drag below `70px` to collapse, then drag back to `>=166px` to expand, without ending the active drag. During a single drag gesture, the resize anchor is fixed at pointer-down (not reset on collapse/expand), so repeated toggles do not shift the expand trigger. Width follows pointer while expanded and clamps at the max bound (`300px`) when dragged beyond range. Width transition is state-driven: expanding uses `ease-in` with `150ms` delay and `50ms` duration; collapsing uses `ease-out` with `0ms` delay and `50ms` duration; otherwise transition is disabled for pointer-following behavior. Settings include a `Start with sidebar collapsed` preference; the app reads it during startup and defaults to the expanded sidebar when the preference is not set.
 
 **Navigation Items:**
 - Network (waterfall icon)
 - Rules (code icon)
 - Values (key-value icon)
+- Settings (settings icon)
 
 Each item uses `rounded-xl` hover states with subtle `hover:bg-white/10` effects. The sidebar footer `Proxy Service` switch reflects the current Whistle service health status and periodically re-syncs with the main process, so it automatically falls back to off if the backend becomes unreachable. This status is independent from system proxy settings; this design does not change or imply automatic system proxy control.
 
@@ -291,7 +292,7 @@ Poll for external changes every 30s. On conflict, show "External changes detecte
 
 ### State Persistence
 
-Persist to `localStorage`: sidebar collapsed state, selected tab, window size.
+Persist app preferences through Electron settings storage: sidebar default collapsed state, request filters, theme mode, launch behavior, and window defaults.
 
 ## Build Configuration
 

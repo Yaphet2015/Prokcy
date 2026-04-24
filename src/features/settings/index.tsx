@@ -26,6 +26,7 @@ interface SettingsForm {
   lowMemoryMode: boolean;
   startAtLogin: boolean;
   hideFromDock: boolean;
+  sidebarDefaultCollapsed: boolean;
   themeMode: string;
   requestFilters: string;
   networkPollingCount: string;
@@ -53,6 +54,7 @@ interface ProxyPayload {
 interface PreferencesPayload {
   startAtLogin: boolean;
   hideFromDock: boolean;
+  sidebarDefaultCollapsed: boolean;
   themeMode: string;
   requestFilters: string;
   networkPollingCount: number;
@@ -150,6 +152,7 @@ const DEFAULT_SETTINGS: SettingsForm = {
   lowMemoryMode: false,
   startAtLogin: false,
   hideFromDock: false,
+  sidebarDefaultCollapsed: false,
   themeMode: 'system',
   requestFilters: '',
   networkPollingCount: DEFAULT_NETWORK_POLLING_COUNT,
@@ -240,6 +243,7 @@ const normalizeSettings = (settings: Partial<SettingsForm> = {}): SettingsForm =
     lowMemoryMode: !!settings.lowMemoryMode,
     startAtLogin: !!settings.startAtLogin,
     hideFromDock: !!settings.hideFromDock,
+    sidebarDefaultCollapsed: settings.sidebarDefaultCollapsed === true,
     themeMode: THEME_MODES.includes(String(settings.themeMode))
       ? String(settings.themeMode)
       : DEFAULT_SETTINGS.themeMode,
@@ -436,6 +440,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       preferences: {
         startAtLogin: form.startAtLogin,
         hideFromDock: form.hideFromDock,
+        sidebarDefaultCollapsed: form.sidebarDefaultCollapsed,
         themeMode: form.themeMode,
         requestFilters: form.requestFilters,
         networkPollingCount: Number(form.networkPollingCount.trim()),
@@ -929,6 +934,17 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         />
                         <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
                           Remove the Prokcy icon from your macOS Dock. Access it from the menu bar instead.
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Switch
+                          checked={form.sidebarDefaultCollapsed}
+                          onChange={(checked) => updateField('sidebarDefaultCollapsed', checked)}
+                          disabled={loading}
+                          label="Start with sidebar collapsed"
+                        />
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-9">
+                          Use the compact sidebar layout when Prokcy launches.
                         </p>
                       </div>
                     </div>

@@ -42,6 +42,7 @@ interface SettingsForm {
   lowMemoryMode: boolean;
   startAtLogin: boolean;
   hideFromDock: boolean;
+  sidebarDefaultCollapsed: boolean;
   themeMode: string;
   requestFilters: string;
   networkPollingCount: string;
@@ -69,6 +70,7 @@ interface ProxyPayload {
 interface PreferencesPayload {
   startAtLogin: boolean;
   hideFromDock: boolean;
+  sidebarDefaultCollapsed: boolean;
   themeMode: string;
   requestFilters: string;
   networkPollingCount: number;

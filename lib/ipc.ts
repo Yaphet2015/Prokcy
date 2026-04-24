@@ -18,6 +18,7 @@ import {
   getRulesOrder,
   setStartAtLogin,
   setHideFromDock,
+  setSidebarDefaultCollapsed,
   applyThemeMode,
   setRequestFilters,
   setNetworkPollingCount,
@@ -503,6 +504,9 @@ function initIpc(win: BrowserWindow): void {
       }
       if (Object.prototype.hasOwnProperty.call(preferences, 'hideFromDock')) {
         setHideFromDock(preferences.hideFromDock);
+      }
+      if (Object.prototype.hasOwnProperty.call(preferences, 'sidebarDefaultCollapsed')) {
+        setSidebarDefaultCollapsed(preferences.sidebarDefaultCollapsed);
       }
       if (Object.prototype.hasOwnProperty.call(preferences, 'themeMode')) {
         applyThemeMode(preferences.themeMode);

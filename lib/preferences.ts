@@ -17,6 +17,7 @@ export interface PreferencesData {
   startAtLogin: boolean;
   hideFromDock: boolean;
   themeMode: ThemeMode;
+  sidebarDefaultCollapsed: boolean;
   rulesOrder: string[];
   requestFilters: string;
   networkPollingCount: number;
@@ -136,6 +137,15 @@ export const setHideFromDock = (hideFromDock: unknown): boolean => {
   return enabled;
 };
 
+export const getSidebarDefaultCollapsed = (): boolean =>
+  storage.getProperty('sidebarDefaultCollapsed') === true;
+
+export const setSidebarDefaultCollapsed = (collapsed: unknown): boolean => {
+  const enabled = collapsed === true;
+  storage.setProperty('sidebarDefaultCollapsed', enabled);
+  return enabled;
+};
+
 /**
  * Get the order of rule groups
  * Returns a deduplicated array of rule group names
@@ -243,6 +253,7 @@ export const getPreferences = (): PreferencesData => ({
   startAtLogin: getStartAtLogin(),
   hideFromDock: getHideFromDock(),
   themeMode: getThemeMode(),
+  sidebarDefaultCollapsed: getSidebarDefaultCollapsed(),
   rulesOrder: getRulesOrder(),
   requestFilters: getRequestFilters(),
   networkPollingCount: getNetworkPollingCount(),

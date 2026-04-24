@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { SetStateAction } from 'react';
 import { Minus, Maximize2, X } from 'lucide-react';
 import Sidebar from './shared/ui/Sidebar';
 // import ContentHeader from './shared/ui/ContentHeader';
@@ -16,6 +17,7 @@ import {
   getSidebarResizeState,
   getSidebarWidthTransitionClass,
 } from './shared/utils/sidebarResizeState';
+import { getInitialSidebarCollapsed } from './shared/utils/sidebarDefaultState';
 import type { ViewType } from './types/ui';
 
 // View components mapping
@@ -114,6 +116,7 @@ function App(): React.JSX.Element {
   const resizingPointerIdRef = useRef<number | null>(null);
   const isSidebarCollapsedRef = useRef(isSidebarCollapsed);
   const previousIsSidebarCollapsedRef = useRef(isSidebarCollapsed);
+  const sidebarInteractionRef = useRef(false);
   const ActiveComponent = VIEWS[activeView] || VIEWS.network;
   const sidebarWidthTransitionClass = getSidebarWidthTransitionClass({
     previousIsCollapsed: previousIsSidebarCollapsedRef.current,
@@ -126,6 +129,36 @@ function App(): React.JSX.Element {
   }, [isSidebarCollapsed]);
 
   useEffect(() => scheduleMonacoWarmup(), []);
+
+  useEffect(() => {
+    if (!window.electron?.getSettings) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadSidebarDefault = async () => {
+      try {
+        const settings = await window.electron?.getSettings();
+        if (!cancelled && !sidebarInteractionRef.current) {
+          setIsSidebarCollapsed(getInitialSidebarCollapsed(settings));
+        }
+      } catch {
+        // Keep the built-in expanded default when settings are unavailable.
+      }
+    };
+
+    void loadSidebarDefault();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateSidebarCollapsed = useCallback((next: SetStateAction<boolean>) => {
+    sidebarInteractionRef.current = true;
+    setIsSidebarCollapsed(next);
+  }, []);
 
   const handleSidebarResizeStart = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
@@ -151,7 +184,7 @@ function App(): React.JSX.Element {
       // Cmd+B to toggle sidebar
       if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
         event.preventDefault();
-        setIsSidebarCollapsed(prev => !prev);
+        updateSidebarCollapsed(prev => !prev);
       }
     };
 
@@ -179,7 +212,7 @@ function App(): React.JSX.Element {
         delete window.showWhistleWebUI;
       }
     };
-  }, []);
+  }, [updateSidebarCollapsed]);
 
   useEffect(() => {
     if (!isResizingSidebar) {
@@ -207,7 +240,7 @@ function App(): React.JSX.Element {
       });
 
       if (nextState.isCollapsed !== isSidebarCollapsedRef.current) {
-        setIsSidebarCollapsed(nextState.isCollapsed);
+        updateSidebarCollapsed(nextState.isCollapsed);
         isSidebarCollapsedRef.current = nextState.isCollapsed;
       }
 
@@ -239,7 +272,7 @@ function App(): React.JSX.Element {
       window.removeEventListener('pointercancel', stopResizing, true);
       window.removeEventListener('blur', stopResizing);
     };
-  }, [isResizingSidebar]);
+  }, [isResizingSidebar, updateSidebarCollapsed]);
 
   const sidebarWidthValue = isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth;
   const handleNavigateToValueKey = useCallback((key: string) => {
@@ -259,7 +292,7 @@ function App(): React.JSX.Element {
           activeView={activeView}
           onViewChange={setActiveView}
           isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+          onToggleCollapse={() => updateSidebarCollapsed(prev => !prev)}
           width={sidebarWidthValue}
           isResizing={isResizingSidebar}
           onResizeStart={handleSidebarResizeStart}
