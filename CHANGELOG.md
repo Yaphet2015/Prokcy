@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.11](https://github.com/Yaphet2015/Prokcy/compare/v1.8.10...v1.8.11) (2026-04-24)
+
+
+### Features
+
+* sidebar 展开收起 放到设置里持久化 ([9f4729c](https://github.com/Yaphet2015/Prokcy/commit/9f4729c566e02f43e9943b0aca05b9637f2d34a8))
+
 ### [1.8.10](https://github.com/Yaphet2015/Prokcy/compare/v1.8.9...v1.8.10) (2026-04-24)
 
 ### [1.8.9](https://github.com/Yaphet2015/Prokcy/compare/v1.8.8...v1.8.9) (2026-04-21)
