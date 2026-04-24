@@ -22,7 +22,7 @@ Removed the `cache: 'npm'` configuration from all three workflow files:
 **Before:**
 ```yaml
 - name: Setup Node.js
-  uses: actions/setup-node@v4
+  uses: actions/setup-node@v6
   with:
     node-version: '20'
     cache: 'npm'  # ← Removed this line
@@ -31,7 +31,7 @@ Removed the `cache: 'npm'` configuration from all three workflow files:
 **After:**
 ```yaml
 - name: Setup Node.js
-  uses: actions/setup-node@v4
+  uses: actions/setup-node@v6
   with:
     node-version: '20'
 ```

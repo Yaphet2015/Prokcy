@@ -35,7 +35,7 @@ function loadFormatTime(relPath) {
 }
 
 const waterfallFormatTime = loadFormatTime('src/features/network/WaterfallTimeline.tsx');
-const inspectorFormatTime = loadFormatTime('src/features/network/RequestInspector.tsx');
+const inspectorFormatTime = loadFormatTime('src/features/network/components/request-inspector/utils.ts');
 
 test('WaterfallTimeline formatTime renders numbers for non-zero duration', () => {
   assert.equal(waterfallFormatTime(15), '15ms');
