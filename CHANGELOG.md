@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.12](https://github.com/Yaphet2015/Prokcy/compare/v1.8.11...v1.8.12) (2026-05-06)
+
+
+### Bug Fixes
+
+* create missing rule file targets ([be04fe0](https://github.com/Yaphet2015/Prokcy/commit/be04fe0534f578bd0707891a6796af345a5f0346))
+
 ### [1.8.11](https://github.com/Yaphet2015/Prokcy/compare/v1.8.10...v1.8.11) (2026-04-24)
 
 
