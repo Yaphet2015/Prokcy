@@ -2,6 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const Module = require('node:module');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 function createHttpStub(harness) {
   return {
@@ -51,6 +54,7 @@ function createIpcHarness(t, overrides = {}) {
     setChild: [],
     setRunning: [],
   };
+  const shellOpenPathCalls = [];
 
   const harness = {
     healthAvailable: overrides.healthAvailable ?? true,
@@ -83,7 +87,10 @@ function createIpcHarness(t, overrides = {}) {
         },
         BrowserWindow: class {},
         shell: {
-          openPath: async () => '',
+          openPath: async (target) => {
+            shellOpenPathCalls.push(target);
+            return overrides.openPathMessage ?? '';
+          },
         },
       };
     }
@@ -166,7 +173,11 @@ function createIpcHarness(t, overrides = {}) {
     }
     if (request === './file-target') {
       return {
-        resolveFileProtocolTarget: () => ({ kind: 'local-file', path: __filename }),
+        resolveFileProtocolTarget: (target) => (
+          overrides.resolveFileProtocolTarget
+            ? overrides.resolveFileProtocolTarget(target)
+            : { kind: 'local-file', path: __filename }
+        ),
       };
     }
     if (request === './fork') {
@@ -192,8 +203,71 @@ function createIpcHarness(t, overrides = {}) {
     state,
     calls,
     harness,
+    shellOpenPathCalls,
   };
 }
+
+test('open-file-protocol-target creates missing nested local files before opening', async (t) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'prokcy-ipc-file-'));
+  t.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  const targetPath = path.join(tempRoot, 'nested', 'mock.json');
+  const { handlers, shellOpenPathCalls } = createIpcHarness(t, {
+    resolveFileProtocolTarget: () => ({ kind: 'local-file', path: targetPath }),
+  });
+
+  const result = await handlers.get('open-file-protocol-target')({}, 'file:///tmp/mock.json');
+
+  assert.deepEqual(result, { success: true, code: 'success' });
+  assert.equal(fs.readFileSync(targetPath, 'utf8'), '');
+  assert.deepEqual(shellOpenPathCalls, [targetPath]);
+});
+
+test('open-file-protocol-target opens existing files without truncating them', async (t) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'prokcy-ipc-file-'));
+  t.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  const targetPath = path.join(tempRoot, 'existing.txt');
+  fs.writeFileSync(targetPath, 'keep me');
+  const { handlers, shellOpenPathCalls } = createIpcHarness(t, {
+    resolveFileProtocolTarget: () => ({ kind: 'local-file', path: targetPath }),
+  });
+
+  const result = await handlers.get('open-file-protocol-target')({}, 'file:///tmp/existing.txt');
+
+  assert.deepEqual(result, { success: true, code: 'success' });
+  assert.equal(fs.readFileSync(targetPath, 'utf8'), 'keep me');
+  assert.deepEqual(shellOpenPathCalls, [targetPath]);
+});
+
+test('open-file-protocol-target rejects unsupported targets without creating or opening files', async (t) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'prokcy-ipc-file-'));
+  t.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  const { handlers, shellOpenPathCalls } = createIpcHarness(t, {
+    resolveFileProtocolTarget: () => ({
+      kind: 'unsupported-target',
+      code: 'unsupported_target',
+      message: 'This Whistle file target is not a local file path.',
+    }),
+  });
+
+  const result = await handlers.get('open-file-protocol-target')({}, 'file://temp/demo.txt');
+
+  assert.deepEqual(result, {
+    success: false,
+    code: 'unsupported_target',
+    message: 'This Whistle file target is not a local file path.',
+  });
+  assert.deepEqual(fs.readdirSync(tempRoot), []);
+  assert.deepEqual(shellOpenPathCalls, []);
+});
 
 test('get-service-status falls back to false and notifies renderer when health check fails', async (t) => {
   const { handlers, state, sends } = createIpcHarness(t, {

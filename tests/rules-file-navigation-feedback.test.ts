@@ -48,6 +48,20 @@ test('returns file not found message for missing local files', async () => {
   );
 });
 
+test('returns create failure message for local files that cannot be created', async () => {
+  const { getFileNavigationFeedbackMessage } = await loadFeedbackModule();
+  assert.equal(typeof getFileNavigationFeedbackMessage, 'function');
+
+  assert.equal(
+    getFileNavigationFeedbackMessage?.({
+      success: false,
+      code: 'file_create_failed',
+      message: 'EACCES: permission denied',
+    }),
+    'Failed to create local file: EACCES: permission denied',
+  );
+});
+
 test('returns null for successful opens', async () => {
   const { getFileNavigationFeedbackMessage } = await loadFeedbackModule();
   assert.equal(typeof getFileNavigationFeedbackMessage, 'function');

@@ -95,7 +95,7 @@ Full-height Monaco Editor with toolbar (Save, Revert, Enable/Disable All). Statu
 - Tahoe-themed syntax highlighting
 - Cmd/Ctrl+S to save
 - Cmd/Ctrl+/ to toggle comments
-- Cmd/Ctrl+Click on Whistle local file targets opens the target with the OS default application via Electron main-process IPC, including `file:///absolute/path`, `file://~/path`, and Windows drive paths such as `file://C:/tmp/a.js`
+- Cmd/Ctrl+Click on Whistle local file targets opens the target with the OS default application via Electron main-process IPC, including `file:///absolute/path`, `file://~/path`, and Windows drive paths such as `file://C:/tmp/a.js`; when the local target does not exist, Prokcy creates the empty file and any missing parent directories before opening it
 - Cmd/Ctrl+Click on `protocol://{valueKey}` including `file://{valueKey}` switches to Values, selects the referenced key, and focuses the Value editor
 - Paste handling uses a renderer-side fallback only for the Monaco text surface; find widget and other Monaco input controls keep native paste behavior
 - Error squiggles for invalid syntax

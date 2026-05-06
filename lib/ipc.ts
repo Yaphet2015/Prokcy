@@ -3,6 +3,7 @@ import {
 } from 'electron';
 import http from 'http';
 import fs from 'node:fs';
+import path from 'node:path';
 import { toggleMaximize, bindMaximizeStateEvents } from './window-controls';
 import {
   getOptions,
@@ -299,11 +300,18 @@ function initIpc(win: BrowserWindow): void {
       }
 
       if (!fs.existsSync(resolvedTarget.path)) {
-        return {
-          success: false,
-          code: 'file_not_found',
-          message: resolvedTarget.path,
-        };
+        try {
+          fs.mkdirSync(path.dirname(resolvedTarget.path), { recursive: true });
+          fs.writeFileSync(resolvedTarget.path, '', { flag: 'wx' });
+        } catch (error) {
+          if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) {
+            return {
+              success: false,
+              code: 'file_create_failed',
+              message: error instanceof Error ? error.message : `Failed to create ${resolvedTarget.path}`,
+            };
+          }
+        }
       }
 
       const message = await shell.openPath(resolvedTarget.path);

@@ -14,6 +14,8 @@ export function getFileNavigationFeedbackMessage(result: FileNavigationFeedbackR
       return 'This Whistle file target is not a local file path.';
     case 'file_not_found':
       return result.message ? `Local file not found: ${result.message}` : 'Local file not found.';
+    case 'file_create_failed':
+      return result.message ? `Failed to create local file: ${result.message}` : 'Failed to create local file.';
     case 'open_failed':
       return result.message || 'Failed to open the local file.';
     default:
