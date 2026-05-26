@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.13](https://github.com/Yaphet2015/Prokcy/compare/v1.8.12...v1.8.13) (2026-05-26)
+
+
+### Bug Fixes
+
+* include mac zip update artifacts ([b646b9f](https://github.com/Yaphet2015/Prokcy/commit/b646b9f3510d24406e6bceb272b5fdf27f826c6f))
+
 ### [1.8.12](https://github.com/Yaphet2015/Prokcy/compare/v1.8.11...v1.8.12) (2026-05-06)
 
 
