@@ -59,9 +59,10 @@ Three GitHub Actions workflows have been created in `.github/workflows/`:
 Each release includes:
 
 ### macOS
-- **Format:** `.dmg` disk image
-- **Architecture:** Universal (Intel + Apple Silicon)
+- **Format:** `.dmg` disk image for manual install, `.zip` archive for in-app auto-update
+- **Architecture:** arm64 and x64
 - **File:** `Prokcy-v1.5.5-mac-arm64.dmg` / `Prokcy-v1.5.5-mac-x64.dmg`
+- **Auto-update file:** `Prokcy-v1.5.5-mac-arm64.zip` / `Prokcy-v1.5.5-mac-x64.zip`
 
 ### Windows
 - **Format:** `.exe` installer
@@ -121,7 +122,7 @@ npm run build:mac  # or build:win, build:linux
 
 ### Platform-Specific Issues
 - **macOS:** Needs macOS runner (automatic)
-- **macOS signing/notarization:** Requires Apple Developer credentials; otherwise the generated `.dmg` is unsigned
+- **macOS signing/notarization:** Requires Apple Developer credentials; otherwise the generated `.dmg` and `.zip` artifacts are unsigned
 - **Windows:** Paths use backslashes
 - **Linux:** Uses AppImage format
 

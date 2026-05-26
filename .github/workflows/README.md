@@ -70,7 +70,8 @@ You can also trigger builds manually from the GitHub Actions tab:
 
 ### macOS
 - Output: `.dmg` and `.zip` files
-- Architecture: Universal (Intel + Apple Silicon)
+- Architecture: arm64 and x64
+- DMG is the manual installer; ZIP is required by `electron-updater` and must be uploaded with `latest-mac.yml`.
 
 ### Windows
 - Output: `.exe` installer

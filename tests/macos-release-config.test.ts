@@ -43,6 +43,30 @@ test('macOS build scripts explicitly disable auto-discovered signing identities'
   );
 });
 
+test('macOS package config builds dmg installers and zip auto-update artifacts', () => {
+  const packageJson = JSON.parse(readText('package.json'));
+  const macTarget = packageJson.build.mac.target;
+
+  assert.ok(
+    Array.isArray(macTarget),
+    'macOS target should be an array so dmg and zip artifacts can both define architectures',
+  );
+
+  assert.deepEqual(
+    macTarget.map((target: { target: string }) => target.target).sort(),
+    ['dmg', 'zip'],
+    'macOS builds should emit dmg for manual install and zip for electron-updater',
+  );
+
+  for (const target of macTarget) {
+    assert.deepEqual(
+      target.arch,
+      ['arm64', 'x64'],
+      `${target.target} should be built for both Apple Silicon and Intel Macs`,
+    );
+  }
+});
+
 test('GitHub release workflow marks macOS artifacts as unsigned when no Apple credentials are configured', () => {
   const workflow = readText('.github/workflows/release.yml');
 

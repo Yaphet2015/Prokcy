@@ -28,6 +28,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Manual duplicate checks still return a deterministic error message.
 - Automatic duplicate checks reuse the in-flight check and keep Settings in the existing checking state.
 - Downloaded installer metadata is persisted so app restart can still restore `Install` state.
+- macOS releases must include `.zip` artifacts in `latest-mac.yml`; `.dmg` remains the manual installer, while `electron-updater` requires `.zip` for in-app updates.
 
 ## Architecture
 1. `lib/updater.ts`
@@ -55,6 +56,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 ## Failure Handling
 - Not packaged/dev mode: return informative failure.
 - Update provider/network error: return friendly failure message.
+- Missing macOS ZIP artifact: return a short actionable failure message instead of leaking raw release metadata into Settings.
 - Update state remains recoverable for later manual retry.
 
 ## Validation
@@ -64,7 +66,9 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
   - automatic concurrent checks reuse the in-flight request;
   - downloaded update is cached without immediate install;
   - manual install action triggers `quitAndInstall()` and switches state to `installing`;
-  - Settings progress-state logic renders indeterminate install progress.
+  - Settings progress-state logic renders indeterminate install progress;
+  - macOS package config emits both DMG and ZIP artifacts;
+  - missing macOS ZIP updater errors are normalized before reaching Settings.
 
 ## 2026-03-03 Update
 - Changed behavior from auto-install to manual install after download.
@@ -77,3 +81,8 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Added automatic update checks whenever the Settings view is opened.
 - Added an explicit `installing` updater phase so the UI can disable actions and show install handoff progress.
 - Kept startup checks silent while surfacing automatic-check results only inside the Settings update panel.
+
+## 2026-05-26 Update
+- Fixed the macOS release contract so builds publish both `.dmg` and `.zip` artifacts for `arm64` and `x64`.
+- Documented that DMG is the manual installer and ZIP is the auto-update artifact required by `electron-updater`.
+- Normalized `ERR_UPDATER_ZIP_FILE_NOT_FOUND` / `ZIP file not provided` into a short Settings error with recovery guidance.

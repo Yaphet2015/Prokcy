@@ -32,6 +32,7 @@ interface PersistedDownloadedUpdate {
 }
 
 const DOWNLOADED_UPDATE_KEY = 'downloadedUpdateInfo';
+const MISSING_MAC_ZIP_MESSAGE = 'This macOS release is missing the auto-update ZIP artifact. Please download the latest DMG from GitHub Releases or install the next patch release.';
 let checking = false;
 let updaterInitialized = false;
 let autoUpdaterRef: any | null = null;
@@ -53,6 +54,20 @@ const createFailure = (message: string): UpdateResult => ({
   message,
   status: 'error',
 });
+
+const getUpdaterErrorMessage = (
+  error: Error | unknown,
+  fallback = 'Failed to check for updates.'
+): string => {
+  const code = (error as { code?: string } | null | undefined)?.code;
+  const message = (error as Error | null | undefined)?.message || fallback;
+
+  if (code === 'ERR_UPDATER_ZIP_FILE_NOT_FOUND' || /ZIP file not provided/i.test(message)) {
+    return MISSING_MAC_ZIP_MESSAGE;
+  }
+
+  return message;
+};
 
 let status: UpdateStatus = {
   phase: 'idle',
@@ -266,7 +281,7 @@ const ensureAutoUpdater = (): any | null => {
 
   autoUpdaterRef.on('error', (error: Error | unknown) => {
     checking = false;
-    const message = (error as Error)?.message || 'Failed to check for updates.';
+    const message = getUpdaterErrorMessage(error);
     updateStatus({
       phase: 'error',
       message,
@@ -326,7 +341,7 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
     return createSuccess('Checking for updates...', 'checking');
   } catch (error) {
     checking = false;
-    const message = (error as Error)?.message || 'Failed to check for updates.';
+    const message = getUpdaterErrorMessage(error);
     updateStatus({
       phase: 'error',
       message,

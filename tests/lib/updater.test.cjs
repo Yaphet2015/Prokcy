@@ -169,3 +169,28 @@ test('installDownloadedUpdate updates status to installing before quitting', asy
   assert.equal(status.canInstall, false);
   assert.equal(status.downloading, false);
 });
+
+test('checkForUpdates returns a clean message when a macOS release has no zip artifact', async (t) => {
+  const rawError = new Error('ZIP file not provided: [{"url":"Prokcy-v1.8.12-mac-arm64.dmg"}]');
+  rawError.code = 'ERR_UPDATER_ZIP_FILE_NOT_FOUND';
+
+  const { updater } = withUpdaterHarness(t, {
+    autoUpdaterCheckForUpdates: () => {
+      throw rawError;
+    },
+  });
+
+  const result = await updater.checkForUpdates();
+  const status = updater.getUpdateStatus();
+
+  assert.equal(result.success, false);
+  assert.equal(result.status, 'error');
+  assert.equal(
+    result.message,
+    'This macOS release is missing the auto-update ZIP artifact. Please download the latest DMG from GitHub Releases or install the next patch release.',
+  );
+  assert.equal(status.phase, 'error');
+  assert.equal(status.message, result.message);
+  assert.doesNotMatch(result.message, /ZIP file not provided/);
+  assert.doesNotMatch(result.message, /Prokcy-v1\.8\.12-mac-arm64\.dmg/);
+});
