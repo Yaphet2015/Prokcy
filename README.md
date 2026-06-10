@@ -1,6 +1,8 @@
-# Prokcy
+# Prokcy - Cross-platform HTTP/HTTPS/WebSocket Debugging Proxy GUI
 
 中文 · [English](./README-en_US.md)
+
+Prokcy is a cross-platform desktop HTTP/HTTPS/WebSocket debugging proxy GUI powered by [whistle](https://github.com/avwo/whistle), built with Electron + React + TailwindCSS + Monaco Editor.
 
 Prokcy 是一款跨平台桌面网络调试代理工具，提供现代化 GUI 界面来捕获、检查和操控 HTTP/HTTPS 网络请求。底层基于 [whistle](https://github.com/avwo/whistle) 代理引擎，上层使用 Electron + React + TailwindCSS + Monaco Editor 构建了全新的风格界面。
 

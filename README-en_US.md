@@ -1,8 +1,8 @@
-# Prokcy
+# Prokcy - Cross-platform HTTP/HTTPS/WebSocket Debugging Proxy GUI
 
 [中文](./README.md) · English
 
-Prokcy is a cross-platform desktop network debugging proxy tool that provides a modern GUI for capturing, inspecting, and manipulating HTTP/HTTPS requests. It is powered by the [whistle](https://github.com/avwo/whistle) proxy engine under the hood, with a completely custom interface built using Electron + React + TailwindCSS + Monaco Editor .
+Prokcy is a cross-platform desktop HTTP/HTTPS/WebSocket debugging proxy GUI powered by [whistle](https://github.com/avwo/whistle). It helps developers capture, inspect, filter, and manipulate network traffic on macOS, Windows, and Linux, with a custom interface built using Electron + React + TailwindCSS + Monaco Editor.
 
 Supported platforms:
 - macOS (Apple Silicon / Intel)
