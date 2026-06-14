@@ -1,21 +1,75 @@
-# Prokcy - Cross-platform HTTP/HTTPS/WebSocket Debugging Proxy GUI
+<div align="center">
+  <img src="public/dock.png" width="128" height="128" alt="Prokcy" />
 
-[中文](./README.md) · English
+  <h1>Prokcy</h1>
+  <p><strong>Cross-platform HTTP/HTTPS/WebSocket Debugging Proxy GUI</strong></p>
+  <p>Powered by <a href="https://github.com/avwo/whistle">whistle</a>, built with Electron + React + TailwindCSS + Monaco Editor.</p>
 
-Prokcy is a cross-platform desktop HTTP/HTTPS/WebSocket debugging proxy GUI powered by [whistle](https://github.com/avwo/whistle). It helps developers capture, inspect, filter, and manipulate network traffic on macOS, Windows, and Linux, with a custom interface built using Electron + React + TailwindCSS + Monaco Editor.
+  <p>
+    <a href="https://github.com/Yaphet2015/Prokcy/actions/workflows/ci.yml"><img src="https://github.com/Yaphet2015/Prokcy/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="https://github.com/Yaphet2015/Prokcy/actions/workflows/build.yml"><img src="https://github.com/Yaphet2015/Prokcy/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+    <a href="https://github.com/Yaphet2015/Prokcy/releases"><img src="https://img.shields.io/github/v/release/Yaphet2015/Prokcy?display_name=tag&amp;include_prereleases" alt="Release" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/github/license/Yaphet2015/Prokcy" alt="License" /></a>
+    <a href="https://github.com/Yaphet2015/Prokcy/releases"><img src="https://img.shields.io/github/downloads/Yaphet2015/Prokcy/total" alt="Downloads" /></a>
+    <a href="https://github.com/Yaphet2015/Prokcy/stargazers"><img src="https://img.shields.io/github/stars/Yaphet2015/Prokcy?style=social" alt="Stars" /></a>
+    <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-informational" alt="Platforms" />
+  </p>
 
-Supported platforms:
-- macOS (Apple Silicon / Intel)
-- Windows
-- Linux (Fedora / Ubuntu)
+  <p>
+    <a href="./README.md">中文</a>
+    &nbsp;·&nbsp;
+    English
+  </p>
+</div>
+
+---
+
+Prokcy is a cross-platform desktop debugging proxy GUI that helps developers capture, inspect, filter, and manipulate HTTP/HTTPS/WebSocket network traffic. It wraps the [whistle](https://github.com/avwo/whistle) proxy engine in a custom, modern interface.
+
+Supported platforms: **macOS** (Apple Silicon / Intel) · **Windows** · **Linux** (Fedora / Ubuntu)
 
 > If your environment has no GUI (e.g., servers or headless devices), use the [whistle CLI](https://wproxy.org/whistle/) instead.
 
-## Core Features
+## 📑 Table of Contents
+
+- [✨ Features](#-features)
+- [📸 Screenshots](#-screenshots)
+- [🔧 Core Features](#-core-features)
+- [📦 Installation](#-installation)
+- [🚀 Getting Started](#-getting-started)
+- [📐 Rules in Detail](#-rules-in-detail)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [❓ FAQ](#-faq)
+- [🙏 Acknowledgements](#-acknowledgements)
+- [⭐ Star History](#-star-history)
+- [📄 License](#-license)
+
+## ✨ Features
+
+- 🌐 **Multi-protocol capture** — HTTP / HTTPS / WebSocket, real-time capture of all proxied traffic
+- 🎨 **Modern GUI** — Waterfall timeline + Monaco editor with custom Whistle syntax highlighting
+- ✏️ **Powerful rule system** — Fully whistle-compatible; forward / mock / modify requests with prioritized rule groups
+- 🗂 **Values store** — JSON5 key-value data, referenceable from rules
+- 🎯 **Flexible filtering** — Filter the request list by domain / path / wildcard
+- 🔄 **Auto-update** — Built-in version checking and upgrades
+- 🚀 **Cross-platform** — Consistent experience on macOS, Windows, and Linux
+- 📦 **Ready out of the box** — One-click root CA install and system proxy setup
+
+## 📸 Screenshots
+
+| Network | Rules |
+|--------|-------|
+| ![Network tab screenshot](./docs/images/readme/network-tab.png) | ![Rules tab screenshot](./docs/images/readme/rules-tab.png) |
+
+| Values | Settings |
+|--------|----------|
+| ![Values tab screenshot](./docs/images/readme/values-tab.png) | ![Settings tab screenshot](./docs/images/readme/settings-tab.png) |
+
+## 🔧 Core Features
 
 ### Network — Request Capture
 
-Split-pane layout with a waterfall timeline (top) and request inspector (bottom) for real-time capture of all proxied network traffic.
+Split-pane layout with a waterfall timeline and request inspector for real-time capture of all proxied network traffic.
 
 - **Waterfall Timeline**: Each request rendered as a horizontal bar, color-coded by phase (DNS blue, TCP teal, TLS green, TTFB purple, Download orange)
 - **Request Inspector**: Tabs for Headers, Body, Response, Timeline, and Rules with automatic JSON syntax highlighting
@@ -49,9 +103,9 @@ A categorized settings panel with three sections:
 | **Network** | Request filter patterns (wildcards, domain/path/URL matching) |
 | **App** | Storage directory switch, Theme (System/Light/Dark), Start at login, Hide from Dock |
 
-## Installation
+## 📦 Installation
 
-Select the installation steps for your operating system.
+Select the installation steps for your operating system. Download the latest version from [Releases](https://github.com/Yaphet2015/Prokcy/releases).
 
 <details>
   <summary>macOS</summary>
@@ -113,7 +167,7 @@ Download:
 AppImage setup reference: https://itsfoss.com/cant-run-appimage-ubuntu/
 </details>
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Launch
 
@@ -140,7 +194,7 @@ After installation:
 | `Restart` | Restart the client |
 | `Quit` | Quit the client |
 
-## Rules in Detail
+## 📐 Rules in Detail
 
 ### Rule Groups & Priority
 
@@ -204,6 +258,56 @@ bar.com https://bar-default.test
 | `Cmd/Ctrl + ,` | Open Settings | Global |
 | `Cmd/Ctrl + B` | Toggle sidebar | Global |
 
-## License
+## ❓ FAQ
+
+<details>
+  <summary>macOS says the developer "cannot be verified" or the app is "damaged"</summary>
+
+The macOS builds are **unsigned**. If you see "cannot be verified", right-click the app in Finder and choose "Open". If it says "damaged", you likely downloaded an older ad-hoc signed artifact — grab the latest package from [Releases](https://github.com/Yaphet2015/Prokcy/releases).
+</details>
+
+<details>
+  <summary>Why can't I see HTTPS request contents?</summary>
+
+HTTPS inspection requires trusting the root certificate. Open the `Prokcy` menu → click `Install Root CA` to install the system root certificate, then restart your browser.
+</details>
+
+<details>
+  <summary>How do I capture traffic from system browsers or apps?</summary>
+
+Enable `Set As System Proxy` from the top menu (or check it in Settings → Proxy) and Prokcy will act as the system proxy for system-wide web traffic.
+</details>
+
+<details>
+  <summary>Enterprise security software blocks or flags the app</summary>
+
+Choose "Allow" on first run. If it keeps getting blocked, ask your IT department to whitelist Prokcy.
+</details>
+
+<details>
+  <summary>Can I run it on a headless server / device without a GUI?</summary>
+
+Prokcy requires a GUI environment. For headless scenarios, use the [whistle CLI](https://wproxy.org/whistle/) instead.
+</details>
+
+## 🙏 Acknowledgements
+
+Prokcy stands on the shoulders of these excellent open-source projects:
+
+- **[whistle](https://github.com/avwo/whistle)** — The core proxy engine this project is built on
+- **[Electron](https://www.electronjs.org/)** · **[React](https://react.dev/)** · **[TailwindCSS](https://tailwindcss.com/)** · **[Monaco Editor](https://microsoft.github.io/monaco-editor/)** — App and UI stack
+- **[electron-builder](https://www.electron.build/)** · **[electron-updater](https://www.electron.build/auto-update)** — Packaging and auto-update
+
+Inspired by [Proxyman](https://proxyman.io/), [Charles](https://www.charlesproxy.com/), and [mitmproxy](https://mitmproxy.org/).
+
+## ⭐ Star History
+
+<div align="center">
+  <a href="https://star-history.com/#Yaphet2015/Prokcy&Date">
+    <img src="https://star-history.com/embed.svg#Yaphet2015/Prokcy&Date" alt="Star History Chart" width="640" />
+  </a>
+</div>
+
+## 📄 License
 
 [MIT — see the LICENSE file](./LICENSE)
