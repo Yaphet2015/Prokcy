@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.14](https://github.com/Yaphet2015/Prokcy/compare/v1.8.13...v1.8.14) (2026-06-15)
+
+
+### Features
+
+* show cookies and raw http in network inspector ([7cef743](https://github.com/Yaphet2015/Prokcy/commit/7cef743236f6d764e44158fcdbbeb92c4f1ecacc))
+
 ### [1.8.13](https://github.com/Yaphet2015/Prokcy/compare/v1.8.12...v1.8.13) (2026-05-26)
 
 
