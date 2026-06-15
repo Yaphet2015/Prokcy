@@ -79,7 +79,9 @@ Split layout: WaterfallTimeline (top 60%) and RequestInspector (bottom 40%).
 - Column header reserves dynamic right gutter equal to list scrollbar width so header columns stay aligned with rows
 
 **Request Inspector:**
-- Tabs: Headers, Body, Response, Timeline
+- Tabs: Headers, Body, Response, Rules, Timeline
+- Headers tab keeps cookies in the header inspection flow: parsed `Cookie` request pairs and `Set-Cookie` response entries are shown alongside raw request/response headers, with an explicit empty state when no cookie data exists
+- Headers tab includes a Raw HTTP button that shows an inspection-friendly reconstructed request packet (`METHOD URL HTTP/<version>`, headers, blank line, body) from selected request detail data; this is not byte-perfect wire capture
 - Syntax-highlighted JSON for bodies
 - Full request/response details
 - Response tab keeps a pinned metadata row (`Response` + payload size) while body content scrolls independently

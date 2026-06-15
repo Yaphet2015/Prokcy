@@ -52,6 +52,29 @@ test('normalizeRequestDetail decodes bodies for selected request only', () => {
   assert.equal((normalized.rules as { host?: { value?: string } }).host?.value, '127.0.0.1');
 });
 
+test('normalizeRequestDetail preserves request HTTP version and multi-value headers', () => {
+  const item = {
+    ...SAMPLE_ITEM,
+    req: {
+      ...SAMPLE_ITEM.req,
+      httpVersion: '2.0',
+    },
+    res: {
+      ...SAMPLE_ITEM.res,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': ['a=1; Path=/', 'b=2; HttpOnly'],
+      },
+    },
+  };
+
+  const normalized = normalizeRequestDetail(item);
+
+  assert.ok(normalized);
+  assert.equal(normalized.httpVersion, '2.0');
+  assert.deepEqual(normalized.headers.response['set-cookie'], ['a=1; Path=/', 'b=2; HttpOnly']);
+});
+
 test('normalizeRequestSummary keeps style marker only for list rendering', () => {
   const item = {
     ...SAMPLE_ITEM,

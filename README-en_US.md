@@ -72,7 +72,7 @@ Supported platforms: **macOS** (Apple Silicon / Intel) · **Windows** · **Linux
 Split-pane layout with a waterfall timeline and request inspector for real-time capture of all proxied network traffic.
 
 - **Waterfall Timeline**: Each request rendered as a horizontal bar, color-coded by phase (DNS blue, TCP teal, TLS green, TTFB purple, Download orange)
-- **Request Inspector**: Tabs for Headers, Body, Response, Timeline, and Rules with automatic JSON syntax highlighting
+- **Request Inspector**: Tabs for Headers (including cookies and Raw HTTP), Body, Response, Timeline, and Rules with automatic JSON syntax highlighting
 - **Virtualized List**: Smooth performance under high request volume; aligned column headers (Method / Status / URL / Size / Time / Waterfall)
 - **Request Filters**: Configure filter patterns in Settings → Network; supports domain, path, and wildcard matching
 

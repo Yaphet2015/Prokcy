@@ -7,25 +7,29 @@ export interface RequestTimings {
   total: number;
 }
 
+export type HeaderValue = string | string[];
+export type HeadersRecord = Record<string, HeaderValue>;
+
 export interface NormalizedRequest {
   id: string;
   method: string;
   url: string;
+  httpVersion?: string;
   status: number;
   statusText: string;
   size: number;
   timings: RequestTimings;
   headers: {
-    request: Record<string, string>;
-    response: Record<string, string>;
+    request: HeadersRecord;
+    response: HeadersRecord;
   };
   requestBody: {
     content: string;
-    headers: Record<string, string>;
+    headers: HeadersRecord;
   } | null;
   response: {
     body: string;
-    headers: Record<string, string>;
+    headers: HeadersRecord;
     size: number;
   } | null;
   rules: Record<string, unknown>;
@@ -37,13 +41,14 @@ export interface RawRequestItem {
   url?: string;
   req?: {
     method?: string;
-    headers?: Record<string, string>;
+    httpVersion?: string;
+    headers?: HeadersRecord;
     base64?: string;
   };
   res?: {
     statusCode?: number;
     statusMessage?: string;
-    headers?: Record<string, string>;
+    headers?: HeadersRecord;
     base64?: string;
     size?: number;
   };
@@ -90,7 +95,7 @@ function toStringValue(value: unknown, fallback = ''): string {
   return String(value);
 }
 
-function getHeaderValue(headers: Record<string, string> | undefined, name: string): string {
+function getHeaderValue(headers: HeadersRecord | undefined, name: string): string {
   if (!headers || typeof headers !== 'object') {
     return '';
   }
@@ -226,6 +231,7 @@ function getCommonFields(
     id,
     method: toStringValue(item.req?.method, 'GET').toUpperCase(),
     url: toStringValue(item.url, ''),
+    httpVersion: toStringValue(item.req?.httpVersion, '1.1'),
     status: Number(item.res?.statusCode) || 0,
     statusText: toStringValue(item.res?.statusMessage, ''),
     size: responseSize,
