@@ -1,5 +1,5 @@
 import {
-  Suspense, useCallback, useEffect, useState,
+  Suspense, useCallback, useEffect, useRef, useState,
 } from 'react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from '../../../shared/context/ThemeContext';
@@ -7,6 +7,7 @@ import MonacoEditor from '../../../shared/ui/LazyMonacoEditor';
 import { useMonacoSave } from '../../../shared/ui/useMonacoSave';
 import { getThemeId } from '../monaco-themes';
 import { getRulesNavigationTarget } from '../utils/navigationTarget';
+import { registerValueReferenceCompletionProvider } from '../utils/valueReferenceCompletions';
 
 interface RulesEditorProps {
   value: string;
@@ -14,6 +15,7 @@ interface RulesEditorProps {
   isDirty: boolean;
   onSave: () => void;
   isLoading: boolean;
+  valueKeys: string[];
   onNavigateToValueKey?: (key: string) => void;
   onFileNavigationResult?: (result: ServiceOperationResult) => void;
 }
@@ -24,12 +26,19 @@ export function RulesEditor({
   isDirty,
   onSave,
   isLoading,
+  valueKeys,
   onNavigateToValueKey,
   onFileNavigationResult,
 }: RulesEditorProps): React.JSX.Element {
   const { isDark } = useTheme();
   const safeValue = typeof value === 'string' ? value : '';
+  const valueKeysRef = useRef(valueKeys);
   const [editorInstance, setEditorInstance] = useState<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [monacoInstance, setMonacoInstance] = useState<typeof Monaco | null>(null);
+
+  useEffect(() => {
+    valueKeysRef.current = valueKeys;
+  }, [valueKeys]);
 
   useMonacoSave(useCallback(() => {
     if (isDirty) {
@@ -87,6 +96,29 @@ export function RulesEditor({
     };
   }, [editorInstance, onFileNavigationResult, onNavigateToValueKey]);
 
+  useEffect(() => {
+    if (!monacoInstance) {
+      return undefined;
+    }
+
+    const disposable = registerValueReferenceCompletionProvider(
+      monacoInstance,
+      () => valueKeysRef.current,
+    );
+
+    return () => {
+      disposable.dispose();
+    };
+  }, [monacoInstance]);
+
+  const handleEditorMount = useCallback((
+    editor: Monaco.editor.IStandaloneCodeEditor,
+    monaco: typeof Monaco,
+  ) => {
+    setEditorInstance(editor);
+    setMonacoInstance(monaco);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -114,7 +146,7 @@ export function RulesEditor({
         onChange={onChange}
         language="whistle"
         theme={getThemeId(isDark)}
-        onEditorMount={setEditorInstance}
+        onEditorMount={handleEditorMount}
         options={{
           readOnly: false,
         }}

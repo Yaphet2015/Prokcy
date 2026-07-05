@@ -8,13 +8,19 @@ import { useRules } from '../../shared/context/RulesContext';
 import { RulesSidebar, RulesEditor } from './components';
 import { useRuleGroupActions, useRuleGroupsDragDrop } from './hooks';
 import { getFileNavigationFeedbackMessage } from './utils/fileNavigationFeedback';
+import { useRulesValueKeySuggestions } from './hooks/useRulesValueKeySuggestions';
 
 interface RulesProps {
   isSidebarCollapsed: boolean;
+  valuesKeyVersion?: number;
   onNavigateToValueKey?: (key: string) => void;
 }
 
-function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.JSX.Element {
+function Rules({
+  isSidebarCollapsed,
+  valuesKeyVersion = 0,
+  onNavigateToValueKey,
+}: RulesProps): React.JSX.Element {
   // Get rules state and operations from context
   const {
     rules,
@@ -36,6 +42,7 @@ function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.
   const [showPrompt, promptElement] = usePrompt();
   const [showConfirm, confirmElement] = useConfirm();
   const [fileNavigationMessage, setFileNavigationMessage] = useState<string | null>(null);
+  const { valueKeys, error: valueKeysError } = useRulesValueKeySuggestions(valuesKeyVersion);
 
   // Custom hooks for complex logic
   const actions = useRuleGroupActions({ prompt: showPrompt, confirm: showConfirm });
@@ -53,6 +60,7 @@ function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.
     <>
       {fileNavigationMessage && <span className="text-xs text-amber-500">{fileNavigationMessage}</span>}
       {error && <span className="text-xs text-red-500">{error}</span>}
+      {valueKeysError && <span className="text-xs text-red-500">{valueKeysError}</span>}
     </>
   );
 
@@ -76,7 +84,7 @@ function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.
           //     {isEnabled ? 'Enabled' : 'Disabled'}
           //   </Button>
           // )}
-          statusMessage={(fileNavigationMessage || error) ? statusMessage : null}
+          statusMessage={(fileNavigationMessage || error || valueKeysError) ? statusMessage : null}
           rightActions={(
             <Button
               variant={isDirty ? "primary" : "ghost"}
@@ -115,6 +123,7 @@ function Rules({ isSidebarCollapsed, onNavigateToValueKey }: RulesProps): React.
               onSave={saveRules}
               isLoading={isLoading}
               onNavigateToValueKey={onNavigateToValueKey}
+              valueKeys={valueKeys}
               onFileNavigationResult={(result) => {
                 setFileNavigationMessage(getFileNavigationFeedbackMessage(result));
               }}
