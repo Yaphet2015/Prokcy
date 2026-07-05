@@ -23,9 +23,11 @@ import type { ViewType } from './types/ui';
 // View components mapping
 interface ViewProps {
   isSidebarCollapsed: boolean;
+  valuesKeyVersion?: number;
   pendingValueKey?: string | null;
   onPendingValueNavigationHandled?: () => void;
   onNavigateToValueKey?: (key: string) => void;
+  onValueKeysChanged?: () => void;
 }
 
 type ViewComponent = React.ComponentType<ViewProps>;
@@ -58,7 +60,7 @@ const Values = lazy(async () => {
 
   function ValuesScreen(props: ViewProps): React.JSX.Element {
     return (
-      <ValuesProvider>
+      <ValuesProvider onValueKeysChanged={props.onValueKeysChanged}>
         <ValuesView {...props} />
       </ValuesProvider>
     );
@@ -109,6 +111,7 @@ function ViewLoadingFallback(): React.JSX.Element {
 function App(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ViewType>('network');
   const [pendingValueKey, setPendingValueKey] = useState<string | null>(null);
+  const [valuesKeyVersion, setValuesKeyVersion] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -284,6 +287,10 @@ function App(): React.JSX.Element {
     setPendingValueKey(null);
   }, []);
 
+  const handleValueKeysChanged = useCallback(() => {
+    setValuesKeyVersion((current) => current + 1);
+  }, []);
+
   return (
     <NetworkProvider isActive={activeView === 'network'}>
       <div className="h-screen w-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
@@ -305,9 +312,11 @@ function App(): React.JSX.Element {
             <Suspense fallback={<ViewLoadingFallback />}>
               <ActiveComponent
                 isSidebarCollapsed={isSidebarCollapsed}
+                valuesKeyVersion={valuesKeyVersion}
                 pendingValueKey={pendingValueKey}
                 onPendingValueNavigationHandled={handlePendingValueNavigationHandled}
                 onNavigateToValueKey={handleNavigateToValueKey}
+                onValueKeysChanged={handleValueKeysChanged}
               />
             </Suspense>
           </main>

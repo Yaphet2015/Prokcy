@@ -55,9 +55,13 @@ const ValuesContext = createContext<ValuesContextValue>({
 
 interface ValuesProviderProps {
   children: ReactNode;
+  onValueKeysChanged?: () => void;
 }
 
-export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Element {
+export function ValuesProvider({
+  children,
+  onValueKeysChanged,
+}: ValuesProviderProps): React.JSX.Element {
   const { isRunning } = useService();
   const [values, setValuesState] = useState<ValuesData>({});
   const valuesRef = useRef(values);
@@ -175,6 +179,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
       setOriginalValues(next.originalValues);
       setIsDirty(next.isDirty);
       setSelectedKey((current) => (current === key ? null : current));
+      onValueKeysChanged?.();
 
       return true;
     } catch (err) {
@@ -185,7 +190,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [onValueKeysChanged]);
 
   /**
    * Create a new value with an empty JSON object and persist immediately
@@ -219,6 +224,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
       setValuesState(next.values);
       setOriginalValues(next.originalValues);
       setIsDirty(next.isDirty);
+      onValueKeysChanged?.();
 
       return true;
     } catch (err) {
@@ -229,7 +235,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [onValueKeysChanged]);
 
   /**
    * Rename a value key
@@ -267,6 +273,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
       setOriginalValues(next.originalValues);
       setIsDirty(next.isDirty);
       setSelectedKey(newKey);
+      onValueKeysChanged?.();
       return true;
     } catch (err) {
       const error = err as Error;
@@ -276,7 +283,7 @@ export function ValuesProvider({ children }: ValuesProviderProps): React.JSX.Ele
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [onValueKeysChanged]);
 
   /**
    * Save all values to the API
