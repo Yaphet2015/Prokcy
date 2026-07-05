@@ -5,10 +5,11 @@ import type { ChangeEvent } from 'react';
 import {
   Button, Input, Select, Switch,
 } from '@pikoloo/darwin-ui';
-import { Save } from 'lucide-react';
+import { Download, Save } from 'lucide-react';
 import ContentHeader from '../../shared/ui/ContentHeader';
 import {
   getCheckUpdateFeedback,
+  getManualUpdateGuidance,
   getUpdateProgressState,
 } from './update-feedback';
 
@@ -67,11 +68,13 @@ interface SettingsPayload {
 }
 
 interface UpdateStatus {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'manual-download' | 'installing' | 'error';
   message: string;
   version?: string;
   progressPercent: number;
   downloadedFile?: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
   checking: boolean;
   downloading: boolean;
   canInstall: boolean;
@@ -357,6 +360,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   const isUpdateInstalling = updateStatus?.phase === 'installing';
   const canInstallDownloadedUpdate = !!updateStatus?.canInstall;
   const updateProgress = useMemo(() => getUpdateProgressState(updateStatus), [updateStatus]);
+  const manualUpdateGuidance = useMemo(() => getManualUpdateGuidance(updateStatus), [updateStatus]);
 
   const updateField = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -561,6 +565,27 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
       setInstallingUpdate(false);
     }
   }, []);
+
+  const handleDownloadUpdate = useCallback(async () => {
+    if (!manualUpdateGuidance.manualDownloadUrl) {
+      setUpdateError('Download URL unavailable. Please open GitHub Releases manually.');
+      return;
+    }
+    if (!window.electron?.openExternalUrl) {
+      setUpdateError('Open external URL API unavailable. Please restart the app.');
+      return;
+    }
+
+    setUpdateError('');
+    try {
+      const result = await window.electron.openExternalUrl(manualUpdateGuidance.manualDownloadUrl);
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to open download URL');
+      }
+    } catch (err) {
+      setUpdateError((err as Error)?.message || 'Failed to open download URL');
+    }
+  }, [manualUpdateGuidance.manualDownloadUrl]);
 
   useEffect(() => {
     void runUpdateCheck({ silent: true, source: 'settings' });
@@ -1048,13 +1073,41 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                               Install
                             </Button>
                           )}
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                            Auto-downloads new version. Install starts only after you click
-                            {' '}
-                            <span className="font-medium">Install</span>
-                            .
-                          </p>
+                          {manualUpdateGuidance.show && manualUpdateGuidance.manualDownloadUrl && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={handleDownloadUpdate}
+                              disabled={loading}
+                              leftIcon={<Download className="w-4 h-4" />}
+                            >
+                              Download DMG
+                            </Button>
+                          )}
+                          {!manualUpdateGuidance.show && (
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                              Auto-downloads new version. Install starts only after you click
+                              {' '}
+                              <span className="font-medium">Install</span>
+                              .
+                            </p>
+                          )}
                         </div>
+
+                        {manualUpdateGuidance.show && (
+                          <div className="space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            <p>{manualUpdateGuidance.message}</p>
+                            {manualUpdateGuidance.homebrewCommand && (
+                              <p>
+                                Homebrew:
+                                {' '}
+                                <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[11px] text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                                  {manualUpdateGuidance.homebrewCommand}
+                                </code>
+                              </p>
+                            )}
+                          </div>
+                        )}
 
                         {updateProgress.showProgress && (
                           <div className="space-y-1.5">

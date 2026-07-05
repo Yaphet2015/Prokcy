@@ -87,6 +87,7 @@ const electronApi = {
   checkForUpdates: (options) => ipcRenderer.invoke('check-for-updates', options),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   installDownloadedUpdate: () => ipcRenderer.invoke('install-downloaded-update'),
+  openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
   onUpdateStatusChanged: (callback) => {
     const listener = (event, status) => callback(status);
     ipcRenderer.on('update-status-changed', listener);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   getCheckUpdateFeedback,
+  getManualUpdateGuidance,
   getUpdateProgressState,
 } from '../src/features/settings/update-feedback';
 
@@ -40,4 +41,40 @@ test('returns indeterminate progress state while installing', () => {
   assert.equal(progress.indeterminate, true);
   assert.equal(progress.showPercent, false);
   assert.equal(progress.progressPercent, 100);
+});
+
+test('manual download status does not show progress', () => {
+  const progress = getUpdateProgressState({
+    phase: 'manual-download',
+    message: 'Update 1.2.3 is available. Install with Homebrew or download the DMG.',
+    version: '1.2.3',
+    progressPercent: 0,
+    checking: false,
+    downloading: false,
+    canInstall: false,
+    manualDownloadUrl: 'https://github.com/Yaphet2015/Prokcy/releases/download/v1.2.3/Prokcy-v1.2.3-mac-arm64.dmg',
+    homebrewCommand: 'brew upgrade --cask prokcy',
+  });
+
+  assert.equal(progress.showProgress, false);
+  assert.equal(progress.indeterminate, false);
+  assert.equal(progress.showPercent, false);
+});
+
+test('manual update guidance exposes Homebrew command and download URL', () => {
+  const guidance = getManualUpdateGuidance({
+    phase: 'manual-download',
+    message: 'Update 1.2.3 is available. Install with Homebrew or download the DMG.',
+    version: '1.2.3',
+    progressPercent: 0,
+    checking: false,
+    downloading: false,
+    canInstall: false,
+    manualDownloadUrl: 'https://github.com/Yaphet2015/Prokcy/releases/download/v1.2.3/Prokcy-v1.2.3-mac-arm64.dmg',
+    homebrewCommand: 'brew upgrade --cask prokcy',
+  });
+
+  assert.equal(guidance.show, true);
+  assert.equal(guidance.homebrewCommand, 'brew upgrade --cask prokcy');
+  assert.match(guidance.manualDownloadUrl, /Prokcy-v1\.2\.3-mac-arm64\.dmg$/);
 });

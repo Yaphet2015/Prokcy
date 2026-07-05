@@ -1,20 +1,28 @@
 import fs from 'fs';
+import path from 'path';
 import { EventEmitter } from 'events';
 import storage from './storage';
+
+type UpdatePhase = 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'manual-download' | 'installing' | 'error';
+type UpdateResultStatus = Exclude<UpdatePhase, 'idle'>;
 
 interface UpdateResult {
   success: boolean;
   message: string;
-  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
+  status?: UpdateResultStatus;
   version?: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
 }
 
 interface UpdateStatus {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
+  phase: UpdatePhase;
   message: string;
   version?: string;
   progressPercent: number;
   downloadedFile?: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
   checking: boolean;
   downloading: boolean;
   canInstall: boolean;
@@ -33,20 +41,28 @@ interface PersistedDownloadedUpdate {
 
 const DOWNLOADED_UPDATE_KEY = 'downloadedUpdateInfo';
 const MISSING_MAC_ZIP_MESSAGE = 'This macOS release is missing the auto-update ZIP artifact. Please download the latest DMG from GitHub Releases or install the next patch release.';
+const GITHUB_RELEASES_URL = 'https://github.com/Yaphet2015/Prokcy/releases';
+const HOMEBREW_UPDATE_COMMAND = 'brew upgrade --cask prokcy';
+const INSTALL_HANDOFF_TIMEOUT_MS = Number(process.env.PROKCY_UPDATE_INSTALL_TIMEOUT_MS || 15000);
 let checking = false;
 let updaterInitialized = false;
 let autoUpdaterRef: any | null = null;
+let macInAppInstallSupported: boolean | null = null;
+let installWatchdogTimer: NodeJS.Timeout | null = null;
+let installWatchdogCleanup: (() => void) | null = null;
 const statusEmitter = new EventEmitter();
 
 const createSuccess = (
   message: string,
-  status: UpdateResult['status'],
-  version?: string
+  status: UpdateResultStatus,
+  version?: string,
+  extra: Pick<UpdateResult, 'manualDownloadUrl' | 'homebrewCommand'> = {}
 ): UpdateResult => ({
   success: true,
   message,
   status,
   version,
+  ...extra,
 });
 
 const createFailure = (message: string): UpdateResult => ({
@@ -69,6 +85,45 @@ const getUpdaterErrorMessage = (
   return message;
 };
 
+const getInstallHandoffTimeoutMs = (): number => (
+  Number.isFinite(INSTALL_HANDOFF_TIMEOUT_MS) && INSTALL_HANDOFF_TIMEOUT_MS > 0
+    ? INSTALL_HANDOFF_TIMEOUT_MS
+    : 15000
+);
+
+const writeUpdateDiagnosticLog = (
+  event: string,
+  details: Record<string, unknown> = {}
+): void => {
+  try {
+    // Resolve lazily so unit tests can stub the app data path.
+    // eslint-disable-next-line global-require
+    const { BASE_DIR } = require('./util') as { BASE_DIR: string };
+    const logDir = path.join(BASE_DIR, 'logs');
+    fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(
+      path.join(logDir, 'updater.log'),
+      `${JSON.stringify({
+        at: new Date().toISOString(),
+        event,
+        ...details,
+      })}\n`
+    );
+  } catch {
+    // Diagnostic logging must never break update flow.
+  }
+};
+
+const clearInstallWatchdog = (): void => {
+  if (installWatchdogTimer) {
+    clearTimeout(installWatchdogTimer);
+    installWatchdogTimer = null;
+  }
+  const cleanup = installWatchdogCleanup;
+  installWatchdogCleanup = null;
+  cleanup?.();
+};
+
 let status: UpdateStatus = {
   phase: 'idle',
   message: '',
@@ -83,8 +138,155 @@ const emitStatus = (): void => {
 };
 
 const updateStatus = (patch: Partial<UpdateStatus>): void => {
+  const previousPhase = status.phase;
+  if (patch.phase && patch.phase !== 'installing') {
+    clearInstallWatchdog();
+  }
   status = { ...status, ...patch };
+  if (status.phase !== previousPhase) {
+    writeUpdateDiagnosticLog('status-change', {
+      previousPhase,
+      phase: status.phase,
+      version: status.version,
+      message: status.message,
+    });
+  }
   emitStatus();
+};
+
+const getMacDownloadArch = (): 'arm64' | 'x64' => (
+  process.arch === 'x64' ? 'x64' : 'arm64'
+);
+
+const getManualDownloadUrl = (version?: string): string => {
+  if (!version) {
+    return `${GITHUB_RELEASES_URL}/latest`;
+  }
+  const arch = getMacDownloadArch();
+  return `${GITHUB_RELEASES_URL}/download/v${version}/Prokcy-v${version}-mac-${arch}.dmg`;
+};
+
+const getManualUpdateMessage = (version?: string): string => (
+  version
+    ? `Update ${version} is available. On unsigned macOS builds, install it with Homebrew or download the DMG.`
+    : 'A Prokcy update is available. On unsigned macOS builds, install it with Homebrew or download the DMG.'
+);
+
+const setManualDownloadUpdate = (version?: string): void => {
+  clearDownloadedUpdate();
+  updateStatus({
+    phase: 'manual-download',
+    message: getManualUpdateMessage(version),
+    version,
+    progressPercent: 0,
+    downloadedFile: undefined,
+    manualDownloadUrl: getManualDownloadUrl(version),
+    homebrewCommand: HOMEBREW_UPDATE_COMMAND,
+    checking: false,
+    downloading: false,
+    canInstall: false,
+  });
+  writeUpdateDiagnosticLog('manual-download-fallback', {
+    version,
+    homebrewCommand: HOMEBREW_UPDATE_COMMAND,
+    manualDownloadUrl: getManualDownloadUrl(version),
+  });
+};
+
+const createResultFromStatus = (fallbackMessage = 'Checking for updates...'): UpdateResult => {
+  if (status.phase === 'error') {
+    return createFailure(status.message || 'Failed to check for updates.');
+  }
+  if (status.phase === 'idle') {
+    return createSuccess(fallbackMessage, 'checking', status.version);
+  }
+  return createSuccess(
+    status.message || fallbackMessage,
+    status.phase,
+    status.version,
+    {
+      manualDownloadUrl: status.manualDownloadUrl,
+      homebrewCommand: status.homebrewCommand,
+    },
+  );
+};
+
+const isDeveloperIdSignedMacBuild = (): boolean => {
+  try {
+    // eslint-disable-next-line global-require
+    const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
+    const result = spawnSync('codesign', ['-dv', '--verbose=4', process.execPath], {
+      encoding: 'utf8',
+    });
+    const details = `${result.stdout || ''}\n${result.stderr || ''}`;
+    return /Authority=Developer ID Application:/i.test(details);
+  } catch {
+    return false;
+  }
+};
+
+const canInstallUpdatesInApp = (): boolean => {
+  if (process.platform !== 'darwin') {
+    return true;
+  }
+  if (macInAppInstallSupported == null) {
+    macInAppInstallSupported = isDeveloperIdSignedMacBuild();
+    writeUpdateDiagnosticLog('mac-in-app-install-capability', {
+      supported: macInAppInstallSupported,
+    });
+  }
+  return macInAppInstallSupported;
+};
+
+const startInstallWatchdog = (downloaded: PersistedDownloadedUpdate): void => {
+  clearInstallWatchdog();
+
+  try {
+    // eslint-disable-next-line global-require
+    const { app } = require('electron') as typeof import('electron');
+    const onBeforeQuit = (): void => {
+      clearInstallWatchdog();
+    };
+    if (typeof app.once === 'function') {
+      app.once('before-quit', onBeforeQuit);
+      installWatchdogCleanup = () => {
+        if (typeof app.off === 'function') {
+          app.off('before-quit', onBeforeQuit);
+        } else if (typeof app.removeListener === 'function') {
+          app.removeListener('before-quit', onBeforeQuit);
+        }
+      };
+    }
+  } catch {
+    // Watchdog timeout still provides recovery even without app events.
+  }
+
+  installWatchdogTimer = setTimeout(() => {
+    installWatchdogTimer = null;
+    const cleanup = installWatchdogCleanup;
+    installWatchdogCleanup = null;
+    cleanup?.();
+    if (status.phase !== 'installing' || status.version !== downloaded.version) {
+      return;
+    }
+    const message = 'Update installation did not start. Try Install again or download the latest release manually.';
+    writeUpdateDiagnosticLog('install-handoff-timeout', {
+      version: downloaded.version,
+      downloadedFile: downloaded.downloadedFile,
+      timeoutMs: getInstallHandoffTimeoutMs(),
+    });
+    updateStatus({
+      phase: 'error',
+      message,
+      version: downloaded.version,
+      progressPercent: 100,
+      downloadedFile: downloaded.downloadedFile,
+      checking: false,
+      downloading: false,
+      canInstall: true,
+    });
+  }, getInstallHandoffTimeoutMs());
+  installWatchdogTimer.unref?.();
 };
 
 const saveDownloadedUpdate = (downloaded: PersistedDownloadedUpdate | null): void => {
@@ -154,6 +356,11 @@ const restoreDownloadedState = (): void => {
     // ignore version check error
   }
 
+  if (!canInstallUpdatesInApp()) {
+    setManualDownloadUpdate(downloaded.version);
+    return;
+  }
+
   updateStatus({
     phase: 'downloaded',
     message: `Update ${downloaded.version} downloaded. Ready to install.`,
@@ -219,7 +426,7 @@ const ensureAutoUpdater = (): any | null => {
     return autoUpdaterRef;
   }
 
-  autoUpdaterRef.autoDownload = true;
+  autoUpdaterRef.autoDownload = canInstallUpdatesInApp();
   autoUpdaterRef.autoInstallOnAppQuit = false;
 
   autoUpdaterRef.on('checking-for-update', () => {
@@ -248,6 +455,10 @@ const ensureAutoUpdater = (): any | null => {
     const version = typeof info.version === 'string' ? info.version : status.version;
     checking = false;
     clearDownloadedUpdate();
+    if (!canInstallUpdatesInApp()) {
+      setManualDownloadUpdate(version);
+      return;
+    }
     updateStatus({
       phase: 'downloading',
       message: version
@@ -276,6 +487,10 @@ const ensureAutoUpdater = (): any | null => {
 
   autoUpdaterRef.on('update-downloaded', (info: { version?: string; downloadedFile?: string } = {}) => {
     checking = false;
+    if (!canInstallUpdatesInApp()) {
+      setManualDownloadUpdate(info.version || status.version);
+      return;
+    }
     setDownloadedUpdate(info);
   });
 
@@ -302,6 +517,10 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
     return createSuccess(status.message || 'Installing update...', 'installing', status.version);
   }
 
+  if (status.phase === 'manual-download') {
+    return createResultFromStatus();
+  }
+
   if (status.phase === 'downloading') {
     return createSuccess(status.message || 'Downloading update...', 'downloading', status.version);
   }
@@ -315,6 +534,10 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
 
   const existing = ensureDownloadedUpdateValid();
   if (existing) {
+    if (!canInstallUpdatesInApp()) {
+      setManualDownloadUpdate(existing.version);
+      return createResultFromStatus();
+    }
     return createSuccess(
       `Update ${existing.version} is downloaded and ready to install.`,
       'downloaded',
@@ -338,7 +561,7 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
 
   try {
     await updater.checkForUpdates();
-    return createSuccess('Checking for updates...', 'checking');
+    return createResultFromStatus();
   } catch (error) {
     checking = false;
     const message = getUpdaterErrorMessage(error);
@@ -355,6 +578,10 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
 export const getUpdateStatus = (): UpdateStatus => {
   const downloaded = ensureDownloadedUpdateValid();
   if (downloaded && status.phase === 'idle') {
+    if (!canInstallUpdatesInApp()) {
+      setManualDownloadUpdate(downloaded.version);
+      return { ...status };
+    }
     updateStatus({
       phase: 'downloaded',
       message: `Update ${downloaded.version} downloaded. Ready to install.`,
@@ -370,9 +597,18 @@ export const getUpdateStatus = (): UpdateStatus => {
 };
 
 export const installDownloadedUpdate = async (): Promise<UpdateResult> => {
+  if (status.phase === 'manual-download') {
+    return createResultFromStatus();
+  }
+
   const downloaded = ensureDownloadedUpdateValid();
   if (!downloaded) {
     return createFailure('No downloaded update available.');
+  }
+
+  if (!canInstallUpdatesInApp()) {
+    setManualDownloadUpdate(downloaded.version);
+    return createResultFromStatus();
   }
 
   const updater = ensureAutoUpdater();
@@ -391,6 +627,7 @@ export const installDownloadedUpdate = async (): Promise<UpdateResult> => {
       downloading: false,
       canInstall: false,
     });
+    startInstallWatchdog(downloaded);
     updater.quitAndInstall();
     return createSuccess(
       `Installing update ${downloaded.version}...`,

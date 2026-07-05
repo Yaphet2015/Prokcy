@@ -97,8 +97,10 @@ interface SystemProxyResult {
 interface UpdateCheckResult {
   success?: boolean;
   message?: string;
-  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
+  status?: 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'manual-download' | 'installing' | 'error';
   version?: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
 }
 
 interface UpdateCheckOptions {
@@ -107,11 +109,13 @@ interface UpdateCheckOptions {
 }
 
 interface UpdateStatusResult {
-  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'installing' | 'error';
+  phase: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'manual-download' | 'installing' | 'error';
   message: string;
   version?: string;
   progressPercent: number;
   downloadedFile?: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
   checking: boolean;
   downloading: boolean;
   canInstall: boolean;
@@ -189,6 +193,7 @@ interface SystemProxyAPI {
   getUpdateStatus(): Promise<UpdateStatusResult>;
   installDownloadedUpdate(): Promise<UpdateCheckResult>;
   onUpdateStatusChanged(callback: (status: UpdateStatusResult) => void): () => void;
+  openExternalUrl(url: string): Promise<ServiceOperationResult>;
 }
 
 // ============= Complete Electron API =============

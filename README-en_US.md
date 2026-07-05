@@ -110,13 +110,26 @@ Select the installation steps for your operating system. Download the latest ver
 <details>
   <summary>macOS</summary>
 
-##### 1. Select the correct package
+##### 1. Homebrew install (recommended)
+
+```sh
+brew tap Yaphet2015/tap
+brew install --cask prokcy
+```
+
+Upgrade later with:
+
+```sh
+brew upgrade --cask prokcy
+```
+
+##### 2. Manual package
 
 Choose the version matching your Mac processor:
 - Apple Silicon (M series) → ARM 64-bit: [Prokcy-vx.y.z-mac-arm64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
 - Intel/AMD → x86_64: [Prokcy-vx.y.z-mac-x64.dmg](https://github.com/Yaphet2015/Prokcy/releases)
 
-##### 2. Install
+##### 3. Manual install
 
 1. Double-click the downloaded `.dmg` file
 2. Drag the Prokcy icon to the Applications folder
@@ -124,11 +137,12 @@ Choose the version matching your Mac processor:
    - "Application already exists" → Select "Overwrite"
    - Unable to overwrite → Quit the running Prokcy first
 
-##### 3. Security Tips
+##### 4. Security Tips
 
 The current GitHub macOS releases are **unsigned** builds, not Apple-notarized distributions.
 - If macOS says the developer cannot be verified, right-click the app in Finder and choose "Open"
 - If macOS says the app is "damaged", that usually means you downloaded an older ad-hoc signed artifact; download a newer release package instead
+- Because current macOS builds are not Developer ID signed, in-app automatic install is unavailable; upgrade with `brew upgrade --cask prokcy` or download the DMG manually
 
 Some enterprise security software may flag the app. Suggestions:
 - Select "Allow" when running for the first time
@@ -263,7 +277,7 @@ bar.com https://bar-default.test
 <details>
   <summary>macOS says the developer "cannot be verified" or the app is "damaged"</summary>
 
-The macOS builds are **unsigned**. If you see "cannot be verified", right-click the app in Finder and choose "Open". If it says "damaged", you likely downloaded an older ad-hoc signed artifact — grab the latest package from [Releases](https://github.com/Yaphet2015/Prokcy/releases).
+The macOS builds are **unsigned**. If you see "cannot be verified", right-click the app in Finder and choose "Open". If it says "damaged", you likely downloaded an older ad-hoc signed artifact — grab the latest package from [Releases](https://github.com/Yaphet2015/Prokcy/releases). For updates, prefer `brew upgrade --cask prokcy`.
 </details>
 
 <details>

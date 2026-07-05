@@ -7,6 +7,13 @@ interface UpdateProgressState {
   showPercent: boolean;
 }
 
+interface ManualUpdateGuidance {
+  show: boolean;
+  message: string;
+  manualDownloadUrl?: string;
+  homebrewCommand?: string;
+}
+
 export const getCheckUpdateFeedback = (result?: UpdateCheckResult): string => {
   if (!result?.success) {
     return '';
@@ -14,6 +21,10 @@ export const getCheckUpdateFeedback = (result?: UpdateCheckResult): string => {
 
   if (result.status === 'downloaded') {
     return result.message || 'Update downloaded and ready to install.';
+  }
+
+  if (result.status === 'manual-download') {
+    return result.message || 'Install this update with Homebrew or download the latest DMG.';
   }
 
   if (result.status === 'up-to-date') {
@@ -76,5 +87,23 @@ export const getUpdateProgressState = (
     progressPercent: 0,
     indeterminate: false,
     showPercent: false,
+  };
+};
+
+export const getManualUpdateGuidance = (
+  status?: UpdateStatusResult | null
+): ManualUpdateGuidance => {
+  if (!status || status.phase !== 'manual-download') {
+    return {
+      show: false,
+      message: '',
+    };
+  }
+
+  return {
+    show: true,
+    message: status.message || 'Install this update with Homebrew or download the latest DMG.',
+    manualDownloadUrl: status.manualDownloadUrl,
+    homebrewCommand: status.homebrewCommand,
   };
 };

@@ -711,6 +711,23 @@ function initIpc(win: BrowserWindow): void {
     return installDownloadedUpdate();
   });
 
+  ipcMain.handle('open-external-url', async (_event, url: string) => {
+    if (
+      typeof url !== 'string'
+      || !/^https:\/\/github\.com\/Yaphet2015\/Prokcy\/releases\/(latest|download\/v[^/]+\/Prokcy-v[^/]+-mac-(arm64|x64)\.dmg)$/.test(url)
+    ) {
+      return {
+        success: false,
+        message: 'Unsupported external URL',
+      };
+    }
+
+    await shell.openExternal(url);
+    return {
+      success: true,
+    };
+  });
+
   // Notify renderer when theme changes
   nativeTheme.on('updated', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {

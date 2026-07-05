@@ -2,10 +2,19 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const Module = require('node:module');
+const os = require('node:os');
+const path = require('node:path');
 
 function withUpdaterHarness(t, overrides = {}) {
   const originalLoad = Module._load;
   const updaterPath = require.resolve('../../lib/updater');
+  const originalPlatform = process.platform;
+
+  if (overrides.platform) {
+    Object.defineProperty(process, 'platform', {
+      value: overrides.platform,
+    });
+  }
 
   const events = new EventEmitter();
   const calls = {
@@ -35,6 +44,7 @@ function withUpdaterHarness(t, overrides = {}) {
   };
 
   const app = {
+    ...new EventEmitter(),
     isPackaged: overrides.isPackaged ?? true,
     getVersion: () => overrides.appVersion ?? '1.0.0',
   };
@@ -51,6 +61,7 @@ function withUpdaterHarness(t, overrides = {}) {
       store[name] = value;
     },
   };
+  const diagnosticsDir = path.join(os.tmpdir(), `prokcy-updater-test-${Date.now()}-${Math.random()}`);
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'electron') {
@@ -59,17 +70,36 @@ function withUpdaterHarness(t, overrides = {}) {
     if (request === 'electron-updater') {
       return { autoUpdater };
     }
+    if (request === 'node:child_process' || request === 'child_process') {
+      return {
+        spawnSync: () => ({
+          status: 0,
+          stdout: '',
+          stderr: overrides.developerIdSigned === false
+            ? 'Signature=adhoc\n'
+            : 'Authority=Developer ID Application: Yaphet\n',
+        }),
+      };
+    }
     if (request === './dialog' || request.endsWith('/lib/dialog')) {
       return { showMessageBox };
     }
     if (request === './storage' || request.endsWith('/lib/storage')) {
       return { __esModule: true, default: storage };
     }
+    if (request === './util' || request.endsWith('/lib/util')) {
+      return { BASE_DIR: diagnosticsDir };
+    }
     return originalLoad(request, parent, isMain);
   };
 
   t.after(() => {
     Module._load = originalLoad;
+    if (overrides.platform) {
+      Object.defineProperty(process, 'platform', {
+        value: originalPlatform,
+      });
+    }
     delete require.cache[updaterPath];
   });
 
@@ -77,7 +107,7 @@ function withUpdaterHarness(t, overrides = {}) {
   // eslint-disable-next-line global-require, import/no-dynamic-require
   const updater = require('../../lib/updater');
 
-  return { updater, calls, events, app, store };
+  return { updater, calls, events, app, store, autoUpdater };
 }
 
 test('checkForUpdates triggers updater check and reports up-to-date state', async (t) => {
@@ -122,6 +152,31 @@ test('downloaded updates do not auto-install and become installable', async (t) 
   assert.equal(status.version, '9.9.9');
 });
 
+test('unsigned macOS update availability switches to manual download without auto-download', async (t) => {
+  const { updater, calls, events, autoUpdater } = withUpdaterHarness(t, {
+    platform: 'darwin',
+    developerIdSigned: false,
+  });
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '9.9.9' });
+  const result = await promise;
+
+  assert.equal(calls.checkForUpdates, 1);
+  assert.equal(autoUpdater.autoDownload, false);
+  assert.equal(result.success, true);
+  assert.equal(result.status, 'manual-download');
+  assert.equal(result.version, '9.9.9');
+  assert.match(result.manualDownloadUrl, /Prokcy-v9\.9\.9-mac-arm64\.dmg$/);
+  assert.equal(result.homebrewCommand, 'brew upgrade --cask prokcy');
+
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'manual-download');
+  assert.equal(status.downloading, false);
+  assert.equal(status.canInstall, false);
+  assert.equal(status.homebrewCommand, 'brew upgrade --cask prokcy');
+});
+
 test('installDownloadedUpdate triggers quitAndInstall for cached update', async (t) => {
   const { updater, calls, events } = withUpdaterHarness(t);
 
@@ -133,6 +188,29 @@ test('installDownloadedUpdate triggers quitAndInstall for cached update', async 
   const result = await updater.installDownloadedUpdate();
   assert.equal(result.success, true);
   assert.equal(calls.quitAndInstall, 1);
+});
+
+test('unsigned macOS install uses manual download instead of quitAndInstall', async (t) => {
+  const { updater, calls, events } = withUpdaterHarness(t, {
+    platform: 'darwin',
+    developerIdSigned: false,
+  });
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '9.9.9' });
+  events.emit('update-downloaded', { version: '9.9.9', downloadedFile: __filename });
+  await promise;
+
+  const result = await updater.installDownloadedUpdate();
+
+  assert.equal(calls.quitAndInstall, 0);
+  assert.equal(result.success, true);
+  assert.equal(result.status, 'manual-download');
+  assert.equal(result.homebrewCommand, 'brew upgrade --cask prokcy');
+
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'manual-download');
+  assert.equal(status.canInstall, false);
 });
 
 test('automatic checks reuse an in-flight update check', async (t) => {
@@ -168,6 +246,35 @@ test('installDownloadedUpdate updates status to installing before quitting', asy
   assert.equal(status.phase, 'installing');
   assert.equal(status.canInstall, false);
   assert.equal(status.downloading, false);
+});
+
+test('installDownloadedUpdate restores install action when quitAndInstall handoff stalls', async (t) => {
+  const previousTimeout = process.env.PROKCY_UPDATE_INSTALL_TIMEOUT_MS;
+  process.env.PROKCY_UPDATE_INSTALL_TIMEOUT_MS = '5';
+  t.after(() => {
+    if (previousTimeout === undefined) {
+      delete process.env.PROKCY_UPDATE_INSTALL_TIMEOUT_MS;
+    } else {
+      process.env.PROKCY_UPDATE_INSTALL_TIMEOUT_MS = previousTimeout;
+    }
+  });
+
+  const { updater, calls, events } = withUpdaterHarness(t);
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '9.9.9' });
+  events.emit('update-downloaded', { version: '9.9.9', downloadedFile: __filename });
+  await promise;
+
+  await updater.installDownloadedUpdate();
+  assert.equal(calls.quitAndInstall, 1);
+
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'error');
+  assert.equal(status.canInstall, true);
+  assert.match(status.message, /did not start/i);
 });
 
 test('checkForUpdates returns a clean message when a macOS release has no zip artifact', async (t) => {
