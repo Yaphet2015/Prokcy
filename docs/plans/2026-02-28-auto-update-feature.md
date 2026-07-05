@@ -26,6 +26,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
   - renderer shows an indeterminate installing progress bar instead of leaving the UI in `downloaded`.
 - On latest version:
   - user sees "up to date" message.
+- Settings shows the running app version in General > Updates.
 - Manual duplicate checks still return a deterministic error message.
 - Automatic duplicate checks reuse the in-flight check and keep Settings in the existing checking state.
 - Downloaded installer metadata is persisted so app restart can still restore `Install` state.
@@ -61,6 +62,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Update provider/network error: return friendly failure message.
 - Missing macOS ZIP artifact: return a short actionable failure message instead of leaking raw release metadata into Settings.
 - Unsigned macOS update: return a `manual-download` status with GitHub DMG URL and `brew upgrade --cask prokcy`; do not show `Installing update...`.
+- Stale cached/downloaded update metadata for an older or equal version: clear it and report the app as up to date instead of surfacing an old release as available.
 - Install handoff timeout: recover to an error state with the downloaded update still installable.
 - Update state remains recoverable for later manual retry.
 
@@ -76,6 +78,8 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
   - stalled install handoff restores a recoverable state;
   - Settings progress-state logic renders indeterminate install progress;
   - Settings manual-download logic renders Homebrew guidance without progress;
+  - stale cached/downloaded update metadata older than the running app is cleared;
+  - Settings app-version IPC and label formatting expose the current version;
   - macOS package config emits both DMG and ZIP artifacts;
   - missing macOS ZIP updater errors are normalized before reaching Settings.
 
@@ -101,3 +105,5 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Changed unsigned macOS update behavior from in-app install handoff to `manual-download` with `brew upgrade --cask prokcy` and latest DMG guidance.
 - Added an install handoff watchdog so supported updater targets recover if `quitAndInstall()` does not quit the app.
 - Added updater diagnostics under the existing Prokcy app data log area.
+- Added a running-version display to Settings > General > Updates.
+- Fixed stale pending update metadata so older/equal versions, such as a cached `1.8.14` ZIP on a `1.8.16` app, are cleared instead of shown as available.

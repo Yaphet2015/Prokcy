@@ -192,6 +192,7 @@ interface SystemProxyAPI {
   checkForUpdates(options?: UpdateCheckOptions): Promise<UpdateCheckResult>;
   getUpdateStatus(): Promise<UpdateStatusResult>;
   installDownloadedUpdate(): Promise<UpdateCheckResult>;
+  getAppVersion(): Promise<string>;
   onUpdateStatusChanged(callback: (status: UpdateStatusResult) => void): () => void;
   openExternalUrl(url: string): Promise<ServiceOperationResult>;
 }

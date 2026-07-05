@@ -81,6 +81,9 @@ function createIpcHarness(t, overrides = {}) {
             handlers.set(name, handler);
           },
         },
+        app: {
+          getVersion: () => overrides.appVersion ?? '1.8.16',
+        },
         nativeTheme: {
           shouldUseDarkColors: false,
           on: () => {},
@@ -294,6 +297,16 @@ test('get-runtime-config exposes health-based running state', async (t) => {
 
   assert.equal(result.running, false);
   assert.equal(harness.httpCalls[0].path, '/cgi-bin/values/list2');
+});
+
+test('get-app-version exposes the running Electron app version', async (t) => {
+  const { handlers } = createIpcHarness(t, {
+    appVersion: '1.8.16',
+  });
+
+  const result = await handlers.get('get-app-version')();
+
+  assert.equal(result, '1.8.16');
 });
 
 test('stop-service still kills a residual child after health has fallen false', async (t) => {

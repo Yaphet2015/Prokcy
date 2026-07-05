@@ -107,3 +107,11 @@ export const getManualUpdateGuidance = (
     homebrewCommand: status.homebrewCommand,
   };
 };
+
+export const formatCurrentVersion = (version?: string): string => {
+  const normalized = String(version || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  return normalized.startsWith('v') ? normalized : `v${normalized}`;
+};

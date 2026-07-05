@@ -177,6 +177,31 @@ test('unsigned macOS update availability switches to manual download without aut
   assert.equal(status.homebrewCommand, 'brew upgrade --cask prokcy');
 });
 
+test('unsigned macOS ignores update availability that is not newer than current app', async (t) => {
+  const { updater, calls, events } = withUpdaterHarness(t, {
+    platform: 'darwin',
+    developerIdSigned: false,
+    appVersion: '1.8.16',
+  });
+
+  const promise = updater.checkForUpdates();
+  events.emit('update-available', { version: '1.8.14' });
+  const result = await promise;
+
+  assert.equal(calls.checkForUpdates, 1);
+  assert.equal(result.success, true);
+  assert.equal(result.status, 'up-to-date');
+  assert.equal(result.version, undefined);
+  assert.match(result.message, /up to date/i);
+
+  const status = updater.getUpdateStatus();
+  assert.equal(status.phase, 'up-to-date');
+  assert.equal(status.version, undefined);
+  assert.equal(status.canInstall, false);
+  assert.equal(status.manualDownloadUrl, undefined);
+  assert.equal(status.homebrewCommand, undefined);
+});
+
 test('installDownloadedUpdate triggers quitAndInstall for cached update', async (t) => {
   const { updater, calls, events } = withUpdaterHarness(t);
 
@@ -211,6 +236,28 @@ test('unsigned macOS install uses manual download instead of quitAndInstall', as
   const status = updater.getUpdateStatus();
   assert.equal(status.phase, 'manual-download');
   assert.equal(status.canInstall, false);
+});
+
+test('cached downloaded update older than current app is cleared instead of restored', async (t) => {
+  const { updater, store } = withUpdaterHarness(t, {
+    platform: 'darwin',
+    developerIdSigned: false,
+    appVersion: '1.8.16',
+  });
+  store.downloadedUpdateInfo = {
+    version: '1.8.14',
+    downloadedFile: __filename,
+    downloadedAt: Date.now(),
+  };
+
+  const status = updater.getUpdateStatus();
+
+  assert.equal(store.downloadedUpdateInfo, null);
+  assert.equal(status.phase, 'idle');
+  assert.equal(status.version, undefined);
+  assert.equal(status.canInstall, false);
+  assert.equal(status.manualDownloadUrl, undefined);
+  assert.equal(status.homebrewCommand, undefined);
 });
 
 test('automatic checks reuse an in-flight update check', async (t) => {

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
 import storage from './storage';
+import { getAppVersion } from './app-version';
 
 type UpdatePhase = 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'downloaded' | 'manual-download' | 'installing' | 'error';
 type UpdateResultStatus = Exclude<UpdatePhase, 'idle'>;
@@ -152,6 +153,84 @@ const updateStatus = (patch: Partial<UpdateStatus>): void => {
     });
   }
   emitStatus();
+};
+
+const parseComparableVersion = (
+  rawVersion?: string
+): { parts: number[]; prerelease: string } | null => {
+  const version = String(rawVersion || '').trim().replace(/^v/i, '');
+  if (!version) {
+    return null;
+  }
+
+  const [core, prerelease = ''] = version.split('-', 2);
+  const parts = core.split('.').map((part) => Number(part));
+  if (!parts.length || parts.some((part) => !Number.isInteger(part) || part < 0)) {
+    return null;
+  }
+
+  return { parts, prerelease };
+};
+
+const compareVersions = (left?: string, right?: string): number | null => {
+  const leftVersion = parseComparableVersion(left);
+  const rightVersion = parseComparableVersion(right);
+  if (!leftVersion || !rightVersion) {
+    return null;
+  }
+
+  const length = Math.max(leftVersion.parts.length, rightVersion.parts.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftPart = leftVersion.parts[index] || 0;
+    const rightPart = rightVersion.parts[index] || 0;
+    if (leftPart !== rightPart) {
+      return leftPart > rightPart ? 1 : -1;
+    }
+  }
+
+  if (leftVersion.prerelease === rightVersion.prerelease) {
+    return 0;
+  }
+  if (!leftVersion.prerelease) {
+    return 1;
+  }
+  if (!rightVersion.prerelease) {
+    return -1;
+  }
+  return leftVersion.prerelease.localeCompare(rightVersion.prerelease);
+};
+
+const isUpdateVersionNewerThanCurrentApp = (version?: string): boolean => {
+  if (!version) {
+    return true;
+  }
+
+  const currentVersion = getAppVersion();
+  const comparison = compareVersions(version, currentVersion);
+  if (comparison == null) {
+    writeUpdateDiagnosticLog('version-compare-skipped', {
+      version,
+      currentVersion,
+    });
+    return true;
+  }
+
+  return comparison > 0;
+};
+
+const setUpToDateStatus = (message = 'Prokcy is up to date.'): void => {
+  updateStatus({
+    phase: 'up-to-date',
+    message,
+    version: undefined,
+    progressPercent: 0,
+    downloadedFile: undefined,
+    manualDownloadUrl: undefined,
+    homebrewCommand: undefined,
+    checking: false,
+    downloading: false,
+    canInstall: false,
+  });
 };
 
 const getMacDownloadArch = (): 'arm64' | 'x64' => (
@@ -335,6 +414,29 @@ const ensureDownloadedUpdateValid = (): PersistedDownloadedUpdate | null => {
     clearDownloadedUpdate();
     return null;
   }
+  if (!isUpdateVersionNewerThanCurrentApp(downloaded.version)) {
+    writeUpdateDiagnosticLog('stale-downloaded-update-cleared', {
+      version: downloaded.version,
+      currentVersion: getAppVersion(),
+      downloadedFile: downloaded.downloadedFile,
+    });
+    clearDownloadedUpdate();
+    if (status.phase === 'downloaded' || status.phase === 'manual-download' || status.phase === 'installing' || status.canInstall) {
+      updateStatus({
+        phase: 'idle',
+        message: '',
+        version: undefined,
+        progressPercent: 0,
+        downloadedFile: undefined,
+        manualDownloadUrl: undefined,
+        homebrewCommand: undefined,
+        checking: false,
+        downloading: false,
+        canInstall: false,
+      });
+    }
+    return null;
+  }
   return downloaded;
 };
 
@@ -342,18 +444,6 @@ const restoreDownloadedState = (): void => {
   const downloaded = ensureDownloadedUpdateValid();
   if (!downloaded) {
     return;
-  }
-
-  try {
-    // eslint-disable-next-line global-require
-    const { app } = require('electron') as typeof import('electron');
-    const currentVersion = typeof app.getVersion === 'function' ? app.getVersion() : '';
-    if (currentVersion && currentVersion === downloaded.version) {
-      clearDownloadedUpdate();
-      return;
-    }
-  } catch {
-    // ignore version check error
   }
 
   if (!canInstallUpdatesInApp()) {
@@ -376,6 +466,17 @@ const restoreDownloadedState = (): void => {
 const setDownloadedUpdate = (info: { version?: string; downloadedFile?: string }): void => {
   const version = typeof info.version === 'string' ? info.version : '';
   const downloadedFile = typeof info.downloadedFile === 'string' ? info.downloadedFile : '';
+
+  if (!isUpdateVersionNewerThanCurrentApp(version)) {
+    writeUpdateDiagnosticLog('stale-downloaded-update-cleared', {
+      version,
+      currentVersion: getAppVersion(),
+      downloadedFile,
+    });
+    clearDownloadedUpdate();
+    setUpToDateStatus();
+    return;
+  }
 
   if (!version || !downloadedFile || !fs.existsSync(downloadedFile)) {
     updateStatus({
@@ -442,19 +543,21 @@ const ensureAutoUpdater = (): any | null => {
 
   autoUpdaterRef.on('update-not-available', () => {
     checking = false;
-    updateStatus({
-      phase: 'up-to-date',
-      message: 'Prokcy is up to date.',
-      checking: false,
-      downloading: false,
-      progressPercent: 0,
-    });
+    setUpToDateStatus();
   });
 
   autoUpdaterRef.on('update-available', (info: { version?: string } = {}) => {
     const version = typeof info.version === 'string' ? info.version : status.version;
     checking = false;
     clearDownloadedUpdate();
+    if (!isUpdateVersionNewerThanCurrentApp(version)) {
+      writeUpdateDiagnosticLog('stale-update-available-ignored', {
+        version,
+        currentVersion: getAppVersion(),
+      });
+      setUpToDateStatus();
+      return;
+    }
     if (!canInstallUpdatesInApp()) {
       setManualDownloadUpdate(version);
       return;
@@ -487,11 +590,22 @@ const ensureAutoUpdater = (): any | null => {
 
   autoUpdaterRef.on('update-downloaded', (info: { version?: string; downloadedFile?: string } = {}) => {
     checking = false;
-    if (!canInstallUpdatesInApp()) {
-      setManualDownloadUpdate(info.version || status.version);
+    const version = info.version || status.version;
+    if (!isUpdateVersionNewerThanCurrentApp(version)) {
+      writeUpdateDiagnosticLog('stale-downloaded-update-cleared', {
+        version,
+        currentVersion: getAppVersion(),
+        downloadedFile: info.downloadedFile,
+      });
+      clearDownloadedUpdate();
+      setUpToDateStatus();
       return;
     }
-    setDownloadedUpdate(info);
+    if (!canInstallUpdatesInApp()) {
+      setManualDownloadUpdate(version);
+      return;
+    }
+    setDownloadedUpdate({ ...info, version });
   });
 
   autoUpdaterRef.on('error', (error: Error | unknown) => {
@@ -518,6 +632,10 @@ export const checkForUpdates = async (options: UpdateCheckOptions = {}): Promise
   }
 
   if (status.phase === 'manual-download') {
+    if (!isUpdateVersionNewerThanCurrentApp(status.version)) {
+      clearDownloadedUpdate();
+      setUpToDateStatus();
+    }
     return createResultFromStatus();
   }
 

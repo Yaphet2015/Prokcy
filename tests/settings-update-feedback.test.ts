@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  formatCurrentVersion,
   getCheckUpdateFeedback,
   getManualUpdateGuidance,
   getUpdateProgressState,
@@ -77,4 +78,10 @@ test('manual update guidance exposes Homebrew command and download URL', () => {
   assert.equal(guidance.show, true);
   assert.equal(guidance.homebrewCommand, 'brew upgrade --cask prokcy');
   assert.match(guidance.manualDownloadUrl, /Prokcy-v1\.2\.3-mac-arm64\.dmg$/);
+});
+
+test('current version label uses the app version with a v prefix', () => {
+  assert.equal(formatCurrentVersion('1.8.16'), 'v1.8.16');
+  assert.equal(formatCurrentVersion('v1.8.16'), 'v1.8.16');
+  assert.equal(formatCurrentVersion(''), '');
 });

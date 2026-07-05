@@ -8,6 +8,7 @@ import {
 import { Download, Save } from 'lucide-react';
 import ContentHeader from '../../shared/ui/ContentHeader';
 import {
+  formatCurrentVersion,
   getCheckUpdateFeedback,
   getManualUpdateGuidance,
   getUpdateProgressState,
@@ -270,6 +271,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [updateFeedback, setUpdateFeedback] = useState('');
   const [updateError, setUpdateError] = useState('');
+  const [currentVersion, setCurrentVersion] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -306,6 +308,26 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAppVersion = async () => {
+      try {
+        const version = await window.electron?.getAppVersion?.();
+        if (!cancelled && typeof version === 'string') {
+          setCurrentVersion(version);
+        }
+      } catch {
+        // Version text is informational; update checks still surface failures.
+      }
+    };
+
+    loadAppVersion();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!window.electron?.getUpdateStatus) {
@@ -361,6 +383,7 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
   const canInstallDownloadedUpdate = !!updateStatus?.canInstall;
   const updateProgress = useMemo(() => getUpdateProgressState(updateStatus), [updateStatus]);
   const manualUpdateGuidance = useMemo(() => getManualUpdateGuidance(updateStatus), [updateStatus]);
+  const currentVersionLabel = useMemo(() => formatCurrentVersion(currentVersion), [currentVersion]);
 
   const updateField = <K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -1045,6 +1068,15 @@ export default function Settings({ isSidebarCollapsed }: { isSidebarCollapsed: b
                         Updates
                       </h2>
                       <div className="max-w-xl space-y-3">
+                        {currentVersionLabel && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Current version:
+                            {' '}
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                              {currentVersionLabel}
+                            </span>
+                          </p>
+                        )}
                         <div className="flex items-center gap-3">
                           <Button
                             variant="secondary"

@@ -36,6 +36,7 @@ import {
   onUpdateStatusChanged,
   type UpdateCheckOptions,
 } from './updater';
+import { getAppVersion } from './app-version';
 import type { IpcRequest, NetworkQuery } from './types/electron';
 import { resolveFileProtocolTarget } from './file-target';
 
@@ -709,6 +710,10 @@ function initIpc(win: BrowserWindow): void {
 
   ipcMain.handle('install-downloaded-update', async () => {
     return installDownloadedUpdate();
+  });
+
+  ipcMain.handle('get-app-version', () => {
+    return getAppVersion();
   });
 
   ipcMain.handle('open-external-url', async (_event, url: string) => {
