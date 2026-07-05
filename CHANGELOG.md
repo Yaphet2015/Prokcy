@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.17](https://github.com/Yaphet2015/Prokcy/compare/v1.8.16...v1.8.17) (2026-07-05)
+
+
+### Bug Fixes
+
+* ignore stale updater metadata ([9f6d328](https://github.com/Yaphet2015/Prokcy/commit/9f6d3283c554a1043953470b9f733e9db3b236ec))
+
 ### [1.8.15](https://github.com/Yaphet2015/Prokcy/compare/v1.8.14...v1.8.15) (2026-07-05)
 
 
