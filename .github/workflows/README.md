@@ -30,8 +30,9 @@ This directory contains automated CI/CD workflows for Prokcy.
 **Jobs:**
 - **Build:** Builds release artifacts for all platforms
 - **Release:** Creates a GitHub release from uploaded artifacts
+- **Update Homebrew Tap:** Updates the `prokcy` cask in `Yaphet2015/homebrew-tap`
 
-**Purpose:** Automated release creation with binaries
+**Purpose:** Automated release creation with binaries and Homebrew cask updates
 
 ## How to Use
 
@@ -52,10 +53,11 @@ This directory contains automated CI/CD workflows for Prokcy.
    - Build the application for macOS, Windows, and Linux
    - Create a GitHub release
    - Upload all platform-specific binaries
+   - Update the Homebrew cask with the released macOS DMG checksums
 
 4. **Review and publish:**
    - Go to the Releases page on GitHub
-   - Verify binaries and release notes
+   - Verify binaries, release notes, and the `Yaphet2015/homebrew-tap` update
 
 ### Manual Workflow Dispatch
 
@@ -84,6 +86,10 @@ You can also trigger builds manually from the GitHub Actions tab:
 ## Secrets Required
 
 The workflows use GitHub's built-in `GITHUB_TOKEN`, which is automatically provided for repository access and release uploads.
+
+For Homebrew:
+- `HOMEBREW_TAP_TOKEN` is required by the Release workflow to push `Casks/prokcy.rb` updates to `Yaphet2015/homebrew-tap`.
+- Use a fine-grained token with contents write access to `Yaphet2015/homebrew-tap`.
 
 For macOS only:
 - Unsigned artifacts need no extra secrets

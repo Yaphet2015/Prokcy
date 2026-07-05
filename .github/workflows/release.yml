@@ -145,3 +145,101 @@ jobs:
             cat /tmp/release.json
             exit 1
           fi
+
+  update-homebrew-tap:
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure Homebrew tap token is configured
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN is required to update Yaphet2015/homebrew-tap."
+            echo "Create a fine-grained token with contents write access to Yaphet2015/homebrew-tap."
+            exit 1
+          fi
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: Yaphet2015/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Read release asset digests
+        id: cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          VERSION_NUMBER="${VERSION#v}"
+
+          asset_digest() {
+            local asset_name="$1"
+            gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${VERSION}" \
+              --jq ".assets[] | select(.name == \"$asset_name\") | .digest"
+          }
+
+          require_sha256_digest() {
+            local label="$1"
+            local digest="$2"
+            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Expected sha256 digest for $label, got: ${digest:-<empty>}"
+              exit 1
+            fi
+          }
+
+          ARM_DIGEST="$(asset_digest "Prokcy-v${VERSION_NUMBER}-mac-arm64.dmg")"
+          INTEL_DIGEST="$(asset_digest "Prokcy-v${VERSION_NUMBER}-mac-x64.dmg")"
+
+          require_sha256_digest "mac arm64 DMG" "$ARM_DIGEST"
+          require_sha256_digest "mac x64 DMG" "$INTEL_DIGEST"
+
+          {
+            echo "version_number=$VERSION_NUMBER"
+            echo "arm_sha256=${ARM_DIGEST#sha256:}"
+            echo "intel_sha256=${INTEL_DIGEST#sha256:}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update Prokcy cask
+        env:
+          VERSION_NUMBER: ${{ steps.cask.outputs.version_number }}
+          ARM_SHA256: ${{ steps.cask.outputs.arm_sha256 }}
+          INTEL_SHA256: ${{ steps.cask.outputs.intel_sha256 }}
+        run: |
+          set -euo pipefail
+          ruby <<'RUBY'
+          path = "homebrew-tap/Casks/prokcy.rb"
+          version = ENV.fetch("VERSION_NUMBER")
+          arm_sha = ENV.fetch("ARM_SHA256")
+          intel_sha = ENV.fetch("INTEL_SHA256")
+
+          text = File.read(path)
+          abort "Missing version in #{path}" unless text.sub!(/version "[^"]+"/, "version \"#{version}\"")
+          abort "Missing arm64 sha256 in #{path}" unless text.sub!(/on_arm do\n    sha256 "[0-9a-f]{64}"/, "on_arm do\n    sha256 \"#{arm_sha}\"")
+          abort "Missing x64 sha256 in #{path}" unless text.sub!(/on_intel do\n    sha256 "[0-9a-f]{64}"/, "on_intel do\n    sha256 \"#{intel_sha}\"")
+          File.write(path, text)
+          RUBY
+
+          ruby -c homebrew-tap/Casks/prokcy.rb
+
+      - name: Commit and push Homebrew tap update
+        working-directory: homebrew-tap
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- Casks/prokcy.rb; then
+            echo "Prokcy cask is already current for ${{ github.ref_name }}."
+            exit 0
+          fi
+
+          git add Casks/prokcy.rb
+          git commit -m "prokcy ${{ steps.cask.outputs.version_number }}"
+          git push

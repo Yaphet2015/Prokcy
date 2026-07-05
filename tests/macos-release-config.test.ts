@@ -83,6 +83,46 @@ test('GitHub release workflow marks macOS artifacts as unsigned when no Apple cr
   );
 });
 
+test('GitHub release workflow updates Homebrew cask after publishing macOS release assets', () => {
+  const workflow = readText('.github/workflows/release.yml');
+
+  assert.match(
+    workflow,
+    /update-homebrew-tap:\n\s+needs: release/,
+    'Homebrew cask update should run only after the GitHub release job has published assets',
+  );
+
+  assert.match(
+    workflow,
+    /repository: Yaphet2015\/homebrew-tap/,
+    'release workflow should update the canonical Yaphet2015/tap repository',
+  );
+
+  assert.match(
+    workflow,
+    /HOMEBREW_TAP_TOKEN/,
+    'cross-repo tap updates should require an explicit write token instead of silently relying on GITHUB_TOKEN',
+  );
+
+  assert.match(
+    workflow,
+    /Prokcy-v\$\{VERSION_NUMBER\}-mac-arm64\.dmg/,
+    'tap update should derive the Apple Silicon cask checksum from the published DMG asset',
+  );
+
+  assert.match(
+    workflow,
+    /Prokcy-v\$\{VERSION_NUMBER\}-mac-x64\.dmg/,
+    'tap update should derive the Intel cask checksum from the published DMG asset',
+  );
+
+  assert.match(
+    workflow,
+    /ruby -c homebrew-tap\/Casks\/prokcy\.rb/,
+    'tap update should validate the cask syntax before committing it',
+  );
+});
+
 test('setup guide documents the macOS signing limitation', () => {
   const docs = readText('GITHUB_ACTIONS_SETUP.md');
 

@@ -31,6 +31,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Automatic duplicate checks reuse the in-flight check and keep Settings in the existing checking state.
 - Downloaded installer metadata is persisted so app restart can still restore `Install` state.
 - macOS releases must include `.zip` artifacts in `latest-mac.yml`; `.dmg` remains the manual installer, while `electron-updater` requires `.zip` for in-app updates.
+- Tag releases update the Homebrew Cask in `Yaphet2015/homebrew-tap` after the GitHub release exists, using the published macOS DMG asset digests.
 - Current unsigned/ad-hoc macOS builds are not Developer ID signed, so Prokcy must not call `quitAndInstall()` on macOS until signed distribution is available.
 
 ## Architecture
@@ -61,6 +62,7 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Not packaged/dev mode: return informative failure.
 - Update provider/network error: return friendly failure message.
 - Missing macOS ZIP artifact: return a short actionable failure message instead of leaking raw release metadata into Settings.
+- Missing Homebrew tap token in release automation: fail the release workflow after GitHub release creation instead of silently leaving the cask stale.
 - Unsigned macOS update: return a `manual-download` status with GitHub DMG URL and `brew upgrade --cask prokcy`; do not show `Installing update...`.
 - Stale cached/downloaded update metadata for an older or equal version: clear it and report the app as up to date instead of surfacing an old release as available.
 - Install handoff timeout: recover to an error state with the downloaded update still installable.
@@ -107,3 +109,8 @@ Add a unified update flow that can be triggered from both the menu bar and Setti
 - Added updater diagnostics under the existing Prokcy app data log area.
 - Added a running-version display to Settings > General > Updates.
 - Fixed stale pending update metadata so older/equal versions, such as a cached `1.8.14` ZIP on a `1.8.16` app, are cleared instead of shown as available.
+
+## 2026-07-05 Release Automation Update
+- Added a post-release Homebrew tap update job to `.github/workflows/release.yml`.
+- The job reads the published `Prokcy-v{version}-mac-arm64.dmg` and `Prokcy-v{version}-mac-x64.dmg` `sha256` digests from GitHub release assets, updates `Casks/prokcy.rb`, checks Ruby syntax, and pushes the tap commit.
+- The job requires `HOMEBREW_TAP_TOKEN` with contents write access to `Yaphet2015/homebrew-tap`; missing configuration fails loudly so macOS Settings guidance cannot point users to a stale cask unnoticed.
