@@ -99,6 +99,8 @@ Full-height Monaco Editor with toolbar (Save, Revert, Enable/Disable All). Statu
 - Cmd/Ctrl+/ to toggle comments
 - Cmd/Ctrl+Click on Whistle local file targets opens the target with the OS default application via Electron main-process IPC, including `file:///absolute/path`, `file://~/path`, and Windows drive paths such as `file://C:/tmp/a.js`; when the local target does not exist, Prokcy creates the empty file and any missing parent directories before opening it
 - Cmd/Ctrl+Click on `protocol://{valueKey}` including `file://{valueKey}` switches to Values, selects the referenced key, and focuses the Value editor
+- Autocomplete inside `protocol://{valueKey}` suggests current Values keys, including non-ASCII keys, and replaces only the text inside the braces
+- Values create, delete, and rename operations notify the App shell so Rules refreshes the completion key list without moving Values state into the startup path
 - Paste handling uses a renderer-side fallback only for the Monaco text surface; find widget and other Monaco input controls keep native paste behavior
 - Error squiggles for invalid syntax
 
@@ -255,6 +257,7 @@ Register `whistle` language with syntax highlighting:
 - Comments (`#`) → gray
 - Multi-line rule support
 - Autocomplete includes the full protocol set listed in Whistle docs (including aliases like `xhttp-proxy`, `xhttps-proxy`, and filter forms such as `lineProps`, `excludeFilter`, `includeFilter`)
+- Autocomplete also covers the value-key segment of `protocol://{valueKey}` by reading the lightweight Values key list when Rules mounts and when Values key structure changes
 
 ### Custom Themes
 
