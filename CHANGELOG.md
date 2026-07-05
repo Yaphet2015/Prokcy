@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.15](https://github.com/Yaphet2015/Prokcy/compare/v1.8.14...v1.8.15) (2026-07-05)
+
+
+### Features
+
+* **rules:** autocomplete value references ([9314392](https://github.com/Yaphet2015/Prokcy/commit/9314392ad4dcab6eb8bc930922d93186f9c6143c))
+* **values:** refresh rule completions on key changes ([e594d58](https://github.com/Yaphet2015/Prokcy/commit/e594d58101ca46ecb5f7b8e331c4a5275ea93f30))
+
 ### [1.8.14](https://github.com/Yaphet2015/Prokcy/compare/v1.8.13...v1.8.14) (2026-06-15)
 
 
